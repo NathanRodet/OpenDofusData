@@ -107,8 +107,8 @@ class PriceStore:
 
     def iter_lot_prices(self) -> Iterator[LotPrice]:
         """Yield every lot price, oldest first."""
-        for row in self._open().execute(f"SELECT {LOT_COLUMNS} FROM lot_prices ORDER BY captured_at, id"):
-            yield LotPrice(*row)
+        rows = self._open().execute(f"SELECT {LOT_COLUMNS} FROM lot_prices ORDER BY captured_at, id")
+        yield from (LotPrice(*row) for row in rows)
 
     def market_stats_history(self, item_id: int, period: str) -> list[MarketStats]:
         """Return stored market statistics for an item and period, oldest first."""
@@ -129,25 +129,32 @@ class PriceStore:
         return self._connection
 
     def _insert(self, statement: str, values: tuple) -> None:
-        connection = self._open()
-        connection.execute(statement, values)
-        connection.commit()
+        self._open().execute(statement, values)
+        self._open().commit()
 
 
 def _stats_from_row(row: tuple) -> MarketStats:
-    points = [(timestamp, price) for timestamp, price in json.loads(row[3])]
-    return MarketStats(*row[:3], points, *row[4:])
+    return MarketStats(*row[:3], [tuple(point) for point in json.loads(row[3])], *row[4:])
 
 
 class StoreWriter:
-    """Saves submitted records from a daemon thread owning its own PriceStore."""
+    """Saves submitted records from a daemon thread owning its own PriceStore.
+
+    Single-producer contract: call submit() from one thread only. Callers must
+    call stop() to flush the queue and close the database.
+    """
 
     def __init__(self, store_path: str) -> None:
         self._store_path = store_path
         self._queue: queue.Queue[LotPrice | MarketStats | None] = queue.Queue()
-        self._stopped = False
+        self._stopped, self._open_error = False, None
+        self._opened = threading.Event()
         self._thread = threading.Thread(target=self._run, name="store-writer", daemon=True)
         self._thread.start()
+        self._opened.wait()
+        if self._open_error is not None:
+            self._thread.join()
+            raise self._open_error
 
     def submit(self, record: LotPrice | MarketStats) -> None:
         """Queue a record for saving without blocking; raise RuntimeError after stop()."""
@@ -161,9 +168,18 @@ class StoreWriter:
             self._stopped = True
             self._queue.put(None)
         self._thread.join(WRITER_JOIN_TIMEOUT_SECONDS)
+        if self._thread.is_alive():
+            logger.warning("Store writer thread still running after %s seconds", WRITER_JOIN_TIMEOUT_SECONDS)
 
     def _run(self) -> None:
-        store = PriceStore(self._store_path)
+        try:
+            store = PriceStore(self._store_path)
+        except sqlite3.Error as error:
+            logger.exception("Cannot open price database %s", self._store_path)
+            self._open_error = error
+            return
+        finally:
+            self._opened.set()
         try:
             while (record := self._queue.get()) is not None:
                 self._save(store, record)
@@ -172,10 +188,12 @@ class StoreWriter:
 
     @staticmethod
     def _save(store: PriceStore, record: LotPrice | MarketStats) -> None:
+        # Broad catch on purpose: this is the thread boundary, the error is logged
+        # and the thread must survive to keep saving later records.
         try:
             if isinstance(record, LotPrice):
                 store.save_lot_price(record)
             else:
                 store.save_market_stats(record)
-        except (ValueError, sqlite3.Error):
+        except Exception:
             logger.exception("Failed to save record %r", record)

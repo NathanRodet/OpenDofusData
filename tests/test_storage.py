@@ -1,6 +1,8 @@
 """Tests for the SQLite price store and its threaded writer."""
 
 import logging
+import sqlite3
+import threading
 from collections.abc import Iterator
 
 import pytest
@@ -115,3 +117,27 @@ def test_submit_after_stop_raises(tmp_path) -> None:
     writer.stop()
     with pytest.raises(RuntimeError):
         writer.submit(make_lot(1, "2026-11-09T10:00:00+00:00"))
+
+
+def test_store_writer_fails_fast_on_invalid_path(tmp_path, caplog: pytest.LogCaptureFixture) -> None:
+    threads_before = threading.active_count()
+    with caplog.at_level(logging.ERROR):
+        with pytest.raises(sqlite3.Error):
+            StoreWriter(str(tmp_path / "missing_directory" / "prices.db"))
+    assert any(record.levelno == logging.ERROR for record in caplog.records)
+    assert threading.active_count() == threads_before
+
+
+def test_store_writer_survives_an_overflowing_record(tmp_path, caplog: pytest.LogCaptureFixture) -> None:
+    path = str(tmp_path / "prices.db")
+    writer = StoreWriter(path)
+    writer.submit(make_lot(2**63, "2026-11-09T10:00:00+00:00"))
+    writer.submit(make_lot(2, "2026-11-09T10:00:00+00:00"))
+    with caplog.at_level(logging.ERROR):
+        writer.stop()
+    assert any(record.levelno == logging.ERROR for record in caplog.records)
+    reader = PriceStore(path)
+    try:
+        assert [lot.price for lot in reader.price_history(100, 1)] == [2]
+    finally:
+        reader.close()
