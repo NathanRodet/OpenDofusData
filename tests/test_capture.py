@@ -4,7 +4,9 @@ import pytest
 from scapy.layers.inet import IP, TCP
 from scapy.packet import Raw
 
-from dofus_prices.capture import DOFUS_PORT, PacketPipeline, direction_of
+import logging
+
+from dofus_prices.capture import DOFUS_PORT, CaptureAborted, PacketPipeline, direction_of
 from dofus_prices.framing import TYPE_URL_PREFIX, Envelope
 
 CLIENT = "10.0.0.2"
@@ -109,3 +111,48 @@ def test_callback_exception_does_not_escape(caplog) -> None:
 def test_direction_is_decided_by_the_server_port() -> None:
     assert direction_of((CLIENT, CLIENT_PORT, SERVER, DOFUS_PORT)) == "client_to_server"
     assert direction_of((SERVER, DOFUS_PORT, CLIENT, CLIENT_PORT)) == "server_to_client"
+
+
+def offloaded(seq: int, payload: bytes) -> IP:
+    packet = segment(seq, payload)
+    packet["IP"].len = 0
+    return packet
+
+
+def test_zero_ip_length_falls_back_to_captured_payload_and_warns_once(
+    pipeline, delivered, caplog
+) -> None:
+    caplog.set_level(logging.WARNING)
+    first, second = frame("One", b"1"), frame("Two", b"2")
+    pipeline.handle_packet(offloaded(1000, first))
+    pipeline.handle_packet(offloaded(1000 + len(first), second))
+    assert [envelope.type_name for envelope, _ in delivered] == ["One", "Two"]
+    assert caplog.text.count("segmentation offload") == 1
+
+
+def test_nonzero_ip_length_smaller_than_headers_is_dropped(pipeline, delivered) -> None:
+    packet = segment(1000, frame("Demo", b"x"))
+    packet["IP"].len = 10
+    pipeline.handle_packet(packet)
+    assert delivered == []
+
+
+def test_capture_aborted_escapes_handle_packet() -> None:
+    def aborting(envelope, key) -> None:
+        raise CaptureAborted("disk full")
+
+    with pytest.raises(CaptureAborted):
+        PacketPipeline(aborting).handle_packet(segment(1000, frame("Demo", b"x")))
+
+
+def test_failing_callback_does_not_discard_remaining_envelopes(caplog) -> None:
+    seen: list[str] = []
+
+    def flaky(envelope, key) -> None:
+        seen.append(envelope.type_name)
+        if envelope.type_name == "First":
+            raise RuntimeError("boom")
+
+    data = frame("First", b"1") + frame("Second", b"2")
+    PacketPipeline(flaky).handle_packet(segment(1000, data))
+    assert seen == ["First", "Second"]

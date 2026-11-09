@@ -19,6 +19,10 @@ DIRECTION_TO_SERVER = "client_to_server"
 DIRECTION_TO_CLIENT = "server_to_client"
 
 
+class CaptureAborted(Exception):
+    """Raised by an envelope callback to stop the capture (for example, disk full)."""
+
+
 def direction_of(key: FlowKey) -> str:
     """Return the direction of a flow: the side using the Dofus port is the server."""
     return DIRECTION_TO_CLIENT if key[1] == DOFUS_PORT else DIRECTION_TO_SERVER
@@ -37,11 +41,14 @@ class PacketPipeline:
         self._flows = FlowTable()
         self._extractors: dict[FlowKey, EnvelopeExtractor] = {}
         self._last_purge = clock()
+        self._offload_warned = False
 
     def handle_packet(self, packet: Any) -> None:
         """Process one captured packet; never raises."""
         try:
             self._process(packet)
+        except CaptureAborted:
+            raise
         except Exception:
             logger.exception("error while processing a packet")
 
@@ -50,24 +57,52 @@ class PacketPipeline:
             logger.debug("ignoring a non IPv4/TCP packet")
             return
         ip_layer, tcp_layer = packet["IP"], packet["TCP"]
-        length = payload_length(
+        data = bytes(tcp_layer.payload)[: self._tcp_data_length(ip_layer, tcp_layer)]
+        now = self._clock()
+        if data:
+            key = (ip_layer.src, tcp_layer.sport, ip_layer.dst, tcp_layer.dport)
+            self._deliver(key, tcp_layer.seq, data, now)
+        else:
+            logger.debug("skipping a segment without TCP data")
+        self._purge_if_due(now)
+
+    def _tcp_data_length(self, ip_layer: Any, tcp_layer: Any) -> int:
+        """Return the TCP data length; a zero IP length means segmentation offload."""
+        if ip_layer.len == 0:
+            self._warn_offload_once()
+            return len(bytes(tcp_layer.payload))
+        return payload_length(
             ip_layer.len,
             ip_layer.ihl * IP_HEADER_WORD_BYTES,
             tcp_layer.dataofs * TCP_HEADER_WORD_BYTES,
         )
-        now = self._clock()
-        if length > 0:
-            key = (ip_layer.src, tcp_layer.sport, ip_layer.dst, tcp_layer.dport)
-            self._deliver(key, tcp_layer.seq, bytes(tcp_layer.payload)[:length], now)
-        self._purge_if_due(now)
+
+    def _warn_offload_once(self) -> None:
+        if not self._offload_warned:
+            self._offload_warned = True
+            logger.warning(
+                "IP lengths are zero, which indicates segmentation offload; "
+                "using captured lengths instead"
+            )
 
     def _deliver(self, key: FlowKey, seq: int, payload: bytes, now: float) -> None:
         reassembled = self._flows.feed(key, seq, payload, now)
-        extractor = self._extractors.setdefault(key, EnvelopeExtractor())
+        extractor = self._extractors.get(key)
+        if extractor is None:
+            extractor = self._extractors[key] = EnvelopeExtractor()
         if reassembled.resynced:
             extractor.reset()
         for envelope in extractor.feed(reassembled.data):
+            self._notify(envelope, key)
+
+    def _notify(self, envelope: Envelope, key: FlowKey) -> None:
+        """Call the callback for one envelope, containing its failures."""
+        try:
             self.on_envelope(envelope, key)
+        except CaptureAborted:
+            raise
+        except Exception:
+            logger.exception("error in the envelope callback")
 
     def _purge_if_due(self, now: float) -> None:
         if now - self._last_purge < PURGE_INTERVAL_SECONDS:

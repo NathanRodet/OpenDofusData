@@ -101,3 +101,40 @@ def test_cli_reports_capture_failure(tmp_path: Path, capsys) -> None:
     argv = ["discover", "--output", str(tmp_path / "log.jsonl")]
     assert cli.run(argv, capture=failing_capture) != 0
     assert "Npcap" in capsys.readouterr().err
+
+
+def test_cli_capture_failures_print_one_message_without_traceback(
+    tmp_path: Path, capsys
+) -> None:
+    for error in (RuntimeError("winpcap is not installed"), ValueError("bad interface")):
+        def failing_capture(pipeline, interface, error=error) -> None:
+            raise error
+
+        argv = ["discover", "--output", str(tmp_path / "log.jsonl")]
+        assert cli.run(argv, capture=failing_capture) != 0
+        captured = capsys.readouterr()
+        assert str(error) in captured.err
+        assert "Npcap" in captured.err
+        assert "Traceback" not in captured.err + captured.out
+
+
+def test_cli_unwritable_output_path_fails_with_message(tmp_path: Path, capsys) -> None:
+    blocker = tmp_path / "file"
+    blocker.write_text("x", encoding="utf-8")
+    argv = ["discover", "--output", str(blocker / "log.jsonl")]
+    assert cli.run(argv, capture=lambda pipeline, interface: None) != 0
+    assert str(blocker) in capsys.readouterr().err
+
+
+def test_cli_log_write_failure_aborts_capture(tmp_path: Path, monkeypatch, capsys) -> None:
+    def failing_log(self, envelope, direction) -> None:
+        raise OSError("disk full")
+
+    monkeypatch.setattr(DiscoveryLogger, "log", failing_log)
+
+    def fake_capture(pipeline, interface) -> None:
+        pipeline.on_envelope(Envelope("A", b""), SERVER_PORT_KEY)
+
+    argv = ["discover", "--output", str(tmp_path / "log.jsonl")]
+    assert cli.run(argv, capture=fake_capture) != 0
+    assert "disk full" in capsys.readouterr().err
