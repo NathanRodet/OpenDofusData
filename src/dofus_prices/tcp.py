@@ -89,12 +89,12 @@ class FlowTable:
         self._flows[key] = (reassembler, now)
         return reassembler.feed(seq, payload)
 
-    def purge(self, now: float) -> int:
-        """Drop flows idle for longer than the limit; return how many were removed."""
+    def purge(self, now: float) -> list[FlowKey]:
+        """Drop flows idle for longer than the limit; return the keys removed."""
         expired = [
             key for key, (_, last_seen) in self._flows.items()
             if now - last_seen > self._idle_seconds
         ]
         for key in expired:
             del self._flows[key]
-        return len(expired)
+        return expired

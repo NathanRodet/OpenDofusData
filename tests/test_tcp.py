@@ -75,8 +75,8 @@ def test_flow_table_keeps_directions_separate() -> None:
 def test_flow_table_purges_idle_flows() -> None:
     table = FlowTable(idle_seconds=10.0)
     table.feed(FLOW, 1, b"a", now=0.0)
-    assert table.purge(now=5.0) == 0
-    assert table.purge(now=11.0) == 1
+    assert table.purge(now=5.0) == []
+    assert table.purge(now=11.0) == [FLOW]
     assert table.feed(FLOW, 50, b"z", now=12.0).data == b"z"
 
 
@@ -84,4 +84,4 @@ def test_flow_table_activity_refreshes_idle_time() -> None:
     table = FlowTable(idle_seconds=10.0)
     table.feed(FLOW, 1, b"a", now=0.0)
     table.feed(FLOW, 2, b"b", now=8.0)
-    assert table.purge(now=15.0) == 0
+    assert table.purge(now=15.0) == []

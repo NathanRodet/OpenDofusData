@@ -1,7 +1,10 @@
 param(
     [Parameter(Position = 0)]
-    [ValidateSet("setup", "test", "clean", "help")]
-    [string]$Command = "help"
+    [ValidateSet("setup", "test", "clean", "run", "help")]
+    [string]$Command = "help",
+
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$RunArguments = @()
 )
 
 $ErrorActionPreference = "Stop"
@@ -31,6 +34,13 @@ function Invoke-Test {
     & $VenvPython -m pytest $ProjectRoot
 }
 
+function Invoke-Run {
+    Assert-VenvExists
+    $env:PYTHONPATH = Join-Path $ProjectRoot "src"
+    & $VenvPython -m dofus_prices @RunArguments
+    exit $LASTEXITCODE
+}
+
 function Invoke-Clean {
     if (Test-Path $VenvDir) {
         Remove-Item -Recurse -Force $VenvDir
@@ -45,11 +55,13 @@ function Show-Help {
     Write-Host "  setup  Crée le venv et installe requirements.txt"
     Write-Host "  test   Lance pytest dans le venv"
     Write-Host "  clean  Supprime le venv et les caches"
+    Write-Host "  run    Lance dofus_prices (ex: .\dev.ps1 run discover --interface Ethernet)"
 }
 
 switch ($Command) {
     "setup" { Invoke-Setup }
     "test"  { Invoke-Test }
     "clean" { Invoke-Clean }
+    "run"   { Invoke-Run }
     "help"  { Show-Help }
 }
