@@ -2,8 +2,12 @@
 
 import random
 
+import pytest
+
+from dofus_prices import framing
 from dofus_prices.framing import (
     MAX_BUFFER_BYTES,
+    MAX_FRAME_BYTES,
     TYPE_URL_PREFIX,
     Envelope,
     EnvelopeExtractor,
@@ -17,6 +21,10 @@ WIRE_TYPE_BITS = 3
 GARBAGE_SEED = 1234
 GARBAGE_BYTES = 1_000_000
 GARBAGE_CHUNKS = 40
+MIXED_FRAME_COUNT = 24
+MIXED_PAYLOAD_SIZES = (0, 5, 300, 4000, 30000)
+LINEAR_GARBAGE_BYTES = 200_000
+MAX_CALLS_PER_BYTE = 4
 
 
 def encode_varint(value: int) -> bytes:
@@ -95,7 +103,7 @@ def test_buffer_is_bounded() -> None:
     extractor = EnvelopeExtractor()
     garbage = random.Random(GARBAGE_SEED).randbytes(GARBAGE_BYTES)
     extractor.feed(garbage)
-    assert len(extractor._buffer) <= MAX_BUFFER_BYTES
+    assert extractor.buffered_bytes <= MAX_BUFFER_BYTES
 
 
 def test_envelope_nested_two_levels_deep() -> None:
@@ -133,9 +141,87 @@ def test_resynchronises_after_corrupt_frame() -> None:
     assert result == [Envelope("two", b"2")]
 
 
-def test_random_garbage_never_raises() -> None:
+def test_random_garbage_never_raises_nor_invents_envelopes() -> None:
     generator = random.Random(GARBAGE_SEED)
     extractor = EnvelopeExtractor()
     for _ in range(GARBAGE_CHUNKS):
         chunk = generator.randbytes(generator.randrange(1, 300))
-        assert isinstance(extractor.feed(chunk), list)
+        assert extractor.feed(chunk) == []
+
+
+def build_stream(seed: int) -> tuple[bytes, list[tuple[int, list[Envelope]]]]:
+    """Build a mixed stream; return it with (frame start offset, envelopes) pairs."""
+    generator = random.Random(seed)
+    stream = b""
+    frames: list[tuple[int, list[Envelope]]] = []
+    for index in range(MIXED_FRAME_COUNT):
+        size = generator.choice(MIXED_PAYLOAD_SIZES)
+        payload = generator.randbytes(size)
+        if index % 3 == 1:
+            body, found = length_delimited_field(5, payload or b"x"), []
+        else:
+            found = [Envelope(f"msg{index}", payload)]
+            body = outer_message(any_message(f"msg{index}", payload))
+        frames.append((len(stream), found))
+        stream += frame(body)
+    return stream, frames
+
+
+def feed_in_chunks(data: bytes, chunk_size: int) -> list[Envelope]:
+    extractor = EnvelopeExtractor()
+    found: list[Envelope] = []
+    for offset in range(0, len(data), chunk_size):
+        found += extractor.feed(data[offset : offset + chunk_size])
+    return found
+
+
+@pytest.mark.parametrize("chunk_size", [7, 1460])
+def test_mixed_stream_in_chunks_yields_all_envelopes_in_order(chunk_size: int) -> None:
+    stream, frames = build_stream(GARBAGE_SEED)
+    expected = [envelope for _, found in frames for envelope in found]
+    assert feed_in_chunks(stream, chunk_size) == expected
+
+
+@pytest.mark.parametrize("chunk_size", [7, 1460])
+@pytest.mark.parametrize("cut_fraction", [0.1, 0.37, 0.5, 0.83])
+def test_stream_cut_mid_frame_recovers_following_envelopes(
+    chunk_size: int, cut_fraction: float
+) -> None:
+    stream, frames = build_stream(GARBAGE_SEED)
+    cut = int(len(stream) * cut_fraction) + 1
+    after_cut = [(start, found) for start, found in frames if start >= cut and found]
+    expected = [envelope for _, found in after_cut for envelope in found]
+    result = feed_in_chunks(stream[cut:], chunk_size)
+    assert result == expected
+
+
+def test_oversize_frame_is_dropped_and_neighbours_recovered() -> None:
+    huge = frame(outer_message(any_message("huge", bytes(MAX_FRAME_BYTES + 1))))
+    data = envelope_frame("one", b"1") + huge + envelope_frame("two", b"2")
+    assert EnvelopeExtractor().feed(data) == [Envelope("one", b"1"), Envelope("two", b"2")]
+
+
+def test_overflow_while_synchronised_recovers_on_later_frames() -> None:
+    extractor = EnvelopeExtractor()
+    assert extractor.feed(envelope_frame("one", b"1")) == [Envelope("one", b"1")]
+    extractor.feed(random.Random(GARBAGE_SEED).randbytes(MAX_BUFFER_BYTES * 2))
+    assert extractor.buffered_bytes <= MAX_BUFFER_BYTES
+    assert extractor.feed(envelope_frame("two", b"2")) == [Envelope("two", b"2")]
+
+
+@pytest.mark.parametrize("chunk_size", [7, 1460])
+def test_scanning_work_is_linear_in_bytes_received(
+    monkeypatch: pytest.MonkeyPatch, chunk_size: int
+) -> None:
+    calls = 0
+    original = framing.read_varint
+
+    def counting_read_varint(data: bytes, offset: int) -> tuple[int, int]:
+        nonlocal calls
+        calls += 1
+        return original(data, offset)
+
+    monkeypatch.setattr(framing, "read_varint", counting_read_varint)
+    garbage = random.Random(GARBAGE_SEED).randbytes(LINEAR_GARBAGE_BYTES)
+    assert feed_in_chunks(garbage, chunk_size) == []
+    assert calls <= MAX_CALLS_PER_BYTE * LINEAR_GARBAGE_BYTES
