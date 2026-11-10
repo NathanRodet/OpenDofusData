@@ -21,7 +21,21 @@ INCLUDE_TEXT_WARNING = (
     "Attention : le journal peut contenir des données personnelles (chat, identifiants). "
     "Relisez-le avant de le partager."
 )
+HEX_TYPES_NOTICE = (
+    "Aperçus d'octets (hex) activés uniquement pour les types de message : {names}. "
+    "Les autres types restent sans aperçu."
+)
 CaptureFunction = Callable[[PacketPipeline, str | None], None]
+
+
+def parse_hex_types(raw: str) -> frozenset[str]:
+    """Parse comma-separated message type names (letters and digits only)."""
+    names = raw.split(",")
+    if not all(name.isascii() and name.isalnum() for name in names):
+        raise argparse.ArgumentTypeError(
+            "noms de types invalides (lettres et chiffres, séparés par des virgules)"
+        )
+    return frozenset(names)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -33,6 +47,9 @@ def build_parser() -> argparse.ArgumentParser:
     discover.add_argument("--output", default=DEFAULT_OUTPUT, help="fichier de log JSON Lines")
     discover.add_argument("--include-text", action="store_true",
                           help="inclut des aperçus texte/hex (données personnelles possibles)")
+    discover.add_argument("--hex-types", type=parse_hex_types, default=frozenset(),
+                          metavar="NAMES",
+                          help="types de message (ex. jzs,ire) avec aperçu hex de leurs octets")
     return parser
 
 
@@ -77,12 +94,16 @@ def _capture_into(
 def _discover(arguments: argparse.Namespace, capture: CaptureFunction) -> int:
     output = arguments.output
     try:
-        discovery_logger = DiscoveryLogger(output, include_text=arguments.include_text)
+        discovery_logger = DiscoveryLogger(
+            output, include_text=arguments.include_text, hex_types=arguments.hex_types
+        )
     except OSError as error:
         return _fail(f"Impossible d'écrire le journal {output} : {error}")
     print(f"Journal écrit dans {output}. Ctrl+C pour arrêter.")
     if arguments.include_text:
         print(INCLUDE_TEXT_WARNING)
+    if arguments.hex_types:
+        print(HEX_TYPES_NOTICE.format(names=", ".join(sorted(arguments.hex_types))))
     try:
         return _capture_into(discovery_logger, arguments.interface, capture)
     finally:

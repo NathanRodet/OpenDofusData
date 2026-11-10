@@ -8,6 +8,8 @@ import pytest
 from dofus_prices import cli
 from dofus_prices.discovery import (
     MAX_HEX_BYTES,
+    MAX_PACKED_VALUES,
+    MAX_TYPED_HEX_BYTES,
     MAX_TEXT_CHARS,
     MAX_FIELDS_PER_MESSAGE,
     DiscoveryLogger,
@@ -225,3 +227,71 @@ def test_cli_size_limit_aborts_with_message(tmp_path: Path, monkeypatch, capsys)
 
     assert cli.run(["discover", "--output", str(tmp_path / "l.jsonl")], fake_capture) != 0
     assert "limite de taille" in capsys.readouterr().err
+
+
+PACKED_VALUES = [750, 5868, 49993, 499999]
+PACKED_BYTES = bytes([0xEE, 0x05, 0xEC, 0x2D, 0xC9, 0x86, 0x03, 0x9F, 0xC2, 0x1E])
+
+
+def _length_field(content: bytes, tag: int = LENGTH_TAG) -> bytes:
+    return bytes([tag, len(content)]) + content
+
+
+def test_hex_types_adds_hex_and_packed_for_named_type_only() -> None:
+    payload = _length_field(PACKED_BYTES)
+    named = describe_envelope(Envelope("jzs", payload), hex_types=frozenset({"jzs"}))
+    field = named["fields"][0]
+    assert field["packed"] == PACKED_VALUES
+    assert field["hex"] == PACKED_BYTES.hex()
+    for description in (
+        describe_envelope(Envelope("other", payload), hex_types=frozenset({"jzs"})),
+        describe_envelope(Envelope("jzs", payload)),
+    ):
+        assert not {"hex", "packed"} & _keys_anywhere(description)
+
+
+def test_hex_types_text_field_gets_hex_and_nested_message_does_not() -> None:
+    nested = _length_field(PACKED_BYTES)
+    payload = _length_field(b"Hi!") + _length_field(nested, 0x1A)
+    fields = describe_envelope(Envelope("jzs", payload), hex_types=frozenset({"jzs"}))["fields"]
+    assert fields[0]["hex"] == b"Hi!".hex()
+    assert "text" not in fields[0]
+    assert "hex" not in fields[1]
+    assert fields[1]["fields"][0]["packed"] == PACKED_VALUES
+
+
+def test_hex_types_previews_are_capped() -> None:
+    many = bytes([1]) * (MAX_PACKED_VALUES + 8)
+    long_binary = bytes([0xFF]) * (MAX_TYPED_HEX_BYTES + 8)
+    payload = _length_field(many) + _length_field(long_binary, 0x1A)
+    fields = describe_envelope(Envelope("jzs", payload), hex_types=frozenset({"jzs"}))["fields"]
+    assert len(fields[0]["packed"]) == MAX_PACKED_VALUES
+    assert fields[1]["hex"] == "ff" * MAX_TYPED_HEX_BYTES
+    assert "packed" not in fields[1]
+
+
+def test_logger_passes_hex_types(tmp_path: Path) -> None:
+    path = tmp_path / "log.jsonl"
+    logger = DiscoveryLogger(str(path), hex_types=frozenset({"jzs"}))
+    logger.log(Envelope("jzs", _length_field(PACKED_BYTES)), "server_to_client")
+    logger.close()
+    assert json.loads(path.read_text(encoding="utf-8"))["fields"][0]["packed"] == PACKED_VALUES
+
+
+def test_cli_hex_types_is_passed_through_with_one_notice(tmp_path: Path, capsys) -> None:
+    output = tmp_path / "log.jsonl"
+
+    def fake_capture(pipeline, interface) -> None:
+        pipeline.on_envelope(Envelope("ire", _length_field(PACKED_BYTES)), SERVER_PORT_KEY)
+        raise KeyboardInterrupt
+
+    argv = ["discover", "--output", str(output), "--hex-types", "jzs,ire"]
+    assert cli.run(argv, fake_capture) == 0
+    assert json.loads(output.read_text(encoding="utf-8"))["fields"][0]["packed"] == PACKED_VALUES
+    assert capsys.readouterr().out.count("ire, jzs") == 1
+
+
+@pytest.mark.parametrize("value", ["jzs;ire", "jzs,,ire", "", "jz s"])
+def test_cli_rejects_invalid_hex_types(value: str) -> None:
+    with pytest.raises(SystemExit):
+        cli.build_parser().parse_args(["discover", "--hex-types", value])
