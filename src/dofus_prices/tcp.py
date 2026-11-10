@@ -9,6 +9,7 @@ SEQUENCE_MODULUS = 2**32
 HALF_SEQUENCE_SPACE = 2**31
 DEFAULT_MAX_BUFFERED_BYTES = 65536
 DEFAULT_IDLE_SECONDS = 300.0
+DEFAULT_MAX_FLOWS = 256
 
 FlowKey = tuple[str, int, str, int]
 
@@ -79,15 +80,32 @@ class StreamReassembler:
 class FlowTable:
     """Keeps one reassembler per flow direction and expires idle flows."""
 
-    def __init__(self, idle_seconds: float = DEFAULT_IDLE_SECONDS) -> None:
+    def __init__(
+        self, idle_seconds: float = DEFAULT_IDLE_SECONDS, max_flows: int = DEFAULT_MAX_FLOWS
+    ) -> None:
         self._idle_seconds = idle_seconds
+        self._max_flows = max_flows
+        self._evicted: list[FlowKey] = []
         self._flows: dict[FlowKey, tuple[StreamReassembler, float]] = {}
 
     def feed(self, key: FlowKey, seq: int, payload: bytes, now: float) -> Reassembled:
         """Route a segment to its flow's reassembler and record the activity time."""
+        if key not in self._flows and len(self._flows) >= self._max_flows:
+            self._evict_least_recent()
         reassembler = self._flows[key][0] if key in self._flows else StreamReassembler()
         self._flows[key] = (reassembler, now)
         return reassembler.feed(seq, payload)
+
+    def _evict_least_recent(self) -> None:
+        oldest = min(self._flows, key=lambda key: self._flows[key][1])
+        del self._flows[oldest]
+        self._evicted.append(oldest)
+        logger.warning("flow table full, evicted the least recently seen flow")
+
+    def take_evicted(self) -> list[FlowKey]:
+        """Return and clear the keys evicted because the table was full."""
+        evicted, self._evicted = self._evicted, []
+        return evicted
 
     def purge(self, now: float) -> list[FlowKey]:
         """Drop flows idle for longer than the limit; return the keys removed."""

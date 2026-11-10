@@ -6,7 +6,7 @@ import sys
 from collections.abc import Callable
 
 from dofus_prices.capture import CaptureAborted, PacketPipeline, direction_of, run_capture
-from dofus_prices.discovery import DiscoveryLogger
+from dofus_prices.discovery import DiscoveryLogger, LogSizeLimitReached
 from dofus_prices.framing import Envelope
 from dofus_prices.tcp import FlowKey
 
@@ -17,6 +17,10 @@ EXIT_OK = 0
 EXIT_FAILED = 1
 EXIT_USAGE = 2
 
+INCLUDE_TEXT_WARNING = (
+    "Attention : le journal peut contenir des données personnelles (chat, identifiants). "
+    "Relisez-le avant de le partager."
+)
 CaptureFunction = Callable[[PacketPipeline, str | None], None]
 
 
@@ -27,6 +31,8 @@ def build_parser() -> argparse.ArgumentParser:
     discover = commands.add_parser("discover", help="journalise la structure des messages")
     discover.add_argument("--interface", default=None, help="interface réseau à écouter")
     discover.add_argument("--output", default=DEFAULT_OUTPUT, help="fichier de log JSON Lines")
+    discover.add_argument("--include-text", action="store_true",
+                          help="inclut des aperçus texte/hex (données personnelles possibles)")
     return parser
 
 
@@ -41,6 +47,8 @@ def _envelope_callback(
     def write(envelope: Envelope, key: FlowKey) -> None:
         try:
             discovery_logger.log(envelope, direction_of(key))
+        except LogSizeLimitReached as error:
+            raise CaptureAborted("limite de taille du journal atteinte") from error
         except OSError as error:
             raise CaptureAborted(str(error)) from error
 
@@ -66,14 +74,17 @@ def _capture_into(
     return EXIT_OK
 
 
-def _discover(interface: str | None, output: str, capture: CaptureFunction) -> int:
+def _discover(arguments: argparse.Namespace, capture: CaptureFunction) -> int:
+    output = arguments.output
     try:
-        discovery_logger = DiscoveryLogger(output)
+        discovery_logger = DiscoveryLogger(output, include_text=arguments.include_text)
     except OSError as error:
         return _fail(f"Impossible d'écrire le journal {output} : {error}")
     print(f"Journal écrit dans {output}. Ctrl+C pour arrêter.")
+    if arguments.include_text:
+        print(INCLUDE_TEXT_WARNING)
     try:
-        return _capture_into(discovery_logger, interface, capture)
+        return _capture_into(discovery_logger, arguments.interface, capture)
     finally:
         discovery_logger.close()
 
@@ -83,7 +94,7 @@ def run(argv: list[str] | None, capture: CaptureFunction) -> int:
     parser = build_parser()
     arguments = parser.parse_args(argv)
     if arguments.command == "discover":
-        return _discover(arguments.interface, arguments.output, capture)
+        return _discover(arguments, capture)
     parser.print_help()
     return EXIT_USAGE
 

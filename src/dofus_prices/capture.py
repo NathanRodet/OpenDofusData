@@ -6,7 +6,7 @@ from collections.abc import Callable
 from typing import Any
 
 from dofus_prices.framing import Envelope, EnvelopeExtractor
-from dofus_prices.tcp import FlowKey, FlowTable, payload_length
+from dofus_prices.tcp import DEFAULT_MAX_FLOWS, FlowKey, FlowTable, payload_length
 
 logger = logging.getLogger(__name__)
 
@@ -35,10 +35,11 @@ class PacketPipeline:
         self,
         on_envelope: Callable[[Envelope, FlowKey], None],
         clock: Callable[[], float] = time.monotonic,
+        max_flows: int = DEFAULT_MAX_FLOWS,
     ) -> None:
         self.on_envelope = on_envelope
         self._clock = clock
-        self._flows = FlowTable()
+        self._flows = FlowTable(max_flows=max_flows)
         self._extractors: dict[FlowKey, EnvelopeExtractor] = {}
         self._last_purge = clock()
         self._offload_warned = False
@@ -87,6 +88,8 @@ class PacketPipeline:
 
     def _deliver(self, key: FlowKey, seq: int, payload: bytes, now: float) -> None:
         reassembled = self._flows.feed(key, seq, payload, now)
+        for evicted_key in self._flows.take_evicted():
+            self._extractors.pop(evicted_key, None)
         extractor = self._extractors.get(key)
         if extractor is None:
             extractor = self._extractors[key] = EnvelopeExtractor()

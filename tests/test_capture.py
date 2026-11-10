@@ -156,3 +156,14 @@ def test_failing_callback_does_not_discard_remaining_envelopes(caplog) -> None:
     data = frame("First", b"1") + frame("Second", b"2")
     PacketPipeline(flaky).handle_packet(segment(1000, data))
     assert seen == ["First", "Second"]
+
+
+def test_evicted_flow_starts_from_a_fresh_extractor(delivered) -> None:
+    pipeline = PacketPipeline(lambda envelope, key: delivered.append((envelope, key)), max_flows=1)
+    data = frame("Demo", b"abcdef")
+    pipeline.handle_packet(segment(1000, data[:10]))
+    other = IP(bytes(IP(src="10.0.0.9", dst=SERVER) / TCP(sport=41000, dport=DOFUS_PORT, seq=1)
+                     / Raw(frame("Other", b"z"))))
+    pipeline.handle_packet(other)
+    pipeline.handle_packet(segment(1010, data[10:]))
+    assert [envelope.type_name for envelope, _ in delivered] == ["Other"]

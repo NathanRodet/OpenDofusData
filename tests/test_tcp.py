@@ -85,3 +85,16 @@ def test_flow_table_activity_refreshes_idle_time() -> None:
     table.feed(FLOW, 1, b"a", now=0.0)
     table.feed(FLOW, 2, b"b", now=8.0)
     assert table.purge(now=15.0) == []
+
+
+def test_flow_table_evicts_least_recently_seen_flow_when_full() -> None:
+    table = FlowTable(max_flows=2)
+    first, second, third = FLOW, (*FLOW[:3], 9001), (*FLOW[:3], 9002)
+    table.feed(first, 1, b"a", now=0.0)
+    table.feed(second, 1, b"b", now=1.0)
+    table.feed(first, 2, b"c", now=2.0)
+    assert table.take_evicted() == []
+    table.feed(third, 1, b"d", now=3.0)
+    assert table.take_evicted() == [second]
+    assert table.take_evicted() == []
+    assert table.feed(first, 3, b"e", now=4.0).data == b"e"
