@@ -45,13 +45,15 @@ def test_name_index_modules_do_not_import_network_storage_or_capture() -> None:
 GUARDED_MODULES = (
     "capture", "capture_errors", "tcp", "framing", "protobuf", "hdv", "market_stats", "records",
     "storage", "run_pipeline", "commands", "export", "verbose_table", "timeutil", "discovery",
+    "capture_stoppable", "capture_session", "session_counters",
 )
 FORBIDDEN_IMPORTS = ("dofus_prices.names_fetch", "dofus_prices.names_build",
                      "dofus_prices.item_names", "dofus_prices.game_servers",
                      "dofus_prices.servers_fetch", "dofus_prices.servers_build",
                      "dofus_prices.servers_commands", "dofus_prices.app_config",
                      "dofus_prices.server_choice", "dofus_prices.server_choice_commands",
-                     "urllib")
+                     "dofus_prices.window_view", "dofus_prices.window_command",
+                     "dofus_prices.app_links", "tkinter", "urllib")
 
 
 def forbidden_imports(source: str) -> list[str]:
@@ -101,5 +103,20 @@ def test_server_list_modules_stay_out_of_the_capture_path() -> None:
 def test_pure_server_modules_do_not_import_network_storage_or_capture() -> None:
     result = subprocess.run(
         [sys.executable, "-I", "-c", SERVERS_CHECK_SCRIPT, str(SOURCE_DIRECTORY)],
+        capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+
+
+WINDOW_LOGIC_CHECK_SCRIPT = (
+    "import sys; sys.path.insert(0, sys.argv[1]); "
+    "import dofus_prices.capture_session, dofus_prices.window_format, dofus_prices.capture_stoppable; "
+    "banned = {'tkinter', 'scapy', 'webbrowser'}; "
+    "sys.exit(1 if banned & set(sys.modules) else 0)"
+)
+
+
+def test_window_logic_modules_need_no_gui_nor_scapy() -> None:
+    result = subprocess.run(
+        [sys.executable, "-I", "-c", WINDOW_LOGIC_CHECK_SCRIPT, str(SOURCE_DIRECTORY)],
         capture_output=True, text=True)
     assert result.returncode == 0, result.stderr

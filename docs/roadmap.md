@@ -6,10 +6,14 @@
 
 - Fenêtre des 7 jours: confirmée sur cinq objets, dont le Filet multiplicateur de Dragodinde (11 630 / 12 253 / 112). Les lignes 7 jours de la base locale ont été recalculées (sauvegarde `data/prices.backup-before-7d-recompute.db`).
 
-## Packaging et distribution (non commencé)
+## Fenêtre de capture (fait)
 
-- `pyproject.toml` et commande `dofus-prices` (sans `.\dev.ps1`).
-- Installateur Windows, démarrage automatique, mises à jour; sans signature de code (projet open source).
+- `dofus-prices window`: petite fenêtre tkinter (état, serveur, compteurs de la session, dernier enregistrement, Arrêter/Relancer, lien vers les prix en ligne). Choisie à la place d'une icône de zone de notification; pas de démarrage automatique avec Windows. L'adresse du site (`SAAS_URL` dans `app_links.py`) est un espace réservé tant que le serveur n'existe pas.
+
+## Packaging et distribution (en cours)
+
+- Fait: `pyproject.toml` et commande `dofus-prices` (sans `.\dev.ps1`).
+- Installateur Windows, démarrage automatique (volontairement absent pour l'instant), mises à jour; sans signature de code (projet open source).
 - Choisir une licence (MIT, GPL, autre) et créer le dépôt distant; aucun remote n'est configuré.
 
 ## Synchronisation et serveur (plus tard)
