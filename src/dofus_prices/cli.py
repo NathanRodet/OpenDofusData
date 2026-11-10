@@ -1,4 +1,4 @@
-"""Command-line entry point: the discovery mode."""
+"""Command-line entry point: parser construction and dispatch."""
 
 import argparse
 import logging
@@ -6,16 +6,30 @@ import sys
 from collections.abc import Callable
 
 from dofus_prices.capture import CaptureAborted, PacketPipeline, direction_of, run_capture
+from dofus_prices.capture_errors import (
+    EXIT_OK,
+    EXIT_USAGE,
+    CaptureFunction,
+    fail,
+    run_guarded_capture,
+)
+from dofus_prices.commands import (
+    export_csv_command,
+    history_command,
+    prices_command,
+    stats_command,
+)
 from dofus_prices.discovery import DiscoveryLogger, LogSizeLimitReached
 from dofus_prices.framing import Envelope
+from dofus_prices.run_pipeline import Clock, run_command, utc_now
+from dofus_prices.storage import LOT_SIZES, MARKET_PERIODS
 from dofus_prices.tcp import FlowKey
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_OUTPUT = "captures/discovery.jsonl"
-EXIT_OK = 0
-EXIT_FAILED = 1
-EXIT_USAGE = 2
+DEFAULT_DATABASE = "prices.db"
+DEFAULT_SERVER = "unknown"
 
 INCLUDE_TEXT_WARNING = (
     "Attention : le journal peut contenir des données personnelles (chat, identifiants). "
@@ -27,7 +41,6 @@ HEX_TYPES_NOTICE = (
     "personnelles si ces types transportent du chat ou des identifiants : relisez le "
     "journal avant de le partager."
 )
-CaptureFunction = Callable[[PacketPipeline, str | None], None]
 
 
 def parse_hex_types(raw: str) -> frozenset[str]:
@@ -52,12 +65,46 @@ def build_parser() -> argparse.ArgumentParser:
     discover.add_argument("--hex-types", type=parse_hex_types, default=frozenset(),
                           metavar="NAMES",
                           help="types de message (ex. jzs,ire) avec aperçu hex de leurs octets (données personnelles possibles)")
+    _add_database_commands(commands)
     return parser
 
 
-def _fail(message: str) -> int:
-    print(message, file=sys.stderr)
-    return EXIT_FAILED
+def _database_option(command: argparse.ArgumentParser) -> None:
+    command.add_argument("--db", default=DEFAULT_DATABASE, help="base SQLite (défaut : prices.db)")
+
+
+def _add_run_command(commands: argparse._SubParsersAction) -> None:
+    run_parser = commands.add_parser("run", help="capture et enregistre les prix de l'HDV")
+    _database_option(run_parser)
+    run_parser.add_argument("--interface", default=None, help="interface réseau à écouter")
+    run_parser.add_argument("--server", default=DEFAULT_SERVER, help="nom du serveur de jeu enregistré")
+
+
+def _add_read_commands(commands: argparse._SubParsersAction) -> None:
+    prices = commands.add_parser("prices", help="derniers prix par objet, serveur et lot")
+    _database_option(prices)
+    prices.add_argument("--item", type=int, default=None,
+                        help="identifiant de l'objet (le trafic ne contient pas les noms)")
+    history = commands.add_parser("history", help="historique des prix d'un objet")
+    _database_option(history)
+    history.add_argument("item_id", type=int, help="identifiant de l'objet (pas de nom)")
+    history.add_argument("--lot", type=int, required=True, choices=LOT_SIZES, help="taille du lot")
+
+
+def _add_stats_and_export(commands: argparse._SubParsersAction) -> None:
+    stats = commands.add_parser("stats", help="dernières statistiques de marché d'un objet")
+    _database_option(stats)
+    stats.add_argument("item_id", type=int, help="identifiant de l'objet (pas de nom)")
+    stats.add_argument("--period", choices=MARKET_PERIODS, default=None, help="période affichée")
+    export = commands.add_parser("export-csv", help="exporte tous les prix en CSV")
+    _database_option(export)
+    export.add_argument("--output", required=True, help="fichier CSV à écrire")
+
+
+def _add_database_commands(commands: argparse._SubParsersAction) -> None:
+    _add_run_command(commands)
+    _add_read_commands(commands)
+    _add_stats_and_export(commands)
 
 
 def _envelope_callback(
@@ -78,19 +125,12 @@ def _capture_into(
     discovery_logger: DiscoveryLogger, interface: str | None, capture: CaptureFunction
 ) -> int:
     pipeline = PacketPipeline(_envelope_callback(discovery_logger))
-    try:
-        capture(pipeline, interface)
-    except KeyboardInterrupt:
-        print(f"Arrêt. {discovery_logger.logged_count} messages journalisés.")
-        return EXIT_OK
-    except CaptureAborted as error:
-        return _fail(f"Écriture du journal impossible ({error}) après {discovery_logger.logged_count} messages.")
-    # scapy raises several unrelated types when Npcap or the interface is unusable.
-    except Exception as error:
-        logger.debug("capture failure", exc_info=True)
-        return _fail(f"Capture impossible ({error}). Vérifiez Npcap, le nom de "
-                     "l'interface, et essayez un terminal administrateur.")
-    return EXIT_OK
+    return run_guarded_capture(
+        capture, pipeline, interface,
+        lambda: f"Arrêt. {discovery_logger.logged_count} messages journalisés.",
+        lambda error: (f"Écriture du journal impossible ({error}) après "
+                       f"{discovery_logger.logged_count} messages."),
+    )
 
 
 def _discover(arguments: argparse.Namespace, capture: CaptureFunction) -> int:
@@ -100,7 +140,7 @@ def _discover(arguments: argparse.Namespace, capture: CaptureFunction) -> int:
             output, include_text=arguments.include_text, hex_types=arguments.hex_types
         )
     except OSError as error:
-        return _fail(f"Impossible d'écrire le journal {output} : {error}")
+        return fail(f"Impossible d'écrire le journal {output} : {error}")
     print(f"Journal écrit dans {output}. Ctrl+C pour arrêter.")
     if arguments.include_text:
         print(INCLUDE_TEXT_WARNING)
@@ -112,12 +152,24 @@ def _discover(arguments: argparse.Namespace, capture: CaptureFunction) -> int:
         discovery_logger.close()
 
 
-def run(argv: list[str] | None, capture: CaptureFunction) -> int:
-    """Run the CLI with an injectable capture function."""
+READ_COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {
+    "prices": prices_command,
+    "history": history_command,
+    "stats": stats_command,
+    "export-csv": export_csv_command,
+}
+
+
+def run(argv: list[str] | None, capture: CaptureFunction, now: Clock = utc_now) -> int:
+    """Run the CLI with an injectable capture function and clock."""
     parser = build_parser()
     arguments = parser.parse_args(argv)
     if arguments.command == "discover":
         return _discover(arguments, capture)
+    if arguments.command == "run":
+        return run_command(arguments, capture, now)
+    if arguments.command in READ_COMMANDS:
+        return READ_COMMANDS[arguments.command](arguments)
     parser.print_help()
     return EXIT_USAGE
 

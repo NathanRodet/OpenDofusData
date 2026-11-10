@@ -1,0 +1,151 @@
+"""Tests for the run and read commands of the CLI."""
+
+import csv
+from datetime import datetime, timezone
+from pathlib import Path
+
+import pytest
+
+from dofus_prices import cli
+from dofus_prices.capture import CaptureAborted, PacketPipeline
+from dofus_prices.storage import LotPrice, MarketStats, PriceStore
+from tests.envelopes import FLOW_KEY, lot_envelope
+
+CAPTURE_MOMENT = datetime(2026, 11, 10, 10, 29, 17, tzinfo=timezone.utc)
+CAPTURED_AT = "2026-11-10T10:29:17Z"
+READ_COMMANDS = (["prices"], ["history", "307", "--lot", "1"], ["stats", "307"], ["export-csv", "--output", "x.csv"])
+
+
+def seed(path: Path) -> None:
+    store = PriceStore(str(path))
+    try:
+        store.save_lot_price(LotPrice(307, "Ilyzaelle", 1, 700, "2026-11-09T10:00:00Z"))
+        store.save_lot_price(LotPrice(307, "Ilyzaelle", 1, 750, CAPTURED_AT))
+        store.save_lot_price(LotPrice(307, "Ilyzaelle", 10, 5868, CAPTURED_AT))
+        store.save_lot_price(LotPrice(999, "Ilyzaelle", 1, 42, CAPTURED_AT))
+        store.save_market_stats(MarketStats(307, "Ilyzaelle", "24h", [], 100, 110, 7,
+                                            CAPTURED_AT, "2026-11-10T09:00:00Z", CAPTURED_AT))
+        store.save_market_stats(MarketStats(307, "Ilyzaelle", "7d", [], 200, 210, 70,
+                                            CAPTURED_AT, "2026-11-10T09:00:00Z", CAPTURED_AT))
+    finally:
+        store.close()
+
+
+def no_capture(pipeline: PacketPipeline, interface: str | None) -> None:
+    return None
+
+
+def run_cli(argv: list[str], capture=no_capture) -> int:
+    return cli.run(argv, capture, lambda: CAPTURE_MOMENT)
+
+
+def test_cli_prices_lists_latest_prices(tmp_path: Path, capsys) -> None:
+    seed(tmp_path / "p.db")
+    assert run_cli(["prices", "--db", str(tmp_path / "p.db")]) == 0
+    output = capsys.readouterr().out
+    assert "750" in output and "700" not in output and "999" in output
+    assert "captured_at" in output and CAPTURED_AT in output
+    assert run_cli(["prices", "--db", str(tmp_path / "p.db"), "--item", "999"]) == 0
+    assert "5868" not in capsys.readouterr().out
+
+
+def test_cli_prices_on_empty_database_says_so(tmp_path: Path, capsys) -> None:
+    PriceStore(str(tmp_path / "p.db")).close()
+    assert run_cli(["prices", "--db", str(tmp_path / "p.db")]) == 0
+    assert "aucun prix enregistré" in capsys.readouterr().out
+
+
+def test_cli_history_filters_by_item_and_lot(tmp_path: Path, capsys) -> None:
+    seed(tmp_path / "p.db")
+    assert run_cli(["history", "307", "--lot", "1", "--db", str(tmp_path / "p.db")]) == 0
+    output = capsys.readouterr().out
+    assert "700" in output and "750" in output and "5868" not in output and "42" not in output
+
+
+def test_cli_history_rejects_unknown_lot_size(tmp_path: Path) -> None:
+    with pytest.raises(SystemExit):
+        run_cli(["history", "307", "--lot", "5", "--db", str(tmp_path / "p.db")])
+
+
+def test_cli_stats_prints_requested_period(tmp_path: Path, capsys) -> None:
+    seed(tmp_path / "p.db")
+    assert run_cli(["stats", "307", "--period", "7d", "--db", str(tmp_path / "p.db")]) == 0
+    output = capsys.readouterr().out
+    assert "7d" in output and "200" in output and "24h" not in output
+    assert run_cli(["stats", "307", "--db", str(tmp_path / "p.db")]) == 0
+    assert "24h" in capsys.readouterr().out
+
+
+def test_cli_stats_without_data_says_so(tmp_path: Path, capsys) -> None:
+    seed(tmp_path / "p.db")
+    assert run_cli(["stats", "12345", "--db", str(tmp_path / "p.db")]) == 0
+    assert "aucune statistique" in capsys.readouterr().out
+
+
+def test_cli_export_csv_creates_file(tmp_path: Path) -> None:
+    seed(tmp_path / "p.db")
+    output = tmp_path / "out" / "prices.csv"
+    assert run_cli(["export-csv", "--output", str(output), "--db", str(tmp_path / "p.db")]) == 0
+    with output.open(encoding="utf-8", newline="") as handle:
+        rows = list(csv.reader(handle))
+    assert rows[0] == ["item_id", "server", "lot_size", "price", "captured_at"]
+    assert len(rows) == 1 + 4
+
+
+@pytest.mark.parametrize("command", READ_COMMANDS)
+def test_read_commands_do_not_create_a_missing_database(tmp_path: Path, capsys, command) -> None:
+    missing = tmp_path / "missing.db"
+    assert run_cli([*command, "--db", str(missing)]) != 0
+    assert not missing.exists()
+    assert str(missing) in capsys.readouterr().err
+
+
+def test_cli_run_stops_cleanly_on_keyboard_interrupt(tmp_path: Path, capsys) -> None:
+    database = tmp_path / "p.db"
+
+    def fake_capture(pipeline: PacketPipeline, interface: str | None) -> None:
+        pipeline.on_envelope(lot_envelope(), FLOW_KEY)
+        raise KeyboardInterrupt
+
+    argv = ["run", "--db", str(database), "--server", "Ilyzaelle"]
+    assert run_cli(argv, fake_capture) == 0
+    output = capsys.readouterr().out
+    assert str(database) in output and "Ilyzaelle" in output and "4" in output
+    store = PriceStore(str(database))
+    try:
+        assert [lot.captured_at for lot in store.latest_prices(307)] == [CAPTURED_AT] * 4
+        assert {lot.server for lot in store.latest_prices(307)} == {"Ilyzaelle"}
+    finally:
+        store.close()
+
+
+def test_cli_run_reports_unwritable_database(tmp_path: Path, capsys) -> None:
+    called: list[bool] = []
+    database = tmp_path / "no_such_dir" / "p.db"
+    assert run_cli(["run", "--db", str(database)], lambda pipeline, interface: called.append(True)) != 0
+    assert str(database) in capsys.readouterr().err
+    assert not called
+
+
+def test_cli_run_reports_capture_failure_after_draining(tmp_path: Path, capsys) -> None:
+    database = tmp_path / "p.db"
+
+    def failing_capture(pipeline: PacketPipeline, interface: str | None) -> None:
+        pipeline.on_envelope(lot_envelope(), FLOW_KEY)
+        raise OSError("npcap missing")
+
+    assert run_cli(["run", "--db", str(database)], failing_capture) != 0
+    assert "Capture impossible" in capsys.readouterr().err
+    store = PriceStore(str(database))
+    try:
+        assert len(store.latest_prices(307)) == 4
+    finally:
+        store.close()
+
+
+def test_cli_run_reports_aborted_capture(tmp_path: Path, capsys) -> None:
+    def aborting_capture(pipeline: PacketPipeline, interface: str | None) -> None:
+        raise CaptureAborted("boom")
+
+    assert run_cli(["run", "--db", str(tmp_path / "p.db")], aborting_capture) != 0
+    assert "boom" in capsys.readouterr().err
