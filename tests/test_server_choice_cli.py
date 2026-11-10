@@ -139,19 +139,50 @@ def test_corrupt_servers_file_does_not_abort(interactive, capsys) -> None:
     assert "Serveur enregistré : Mon Serveur (choisi)" in capsys.readouterr().out
 
 
-def test_captured_records_carry_the_saved_server(tmp_path: Path) -> None:
-    write_config('{"server": "Brial", "version": 1}')
+def captured_servers(tmp_path: Path, key: tuple = FLOW_KEY, options: tuple = ()) -> set[str]:
     database = tmp_path / "p.db"
 
     def capture(pipeline: PacketPipeline, interface: str | None) -> None:
-        pipeline.on_envelope(lot_envelope(), FLOW_KEY)
+        pipeline.on_envelope(lot_envelope(), key)
 
-    assert run_cli(["run", "--db", str(database)], capture) == 0
+    assert run_cli(["run", "--db", str(database), *options], capture) == 0
     store = PriceStore(str(database))
     try:
-        assert {lot.server for lot in store.latest_prices(307)} == {"Brial"}
+        return {lot.server for lot in store.latest_prices(307)}
     finally:
         store.close()
+
+
+def test_remembered_server_is_used_without_a_game_address(tmp_path: Path) -> None:
+    write_config('{"server": "Brial", "version": 1}')
+    assert captured_servers(tmp_path, ("1.2.3.4", 80, "5.6.7.8", 40000)) == {"Brial"}
+
+
+def test_remembered_server_never_tags_an_unknown_address(tmp_path: Path, capsys) -> None:
+    write_config('{"server": "Brial", "version": 1}')
+    assert captured_servers(tmp_path, FLOW_KEY) == {"unknown"}
+    assert "Adresse de serveur inconnue (1.2.3.4)" in capsys.readouterr().out
+    assert "ips" not in json.loads(config_file().read_text(encoding="utf-8"))
+
+
+def test_known_address_wins_over_the_remembered_server(tmp_path: Path) -> None:
+    write_config('{"server": "Brial", "ips": {"1.2.3.4": "Kourial"}, "version": 1}')
+    assert captured_servers(tmp_path, FLOW_KEY) == {"Kourial"}
+
+
+def test_explicit_server_learns_the_address_into_the_config(tmp_path: Path, capsys) -> None:
+    assert captured_servers(tmp_path, options=("--server", "Brial")) == {"Brial"}
+    assert json.loads(config_file().read_text(encoding="utf-8"))["ips"] == {"1.2.3.4": "Brial"}
+    assert "adresse du serveur de jeu 1.2.3.4 associée à « Brial »" in capsys.readouterr().out
+    assert "5.6.7.8" not in config_file().read_text(encoding="utf-8")
+
+
+def test_start_line_says_how_the_server_is_determined(capsys) -> None:
+    write_config('{"server": "Brial", "version": 1}')
+    run_cli(["run", "--db", "p.db"])
+    assert "reconnu par adresse" in capsys.readouterr().out
+    run_cli(["run", "--db", "p.db", "--server", "Zed"])
+    assert "sera apprise" in capsys.readouterr().out
 
 
 def test_server_command_shows_nothing_then_set_then_show(capsys) -> None:

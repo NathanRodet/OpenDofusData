@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 Clock = Callable[[], datetime]
 Echo = Callable[[str], None]
+ServerSource = str | Callable[[FlowKey], str]
 
 
 def utc_now() -> datetime:
@@ -31,13 +32,15 @@ def utc_now() -> datetime:
 class EnvelopeHandler:
     """Decodes each envelope and submits its records to the writer.
 
+    `server` is a fixed name or a callable giving the name of each envelope's flow.
     When `echo` is given, the decoded values are also passed to it as text tables. The
     echo runs on the capture thread, which is acceptable for this debug option. If it
     raises OSError (for example a closed console) or UnicodeError (a console that cannot
     encode accents), one warning is logged and echoing stops.
     """
 
-    def __init__(self, writer: StoreWriter, server: str, now: Clock, echo: Echo | None = None) -> None:
+    def __init__(self, writer: StoreWriter, server: ServerSource, now: Clock,
+                 echo: Echo | None = None) -> None:
         self._writer = writer
         self._server = server
         self._now = now
@@ -46,8 +49,9 @@ class EnvelopeHandler:
 
     def __call__(self, envelope: Envelope, key: FlowKey) -> None:
         captured_at = format_utc(self._now())
-        lots = decode_lot_prices(envelope, self._server, captured_at)
-        stats = decode_market_stats(envelope, self._server, captured_at)
+        server = self._server(key) if callable(self._server) else self._server
+        lots = decode_lot_prices(envelope, server, captured_at)
+        stats = decode_market_stats(envelope, server, captured_at)
         self._log(lots, stats)
         for record in [*lots, *stats]:
             self._writer.submit(record)
@@ -75,7 +79,7 @@ class EnvelopeHandler:
 
 
 def make_envelope_handler(
-    writer: StoreWriter, server: str, now: Clock, echo: Echo | None = None
+    writer: StoreWriter, server: ServerSource, now: Clock, echo: Echo | None = None
 ) -> EnvelopeHandler:
     """Build the envelope callback storing lot prices and market stats via the writer."""
     return EnvelopeHandler(writer, server, now, echo)
@@ -98,15 +102,17 @@ def _capture_and_drain(
         writer.stop()
 
 
-def run_command(arguments: argparse.Namespace, capture: CaptureFunction, now: Clock) -> int:
+def run_command(arguments: argparse.Namespace, capture: CaptureFunction, now: Clock,
+                server_resolver: Callable[[FlowKey], str] | None = None) -> int:
     """Capture HDV traffic into the database until Ctrl+C."""
     try:
         writer = StoreWriter(arguments.db)
     except (sqlite3.Error, OSError) as error:
         return fail(f"Impossible d'ouvrir la base de données {arguments.db} : {error}")
     label = getattr(arguments, "server_label", "")
-    print(f"Base de données : {arguments.db}. Serveur enregistré : {arguments.server}{label}. "
-          "Ctrl+C pour arrêter.")
+    note = getattr(arguments, "server_note", "") if server_resolver else ""
+    print(f"Base de données : {arguments.db}. Serveur enregistré : {arguments.server}{label}."
+          f"{note} Ctrl+C pour arrêter.")
     echo = print if arguments.verbose else None
-    handler = make_envelope_handler(writer, arguments.server, now, echo)
+    handler = make_envelope_handler(writer, server_resolver or arguments.server, now, echo)
     return _capture_and_drain(writer, handler, arguments.interface, capture)

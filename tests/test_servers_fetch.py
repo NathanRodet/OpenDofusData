@@ -32,9 +32,9 @@ class FakeServersApi(FakeApi):
         self._collections = {"/servers": servers, "/server-game-types": types}
 
 
-def run_download(output: Path, fetch, sleeps: list[float] | None = None):
+def run_download(output: Path, fetch, sleeps: list[float] | None = None, **options):
     return download_game_servers(
-        output, fetch=fetch, page_size=PAGE_SIZE_FOR_TESTS, request_delay=0.0,
+        output, fetch=fetch, page_size=PAGE_SIZE_FOR_TESTS, request_delay=0.0, **options,
         sleep=(sleeps if sleeps is not None else []).append, progress=[].append)
 
 
@@ -43,9 +43,9 @@ def read_rows(path: Path) -> list[list[str]]:
         return list(csv.reader(file))
 
 
-def test_download_writes_sorted_csv_with_resolved_game_types(tmp_path: Path) -> None:
+def test_download_with_all_writes_every_server_sorted_with_resolved_game_types(tmp_path: Path) -> None:
     output = tmp_path / "data" / "servers.csv"
-    summary = run_download(output, FakeServersApi())
+    summary = run_download(output, FakeServersApi(), classic_only=False)
     rows = read_rows(output)
     assert rows[0] == ["id", "name_fr", "game_type_id", "game_type_fr", "community_id"]
     assert rows[1:] == [["291", "Imagiro", "0", "Classique", "0"],
@@ -54,7 +54,22 @@ def test_download_writes_sorted_csv_with_resolved_game_types(tmp_path: Path) -> 
                         ["901", "[!] Marqué", "77", "", "1"],
                         ["902", "English only", "0", "Classique", ""]]
     assert (summary.rows, summary.skipped, summary.duplicates) == (5, 1, 1)
+    assert (summary.received, summary.excluded) == (7, 0)
     assert summary.path == output and summary.size_bytes == output.stat().st_size
+
+
+def test_download_keeps_only_classic_servers_by_default(tmp_path: Path) -> None:
+    output = tmp_path / "servers.csv"
+    summary = run_download(output, FakeServersApi())
+    assert [row[0] for row in read_rows(output)[1:]] == ["291", "293", "902"]
+    assert {row[2] for row in read_rows(output)[1:]} == {"0"}
+    assert (summary.rows, summary.received, summary.excluded) == (3, 7, 2)
+
+
+def test_total_check_counts_the_rows_received_before_the_classic_filter(tmp_path: Path) -> None:
+    with pytest.raises(NamesFetchError):
+        run_download(tmp_path / "servers.csv", FakeServersApi(total_shift=1))
+    assert list(tmp_path.iterdir()) == []
 
 
 def test_download_requests_types_then_servers_page_by_page(tmp_path: Path) -> None:
@@ -82,7 +97,7 @@ def test_transient_failure_is_retried_then_succeeds(tmp_path: Path) -> None:
     api = FakeServersApi()
     api.failures = [TransientFetchError("HTTP 503")]
     sleeps: list[float] = []
-    assert run_download(tmp_path / "servers.csv", api, sleeps).rows == 5
+    assert run_download(tmp_path / "servers.csv", api, sleeps).rows == 3
     assert sleeps and sleeps[0] > 0
 
 

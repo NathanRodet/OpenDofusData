@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_SERVERS_PATH = "data/servers.csv"
 UNKNOWN_SERVER = "unknown"
+CLASSIC_GAME_TYPE_ID = 0
 SERVERS_CSV_HEADER = ("id", "name_fr", "game_type_id", "game_type_fr", "community_id")
 
 

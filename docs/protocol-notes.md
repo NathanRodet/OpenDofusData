@@ -49,6 +49,7 @@ Flux de messages Protobuf précédés de leur longueur, avec des enveloppes `typ
 - Les identifiants d'objets des messages capturés (y compris le champ d'objet de la fenêtre de recyclage) sont les identifiants d'objets DofusDB: vérifié pour 307, 376, 34095, 33528, 33530, 8139 et 17134.
 - Les messages ne contiennent pas les noms d'objets, seulement leurs identifiants.
 - Le serveur de jeu (Dofus a plusieurs serveurs) n'est pas identifié dans ces messages: l'outil prend le nom du serveur en option.
+- Aucun identifiant de serveur n'existe dans les messages de connexion / handshake (vérifié sur une capture d'une connexion à Kourial): la détection se fait par l'adresse IP du serveur de jeu (Kourial = 99.81.217.174), apprise puis reconnue.
 - Le serveur de jeu n'est pas encore identifié dans les messages capturés: le champ 5 de `itv` (valeurs 355 / 457) ressemble à une latence et n'est PAS un identifiant de serveur; les autres correspondances avec des identifiants de serveur dans les captures précédentes étaient des coïncidences dans des listes d'objets.
 
 ## Autres messages vus (hors périmètre)

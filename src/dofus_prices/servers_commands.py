@@ -14,12 +14,11 @@ from dofus_prices.names_commands import INTERRUPTED_MESSAGE
 from dofus_prices.names_fetch import (
     REQUEST_DELAY_SECONDS,
     FetchJson,
-    FetchSummary,
     Sleep,
     http_get_json,
 )
 from dofus_prices.server_choice import UNLISTED_WARNING
-from dofus_prices.servers_fetch import download_game_servers
+from dofus_prices.servers_fetch import ServersSummary, download_game_servers
 
 DEV_RUN = r".\dev.ps1 run"
 UPDATE_NOTICE = (
@@ -39,13 +38,17 @@ def add_servers_commands(commands: argparse._SubParsersAction) -> None:
                                  help="télécharge la liste des serveurs de jeu (DofusDB)")
     update.add_argument("--output", default=DEFAULT_SERVERS_PATH,
                         help=f"fichier CSV à écrire (défaut : {DEFAULT_SERVERS_PATH})")
+    update.add_argument("--all", action="store_true", dest="keep_all",
+                        help="garde tous les serveurs (défaut : serveurs classiques seulement)")
     listing = commands.add_parser("servers", help="affiche la liste des serveurs de jeu")
     listing.add_argument("--servers", default=DEFAULT_SERVERS_PATH,
                          help=f"fichier CSV des serveurs (défaut : {DEFAULT_SERVERS_PATH})")
 
 
-def _print_summary(summary: FetchSummary) -> None:
-    print(f"{summary.rows} serveurs écrits dans {summary.path} ({summary.size_bytes} octets), "
+def _print_summary(summary: ServersSummary) -> None:
+    filtered = f" (classiques uniquement, {summary.excluded} exclus)" if summary.excluded else ""
+    print(f"{summary.received} serveurs reçus (conformes au total de l'API), "
+          f"{summary.rows} écrits{filtered} dans {summary.path} ({summary.size_bytes} octets), "
           f"{summary.skipped} ignoré(s) sans nom, {summary.duplicates} doublon(s).")
 
 
@@ -57,6 +60,7 @@ def servers_update_command(
     print(UPDATE_NOTICE)
     try:
         summary = download_game_servers(Path(arguments.output), fetch,
+                                        classic_only=not arguments.keep_all,
                                         request_delay=request_delay, sleep=sleep)
     except NamesFetchError as error:
         return fail(str(error))

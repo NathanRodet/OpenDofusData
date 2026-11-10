@@ -28,6 +28,13 @@ def direction_of(key: FlowKey) -> str:
     return DIRECTION_TO_CLIENT if key[1] == DOFUS_PORT else DIRECTION_TO_SERVER
 
 
+def server_ip_of(key: FlowKey) -> str | None:
+    """Return the address of the endpoint using the Dofus port (never the other side)."""
+    if key[1] == DOFUS_PORT:
+        return key[0]
+    return key[2] if key[3] == DOFUS_PORT else None
+
+
 class PacketPipeline:
     """Feeds captured packets through TCP reassembly and envelope extraction."""
 

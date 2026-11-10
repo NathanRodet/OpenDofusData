@@ -34,8 +34,17 @@ def test_update_downloads_and_summarises(tmp_path: Path, capsys) -> None:
     assert update(["--output", str(output)], FakeServersApi()) == 0
     text = capsys.readouterr().out
     assert text.index("api.dofusdb.fr") < text.index(str(output))
-    assert "hors ligne" in text and "5 serveurs" in text and "1 ignoré" in text
-    assert output.is_file()
+    assert "hors ligne" in text and "7 serveurs reçus" in text and "3 écrits" in text
+    assert "classiques" in text and "1 ignoré" in text
+    assert output.is_file() and len(output.read_text(encoding="utf-8").splitlines()) == 4
+
+
+def test_update_all_keeps_every_server_and_says_so(tmp_path: Path, capsys) -> None:
+    output = tmp_path / "servers.csv"
+    assert update(["--output", str(output), "--all"], FakeServersApi()) == 0
+    text = capsys.readouterr().out
+    assert "7 serveurs reçus" in text and "5 écrits" in text and "classiques" not in text
+    assert len(output.read_text(encoding="utf-8").splitlines()) == 6
 
 
 def test_update_default_output_is_the_constant() -> None:
@@ -106,7 +115,7 @@ def test_run_command_stores_the_canonical_name(tmp_path: Path, monkeypatch) -> N
     monkeypatch.chdir(tmp_path)
     seen: list[str] = []
 
-    def fake_run_command(arguments, capture, now) -> int:
+    def fake_run_command(arguments, capture, now, resolver=None) -> int:
         seen.append(arguments.server)
         return 0
 

@@ -137,3 +137,37 @@ def test_echo_unicode_error_warns_once_and_keeps_capturing(tmp_path: Path, caplo
     assert len(calls) == 1
     assert len(submitted) == 1 + 4
     assert len([r for r in caplog.records if r.levelno == logging.WARNING]) == 1
+
+
+def stored_servers(database: str) -> dict[int, set[str]]:
+    store = PriceStore(database)
+    try:
+        return {item: {lot.server for lot in store.latest_prices(item)} for item in (307, 308)}
+    finally:
+        store.close()
+
+
+def test_handler_with_a_callable_server_resolves_each_flow(tmp_path: Path) -> None:
+    database = str(tmp_path / "prices.db")
+    writer = StoreWriter(database)
+    seen: list[tuple] = []
+    names = {FLOW_KEY: "Kourial", ("9.9.9.9", 5555, "5.6.7.8", 40001): "Brial"}
+
+    def resolver(key: tuple) -> str:
+        seen.append(key)
+        return names[key]
+
+    handler = make_envelope_handler(writer, resolver, lambda: CAPTURE_MOMENT)
+    handler(lot_envelope(307), FLOW_KEY)
+    handler(lot_envelope(308), ("9.9.9.9", 5555, "5.6.7.8", 40001))
+    writer.stop()
+    assert seen == [FLOW_KEY, ("9.9.9.9", 5555, "5.6.7.8", 40001)]
+    assert stored_servers(database) == {307: {"Kourial"}, 308: {"Brial"}}
+
+
+def test_handler_with_a_string_server_is_unchanged(tmp_path: Path) -> None:
+    database = str(tmp_path / "prices.db")
+    writer = StoreWriter(database)
+    make_envelope_handler(writer, "Fixe", lambda: CAPTURE_MOMENT)(lot_envelope(307), FLOW_KEY)
+    writer.stop()
+    assert stored_servers(database)[307] == {"Fixe"}
