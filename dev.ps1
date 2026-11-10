@@ -1,6 +1,6 @@
 param(
     [Parameter(Position = 0)]
-    [ValidateSet("setup", "test", "clean", "run", "help")]
+    [ValidateSet("setup", "test", "clean", "capture", "run", "help")]
     [string]$Command = "help",
 
     [Parameter(ValueFromRemainingArguments = $true)]
@@ -34,11 +34,20 @@ function Invoke-Test {
     & $VenvPython -m pytest $ProjectRoot
 }
 
-function Invoke-Run {
+function Invoke-Program {
+    param([string[]]$ProgramArguments)
     Assert-VenvExists
     $env:PYTHONPATH = Join-Path $ProjectRoot "src"
-    & $VenvPython -m dofus_prices @RunArguments
+    & $VenvPython -m dofus_prices @ProgramArguments
     exit $LASTEXITCODE
+}
+
+function Invoke-Run {
+    Invoke-Program $RunArguments
+}
+
+function Invoke-Capture {
+    Invoke-Program (@("run") + $RunArguments)
 }
 
 function Invoke-Clean {
@@ -55,6 +64,7 @@ function Show-Help {
     Write-Host "  setup  Crée le venv et installe requirements.txt"
     Write-Host "  test   Lance pytest dans le venv"
     Write-Host "  clean  Supprime le venv et les caches"
+    Write-Host "  capture Lance la capture des prix (ex: .\dev.ps1 capture --server MonServeur)"
     Write-Host "  run    Lance dofus_prices (ex: .\dev.ps1 run discover --interface Ethernet)"
 }
 
@@ -62,6 +72,7 @@ switch ($Command) {
     "setup" { Invoke-Setup }
     "test"  { Invoke-Test }
     "clean" { Invoke-Clean }
+    "capture" { Invoke-Capture }
     "run"   { Invoke-Run }
     "help"  { Show-Help }
 }

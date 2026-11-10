@@ -33,16 +33,17 @@ Cette commande crée le venv `.venv` et installe `requirements.txt` (`scapy` pou
 | `.\dev.ps1 setup` | Crée le venv et installe les dépendances |
 | `.\dev.ps1 test` | Lance `pytest` dans le venv |
 | `.\dev.ps1 clean` | Supprime le venv et les caches |
+| `.\dev.ps1 capture [options]` | Lance la capture des prix (commande de base) |
 | `.\dev.ps1 run <sous-commande> [options]` | Lance le programme avec ses arguments |
 | `.\dev.ps1 help` | Affiche l'aide |
 
 ## Utilisation
 
-`.\dev.ps1 run` transmet tout ce qui suit au programme. Dans `.\dev.ps1 run run --db prices.db --server Nom`, le premier `run` est la commande du script de dev et le second est la sous-commande du programme.
+La commande de base est `.\dev.ps1 capture`: elle lance la capture avec les valeurs par défaut (base `prices.db`, serveur `unknown`), et accepte `--db`, `--interface` et `--server`. Pour les autres sous-commandes, `.\dev.ps1 run` transmet tout ce qui suit au programme: `.\dev.ps1 run prices` lance la sous-commande `prices`. `.\dev.ps1 capture` équivaut à `.\dev.ps1 run run`.
 
 | Sous-commande | Effet | Exemple |
 |---|---|---|
-| `run` | Capture et enregistre les prix et statistiques de l'HDV | `.\dev.ps1 run run --db prices.db --server Nom` |
+| `run` | Capture et enregistre les prix et statistiques de l'HDV (raccourci: `.\dev.ps1 capture`) | `.\dev.ps1 capture --server Nom` |
 | `prices` | Derniers prix par objet, serveur et lot (`--item` pour filtrer) | `.\dev.ps1 run prices --item 307` |
 | `history` | Historique des prix d'un objet pour un lot (`--lot` obligatoire: 1, 10, 100 ou 1000) | `.\dev.ps1 run history 307 --lot 10` |
 | `stats` | Dernières statistiques d'un objet (`--period` parmi `24h`, `7d`, `30d`; toutes par défaut) | `.\dev.ps1 run stats 307 --period 7d` |
@@ -53,7 +54,7 @@ Options communes: `--db` (base SQLite, défaut `prices.db`) pour `run`, `prices`
 
 Pour capturer:
 
-1. Lance `.\dev.ps1 run run --db prices.db --server Nom` AVANT de te connecter au jeu. L'outil se resynchronise en cours de connexion, mais les premiers messages peuvent être manqués.
+1. Lance `.\dev.ps1 capture` (ou `.\dev.ps1 capture --server Nom`) AVANT de te connecter au jeu. L'outil se resynchronise en cours de connexion, mais les premiers messages peuvent être manqués.
 2. Joue, et ouvre les fiches d'objets dans l'HDV: seuls les objets consultés sont enregistrés.
 3. Arrête avec Ctrl+C: la capture se termine proprement et la file d'écriture est vidée avant la sortie.
 
