@@ -147,6 +147,17 @@ def _load_scapy_sniff() -> SniffFunction:
     return sniff
 
 
+def _sniff_arguments(pipeline: PacketPipeline, interface: str | None) -> dict[str, Any]:
+    return {
+        "filter": BPF_FILTER,
+        "store": False,
+        "prn": pipeline.handle_packet,
+        "iface": interface,
+        "chainCC": True,
+        "stop_filter": lambda packet: pipeline.abort_error is not None,
+    }
+
+
 def run_capture(
     pipeline: PacketPipeline,
     interface: str | None = None,
@@ -160,13 +171,6 @@ def run_capture(
     and is re-raised here once sniff has returned.
     """
     sniff = sniff_function or _load_scapy_sniff()
-    sniff(
-        filter=BPF_FILTER,
-        store=False,
-        prn=pipeline.handle_packet,
-        iface=interface,
-        chainCC=True,
-        stop_filter=lambda packet: pipeline.abort_error is not None,
-    )
+    sniff(**_sniff_arguments(pipeline, interface))
     if pipeline.abort_error is not None:
         raise pipeline.abort_error
