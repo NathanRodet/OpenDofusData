@@ -24,6 +24,8 @@ from dofus_prices.framing import Envelope
 from dofus_prices.names_db_commands import names_gaps_command, names_import_command
 from dofus_prices.names_commands import add_names_commands, names_update_command
 from dofus_prices.run_pipeline import Clock, run_command, utc_now
+from dofus_prices.servers_commands import (SERVER_COMMANDS, UNKNOWN_SERVER, add_servers_commands,
+                                           resolve_server_name)
 from dofus_prices.storage import LOT_SIZES, MARKET_PERIODS
 from dofus_prices.tcp import FlowKey
 
@@ -31,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_OUTPUT = "captures/discovery.jsonl"
 DEFAULT_DATABASE = "prices.db"
-DEFAULT_SERVER = "unknown"
+DEFAULT_SERVER = UNKNOWN_SERVER
 
 INCLUDE_TEXT_WARNING = (
     "Attention : le journal peut contenir des données personnelles (chat, identifiants). "
@@ -69,6 +71,7 @@ def build_parser() -> argparse.ArgumentParser:
                           help="types de message (ex. jzs,ire) avec aperçu hex de leurs octets (données personnelles possibles)")
     _add_database_commands(commands)
     add_names_commands(commands)
+    add_servers_commands(commands)
     return parser
 
 
@@ -165,6 +168,7 @@ READ_COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {
     "names-update": names_update_command,
     "names-import": names_import_command,
     "names-gaps": names_gaps_command,
+    **SERVER_COMMANDS,
 }
 
 
@@ -175,6 +179,7 @@ def run(argv: list[str] | None, capture: CaptureFunction, now: Clock = utc_now) 
     if arguments.command == "discover":
         return _discover(arguments, capture)
     if arguments.command == "run":
+        arguments.server = resolve_server_name(arguments.server)
         return run_command(arguments, capture, now)
     if arguments.command in READ_COMMANDS:
         return READ_COMMANDS[arguments.command](arguments)

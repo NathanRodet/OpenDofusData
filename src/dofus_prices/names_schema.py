@@ -4,6 +4,9 @@ NAMES_SCHEMA_STATEMENTS = (
     """CREATE TABLE IF NOT EXISTS items (
         item_id INTEGER PRIMARY KEY, name_fr TEXT NOT NULL, level INTEGER,
         type_fr TEXT NOT NULL DEFAULT '')""",
+    """CREATE TABLE IF NOT EXISTS servers (
+        server_id INTEGER PRIMARY KEY, name_fr TEXT NOT NULL, game_type_id INTEGER,
+        game_type_fr TEXT NOT NULL DEFAULT '', community_id INTEGER)""",
     # Every lot_prices column plus the name; 'N/A' marks an id missing from items.
     """CREATE VIEW IF NOT EXISTS lot_prices_named AS
         SELECT lot.*, COALESCE(items.name_fr, 'N/A') AS item_name,

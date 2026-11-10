@@ -47,7 +47,9 @@ GUARDED_MODULES = (
     "storage", "run_pipeline", "commands", "export", "verbose_table", "timeutil", "discovery",
 )
 FORBIDDEN_IMPORTS = ("dofus_prices.names_fetch", "dofus_prices.names_build",
-                     "dofus_prices.item_names", "urllib")
+                     "dofus_prices.item_names", "dofus_prices.game_servers",
+                     "dofus_prices.servers_fetch", "dofus_prices.servers_build",
+                     "dofus_prices.servers_commands", "urllib")
 
 
 def forbidden_imports(source: str) -> list[str]:
@@ -74,3 +76,25 @@ def test_guard_detects_offending_sources() -> None:
 def test_capture_decoder_and_storage_modules_stay_offline(module: str) -> None:
     source = (SOURCE_DIRECTORY / "dofus_prices" / f"{module}.py").read_text(encoding="utf-8")
     assert forbidden_imports(source) == []
+
+
+SERVERS_CHECK_SCRIPT = (
+    "import sys; sys.path.insert(0, sys.argv[1]); "
+    "import dofus_prices.game_servers, dofus_prices.servers_build; "
+    "banned = {'sqlite3', 'scapy', 'urllib.request'}; "
+    "sys.exit(1 if banned & set(sys.modules) else 0)"
+)
+
+
+def test_server_list_modules_stay_out_of_the_capture_path() -> None:
+    assert forbidden_imports("from dofus_prices.servers_fetch import x") != []
+    assert forbidden_imports("from dofus_prices import game_servers") != []
+    assert forbidden_imports("import dofus_prices.servers_commands") != []
+    assert forbidden_imports("from dofus_prices.servers_build import x") != []
+
+
+def test_pure_server_modules_do_not_import_network_storage_or_capture() -> None:
+    result = subprocess.run(
+        [sys.executable, "-I", "-c", SERVERS_CHECK_SCRIPT, str(SOURCE_DIRECTORY)],
+        capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
