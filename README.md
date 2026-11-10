@@ -39,7 +39,7 @@ Cette commande crée le venv `.venv` et installe `requirements.txt` (`scapy` pou
 
 ## Utilisation
 
-La commande de base est `.\dev.ps1 capture`: elle lance la capture avec les valeurs par défaut (base `prices.db`, serveur `unknown`), et accepte `--db`, `--interface` et `--server`. Pour les autres sous-commandes, `.\dev.ps1 run` transmet tout ce qui suit au programme: `.\dev.ps1 run prices` lance la sous-commande `prices`. `.\dev.ps1 capture` équivaut à `.\dev.ps1 run run`.
+La commande de base est `.\dev.ps1 capture`: elle lance la capture avec les valeurs par défaut (base `prices.db`, serveur `unknown`), et accepte `--db`, `--interface`, `--server` et `--verbose`. Pour les autres sous-commandes, `.\dev.ps1 run` transmet tout ce qui suit au programme: `.\dev.ps1 run prices` lance la sous-commande `prices`. `.\dev.ps1 capture` équivaut à `.\dev.ps1 run run`.
 
 | Sous-commande | Effet | Exemple |
 |---|---|---|
@@ -50,7 +50,7 @@ La commande de base est `.\dev.ps1 capture`: elle lance la capture avec les vale
 | `export-csv` | Exporte tous les prix en CSV (`--output` obligatoire) | `.\dev.ps1 run export-csv --output prix.csv` |
 | `discover` | Journalise la structure des messages (voir plus bas) | `.\dev.ps1 run discover` |
 
-Options communes: `--db` (base SQLite, défaut `prices.db`) pour `run`, `prices`, `history`, `stats` et `export-csv`; `--interface` (interface réseau à écouter, interface par défaut de Scapy si absent) pour `run` et `discover`. `--server` (défaut `unknown`) n'existe que pour `run`. Les commandes de lecture n'ouvrent jamais une base absente: elles signalent l'erreur.
+Options communes: `--db` (base SQLite, défaut `prices.db`) pour `run`, `prices`, `history`, `stats` et `export-csv`; `--interface` (interface réseau à écouter, interface par défaut de Scapy si absent) pour `run` et `discover`. `--server` (défaut `unknown`) n'existe que pour `run`, comme `--verbose` (affichage en direct des valeurs décodées). Les commandes de lecture n'ouvrent jamais une base absente: elles signalent l'erreur.
 
 Pour capturer:
 

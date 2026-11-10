@@ -33,7 +33,8 @@ class EnvelopeHandler:
 
     When `echo` is given, the decoded values are also passed to it as text tables. The
     echo runs on the capture thread, which is acceptable for this debug option. If it
-    raises OSError (for example a closed console), one warning is logged and echoing stops.
+    raises OSError (for example a closed console) or UnicodeError (a console that cannot
+    encode accents), one warning is logged and echoing stops.
     """
 
     def __init__(self, writer: StoreWriter, server: str, now: Clock, echo: Echo | None = None) -> None:
@@ -68,7 +69,7 @@ class EnvelopeHandler:
     def _echo_block(self, block: str) -> None:
         try:
             self._echo(block + "\n")  # the extra newline leaves a blank line once printed
-        except OSError as error:
+        except (OSError, UnicodeError) as error:
             logger.warning("affichage --verbose désactivé (%s); la capture continue", error)
             self._echo = None
 

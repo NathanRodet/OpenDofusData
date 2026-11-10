@@ -5,7 +5,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from dofus_prices.framing import Envelope
+from dofus_prices.hdv import decode_lot_prices
+from dofus_prices.market_stats import decode_market_stats
 from dofus_prices.run_pipeline import make_envelope_handler
+from dofus_prices.verbose_table import format_lot_prices, format_market_stats
 from dofus_prices.storage import PriceStore, StoreWriter
 from tests.envelopes import FLOW_KEY, STATS_ITEM_ID, lot_envelope, stats_envelope
 
@@ -79,14 +82,16 @@ def test_echo_receives_one_lots_block_for_a_lot_envelope(tmp_path: Path) -> None
     blocks: list[str] = []
     handler, _ = make_echo_handler(tmp_path, blocks.append)
     handler(lot_envelope(), FLOW_KEY)
-    assert len(blocks) == 1 and blocks[0].startswith("Lots - objet 307 (10:29:17 UTC)")
+    expected = format_lot_prices(decode_lot_prices(lot_envelope(), "unknown", CAPTURED_AT)) + "\n"
+    assert blocks == [expected]
 
 
 def test_echo_receives_one_stats_block_for_a_stats_envelope(tmp_path: Path) -> None:
     blocks: list[str] = []
     handler, _ = make_echo_handler(tmp_path, blocks.append)
     handler(stats_envelope(), FLOW_KEY)
-    assert len(blocks) == 1 and blocks[0].startswith(f"Cours du marché - objet {STATS_ITEM_ID}")
+    expected = format_market_stats(decode_market_stats(stats_envelope(), "unknown", CAPTURED_AT)) + "\n"
+    assert blocks == [expected]
 
 
 def test_echo_is_not_called_for_unrelated_envelopes(tmp_path: Path) -> None:
@@ -117,3 +122,18 @@ def test_failing_echo_warns_once_and_stops_echoing(tmp_path: Path, caplog) -> No
     assert len(submitted) == 4 + 1 + 4
     warnings = [record for record in caplog.records if record.levelno == logging.WARNING]
     assert len(warnings) == 1
+
+
+def test_echo_unicode_error_warns_once_and_keeps_capturing(tmp_path: Path, caplog) -> None:
+    calls: list[str] = []
+
+    def ascii_console(text: str) -> None:
+        calls.append(text)
+        raise UnicodeEncodeError("ascii", "é", 0, 1, "x")
+
+    handler, submitted = make_echo_handler(tmp_path, ascii_console)
+    handler(stats_envelope(), FLOW_KEY)
+    handler(lot_envelope(), FLOW_KEY)
+    assert len(calls) == 1
+    assert len(submitted) == 1 + 4
+    assert len([r for r in caplog.records if r.levelno == logging.WARNING]) == 1

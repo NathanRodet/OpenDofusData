@@ -70,3 +70,9 @@ def test_stats_block_keeps_alignment_with_huge_values() -> None:
 def test_empty_lists_give_empty_text() -> None:
     assert format_lot_prices([]) == ""
     assert format_market_stats([]) == ""
+
+
+def test_non_standard_last_purchase_is_shown_as_is() -> None:
+    row = stats_row("24h", 1, 2, 3)
+    row.last_purchase_at = "yesterday"
+    assert format_market_stats([row]).endswith("3   yesterday")
