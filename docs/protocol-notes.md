@@ -1,27 +1,48 @@
 # Notes de protocole (Dofus 3, TCP 5555)
 
-Établies à partir de `captures/discovery.jsonl` (capture du 2026-11-10, objet « Ailes de Moskito », identifiant 307) croisée avec des captures d'écran du jeu. Les noms courts de messages changent à chaque version du jeu.
+Établies à partir de deux captures du mode découverte (2026-11-10), croisées avec des captures d'écran du jeu pour trois objets: Ailes de Moskito (identifiant 307), Aile du Tofu Maléfique (376) et Âme capturée: Fourapin le Chaud (34095). Les noms courts de messages (`jzs`, `ire`, `kcy`, `iqp`) changent à chaque version du jeu: ils sont isolés dans `src/dofus_prices/messages.py`.
 
-## Format confirmé
+## Format
 
-Le flux est bien une suite de messages Protobuf précédés de leur longueur, avec des enveloppes `type.ankama.com/<nom>`. Aucun écart avec l'hypothèse de `framing.py`.
-
-## Cours du marché (écran « Cours du marché »)
-
-- Requête client: `iqp`, champ 1 = identifiant de l'objet (307).
-- Réponse serveur: `ire`. Chaque point répété a la forme `{1: prix, 2: identifiant de l'objet, 3: message de date (30 octets, non décodé), 4: quantité vendue}`.
-  - Champ 1 répété (19 points pour 307): courbe des 24 heures. Vérifié sur l'écran: somme des quantités = 1 177 articles vendus, médiane pondérée = 584, moyenne pondérée = 568,7 (affichée 568), prix entre 499 et 643.
-  - Champ 3 répété (30 points): courbe des 30 jours. Moyenne pondérée = 358,8 (affichée 359 dans la liste « Prix moyen »), 79 129 articles vendus.
-  - Le champ 2 (7 jours) n'apparaît pas dans cette réponse. Hypothèse: l'onglet 7 jours est calculé côté client à partir des 30 jours.
-- Dates affichées à l'écran (« Dernière mise à jour », « Dernier achat »): non localisées. Elles sont probablement dans le message de 30 octets (champ 3 de chaque point) ou dans un autre message.
+Flux de messages Protobuf précédés de leur longueur, avec des enveloppes `type.ankama.com/<nom>`. Cela correspond à l'hypothèse de `framing.py`.
 
 ## Prix des lots (×1, ×10, ×100, ×1000)
 
 - Requête client: `kcy`, champ 1 = identifiant de l'objet, champ 2 = 1.
-- Réponse serveur: `jzs` = `{1: {1: objet, 2: octets compactés (10 octets pour 307), 3: 897, 4: 104}, 2: 104, 3: objet}`.
-- Hypothèse: le champ 1.2 contient les quatre prix de lots en entiers variables compactés (750, 5 868, 49 993, 499 999 occupent exactement 2 + 2 + 3 + 3 = 10 octets). Les champs 1.3 (897) et 1.4 / 2 (104) ne sont pas identifiés.
-- À vérifier avec les octets réels de ce champ.
+- Réponse serveur: `jzs` = `{1: {1: objet, 2: prix compactés, 3: ?, 4: ?}, 2: ?, 3: objet}`.
+- Le champ 1.2 contient les prix en entiers variables compactés, dans l'ordre des lots ×1, ×10, ×100, ×1000. La valeur 0 signifie qu'il n'y a pas de lot de cette taille. Octets vérifiés contre l'écran:
+
+| Objet | Octets (hex) | Valeurs | Écran |
+|---|---|---|---|
+| 307 | `ee05ec2dc986039fc21e` | 750, 5868, 49993, 499999 | 750, 5 868, 49 993, 499 999 |
+| 376 | `9101d00ebd6500` | 145, 1872, 12989, 0 | 145, 1 872, 12 989 (pas de ×1000) |
+| 34095 | `a98805000000` | 82985, 0, 0, 0 | 82 985 (×1 seulement) |
+| 1022 | `01f306c42c00` | 1, 883, 5700, 0 | non vérifié |
+
+- Champs non identifiés: 1.3 (897, 3695, 1336, 75860), 1.4 et 2 (104 ou 328). Ils ne sont pas nécessaires.
+
+## Cours du marché
+
+- Requête client: `iqp`, champ 1 = identifiant de l'objet.
+- Réponse serveur: `ire`, avec deux listes de points répétés:
+  - champ 1 = points des 24 heures (un par heure avec des ventes: 19 pour 307, 15 pour 376, 2 pour 34095);
+  - champ 3 = points des 30 jours (30 points, un par jour).
+- Chaque point: `{1: prix, 2: identifiant de l'objet, 3: horodatage ISO-8601 UTC en texte (ex. 2026-11-09T10:50:09.901212706Z, 9 chiffres de fraction), 4: quantité vendue}`.
+- Les statistiques affichées se recalculent exactement à partir des points (vérifié sur les trois objets):
+  - articles vendus = somme des quantités;
+  - prix médian = médiane pondérée par les quantités;
+  - prix moyen = somme(prix × quantité) / somme(quantités), tronqué à l'entier (568,7 s'affiche 568);
+  - dernier achat = horodatage du dernier point des 24 heures (heure locale = UTC + 1 en novembre);
+  - 30 jours: tous les points du champ 3;
+  - 7 jours: aucun message dédié; ce sont les points des 30 jours situés au plus 7 jours avant le dernier point (vérifié: 307 → 521 / 486 / 15 998, 376 → 46 / 73 / 14 208).
+- « Dernière mise à jour »: aucun champ serveur trouvé; elle vaut l'heure de la requête. L'outil utilise l'heure de capture.
+- Le « Prix moyen » de la liste (359 pour 307, 15 923 pour 34095) est la moyenne pondérée des 30 jours.
+
+## Limites
+
+- Les messages ne contiennent pas les noms d'objets, seulement leurs identifiants.
+- Le serveur de jeu (Dofus a plusieurs serveurs) n'est pas identifié dans ces messages: l'outil prend le nom du serveur en option.
 
 ## Autres messages vus (hors périmètre)
 
-`jnz`, `kne`, `knb`, `kpy`, `kjz`, `jns`, `irl` (grosse liste d'objets, inventaire ou liste HDV) sont très fréquents; non analysés.
+`jnz`, `kne`, `knb`, `kpy`, `kjz`, `jns`, `irl` (grosse liste d'objets) sont très fréquents; non analysés.

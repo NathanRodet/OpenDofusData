@@ -169,75 +169,91 @@ Hypothèse à confirmer avec une vraie capture (Task 7): une enveloppe est un me
 - [ ] **Step 4:** Run `.\dev.ps1 test`. Expected: tout PASS.
 - [ ] **Step 5:** Commit `feat: scapy capture and discovery mode`.
 
-### Task 7: Point de contrôle, capture réelle et rétro-ingénierie (avec le joueur)
+### Task 7: Capture réelle et rétro-ingénierie (terminé avec le joueur)
 
-**Files:**
-- Create: `src/dofus_prices/messages.py`, `docs/protocol-notes.md`
+Les deux captures du joueur (objets Ailes de Moskito, Aile du Tofu Maléfique, Âme capturée: Fourapin le Chaud) ont été croisées avec l'écran. Les conclusions sont dans `docs/protocol-notes.md`, qui fait foi pour les tâches 8 à 10. Résumé:
 
-**Interfaces:**
-- Produces dans `messages.py`: pour chaque message utile (consultation de lots, statistiques de marché), une constante de nom de message et un `@dataclass(frozen=True)` listant les numéros de champs (prix de lot, taille de lot, identifiant d'objet, séries de points, médian, moyen, articles vendus, dates). Valeurs de départ tirées d'Astrub Companion pour les lots; les statistiques de marché sont à découvrir.
-
-- [ ] **Step 1:** Le joueur lance `python -m dofus_prices discover` en administrateur si Npcap l'exige, avant de lancer Dofus, puis consulte à l'HDV deux ou trois objets (lots ×1, ×10, ×100, ×1000) et ouvre l'écran de statistiques sur 24 h, 7 jours et 30 jours.
-- [ ] **Step 2:** Le joueur envoie `captures/discovery.jsonl`.
-- [ ] **Step 3:** Identifier les messages de consultation et de statistiques en comparant les valeurs affichées en jeu (médian, moyen, articles vendus, dernière mise à jour, dernier achat) aux champs du log; noter les conclusions dans `docs/protocol-notes.md`.
-- [ ] **Step 4:** Remplir `messages.py`. Si les statistiques de marché sont absentes du trafic, le noter dans `docs/protocol-notes.md` et retirer Task 9 de la v1 (voir spec, « Point incertain »).
-- [ ] **Step 5:** Commit `docs: protocol notes and message definitions`.
+- Format confirmé: messages Protobuf précédés de leur longueur, enveloppes `type.ankama.com/<nom>`.
+- Lots: réponse serveur `jzs`; champ 1 = `{1: identifiant d'objet, 2: prix des lots en entiers variables compactés (un par taille de LOT_SIZES, 0 = pas de lot de cette taille), 3: ?, 4: ?}`, champ 2 = ?, champ 3 = identifiant d'objet. Valeurs vérifiées: 307 → `ee05ec2dc986039fc21e` = [750, 5868, 49993, 499999]; 376 → `9101d00ebd6500` = [145, 1872, 12989, 0]; 34095 → `a98805000000` = [82985, 0, 0, 0]; 1022 → `01f306c42c00` = [1, 883, 5700, 0].
+- Cours du marché: réponse serveur `ire` à la requête `iqp` (champ 1 = identifiant d'objet). Champ 1 répété = points des 24 heures, champ 3 répété = points des 30 jours. Chaque point = `{1: prix, 2: identifiant d'objet, 3: horodatage ISO-8601 UTC en texte (ex. 2026-11-09T10:50:09.901212706Z), 4: quantité vendue}`.
+- Dérivés vérifiés sur l'écran pour les trois objets: médian et moyenne pondérés par les quantités (moyenne tronquée à l'entier), articles vendus = somme des quantités, « dernier achat » = horodatage du dernier point des 24 heures, l'onglet 7 jours = points des 30 jours situés au plus 7 jours avant le dernier point (aucun message dédié).
+- « Dernière mise à jour »: aucun champ serveur trouvé; elle vaut l'heure de la requête. On utilise l'heure de capture.
+- Les messages ne contiennent pas les noms d'objets, seulement les identifiants.
 
 ### Task 8: Décodage des lots HDV
 
 **Files:**
-- Create: `src/dofus_prices/hdv.py`
+- Create: `src/dofus_prices/messages.py`, `src/dofus_prices/hdv.py`
 - Test: `tests/test_hdv.py`
 
 **Interfaces:**
-- Consumes: `Envelope`, `decode_fields`, `DecodeError`, définitions de `messages.py` (Task 7), `LotPrice` (Task 5).
-- Produces: `decode_lot_prices(envelope: Envelope, server: str, captured_at: str) -> list[LotPrice]` (liste vide pour un message non reconnu ou incomplet; une ligne de log `WARNING` explique pourquoi).
+- Consumes: `Envelope` (framing), `decode_fields`, `try_decode_fields`, `read_varint`, `DecodeError` (protobuf), `LotPrice`, `LOT_SIZES` (storage).
+- Produces:
+  - `messages.py`: uniquement des constantes nommées, seul endroit où figurent les noms de messages et numéros de champs: `LOT_RESPONSE_TYPE = "jzs"`, `LOT_DETAIL_FIELD = 1`, `LOT_ITEM_FIELD = 1`, `LOT_PRICES_FIELD = 2`, `LOT_FALLBACK_ITEM_FIELD = 3`, `STATS_RESPONSE_TYPE = "ire"`, `STATS_HOURLY_POINTS_FIELD = 1`, `STATS_DAILY_POINTS_FIELD = 3`, `POINT_PRICE_FIELD = 1`, `POINT_ITEM_FIELD = 2`, `POINT_TIMESTAMP_FIELD = 3`, `POINT_QUANTITY_FIELD = 4`.
+  - `hdv.py`: `decode_lot_prices(envelope: Envelope, server: str, captured_at: str) -> list[LotPrice]`, qui renvoie une liste vide pour un message d'un autre type ou invalide (avec un log `WARNING` pour un `jzs` illisible) et `unpack_varints(data: bytes) -> list[int]` (entiers compactés; lève `DecodeError` si les octets ne forment pas une suite complète d'entiers variables).
 
-- [ ] **Step 1: Tests**, construits à partir des champs observés au Task 7 (messages synthétiques, plus un extrait réel anonymisé du log):
-  - `test_decodes_one_price_per_lot_size`: les quatre tailles (1, 10, 100, 1000) ressortent avec le prix total du lot.
-  - `test_price_is_total_lot_price_not_unit_price`.
+- [ ] **Step 1: Tests (`tests/test_hdv.py`)**, avec des enveloppes construites dans le test à partir des octets réels:
+  - `test_decodes_four_lot_prices_for_item_307`: les octets `ee05ec2dc986039fc21e` donnent des `LotPrice` (objet 307) pour les tailles 1, 10, 100, 1000 avec les prix totaux 750, 5868, 49993, 499999.
+  - `test_zero_price_means_no_lot_of_that_size`: `9101d00ebd6500` (objet 376) donne seulement les tailles 1, 10, 100 (145, 1872, 12989).
+  - `test_single_lot_item`: `a98805000000` (objet 34095) donne seulement la taille 1 au prix 82985.
+  - `test_item_id_falls_back_to_outer_field`: sans le champ 1.1, l'identifiant vient du champ 3 du message.
   - `test_unrelated_envelope_returns_empty_list`.
-  - `test_missing_price_field_is_skipped_and_logged` (avec `caplog`).
-  - `test_truncated_payload_is_skipped_without_raising`.
-  - `test_lot_size_outside_known_sizes_is_ignored`.
-- [ ] **Step 2:** Run `pytest tests/test_hdv.py -v`. Expected: FAIL.
-- [ ] **Step 3:** Implémenter `decode_lot_prices`, découpé en petites fonctions (sélection du message, lecture d'un lot, validation).
+  - `test_more_than_four_prices_is_rejected_and_logged` (avec `caplog`): cinq valeurs donnent une liste vide.
+  - `test_truncated_packed_prices_are_skipped_without_raising`: octets `ee05ec` (entier variable coupé) donnent une liste vide et un `WARNING`.
+  - `test_missing_prices_field_returns_empty_list`.
+  - `test_unpack_varints_roundtrip` et `test_unpack_varints_rejects_truncated_input`.
+- [ ] **Step 2:** Run `.venv/Scripts/python.exe -m pytest tests/test_hdv.py -v -W error`. Expected: FAIL.
+- [ ] **Step 3:** Implémenter `messages.py` et `hdv.py` (fonctions courtes: sélection du message, lecture des prix compactés, association aux tailles de `LOT_SIZES`).
 - [ ] **Step 4:** Run. Expected: PASS.
 - [ ] **Step 5:** Commit `feat: decode hdv lot prices`.
 
-### Task 9: Décodage des cours du marché (si présents dans le trafic)
+### Task 9: Décodage des cours du marché
 
 **Files:**
-- Create: `src/dofus_prices/market_stats.py`
-- Test: `tests/test_market_stats.py`
+- Create: `src/dofus_prices/timeutil.py`, `src/dofus_prices/market_stats.py`
+- Modify: `src/dofus_prices/storage.py` (annotation seulement: `MarketStats.points` devient `list[tuple[int, int, int]]` = horodatage Unix, prix, quantité; ne pas dépasser 200 lignes), `tests/test_storage.py` (fixtures à trois valeurs)
+- Test: `tests/test_market_stats.py`, `tests/test_timeutil.py`
 
 **Interfaces:**
-- Consumes: `Envelope`, définitions de `messages.py`, `MarketStats` (Task 5).
-- Produces: `decode_market_stats(envelope: Envelope, server: str, captured_at: str) -> list[MarketStats]` (une entrée par période présente dans le message).
+- Consumes: `Envelope`, `decode_fields`, `DecodeError`, constantes de `messages.py`, `MarketStats`, `MARKET_PERIODS` (storage).
+- Produces:
+  - `timeutil.py`: `format_utc(moment: datetime) -> str` (format unique `%Y-%m-%dT%H:%M:%SZ`, toujours en UTC, utilisé pour tous les horodatages stockés) et `parse_server_timestamp(text: str) -> datetime` (accepte `2026-11-09T10:50:09.901212706Z`, c'est-à-dire jusqu'à 9 chiffres de fraction, renvoie un `datetime` UTC; `ValueError` sinon).
+  - `market_stats.py`: `decode_market_stats(envelope: Envelope, server: str, captured_at: str) -> list[MarketStats]`, une entrée par période non vide parmi `"24h"` (champ 1), `"30d"` (champ 3) et `"7d"` (points des 30 jours situés au plus 7 jours avant le dernier point des 30 jours); liste vide pour un autre type de message ou un message illisible (avec `WARNING`).
+- Règles de calcul (vérifiées sur l'écran): `sold_count` = somme des quantités; `median` = médiane de l'ensemble où chaque prix est répété autant de fois que sa quantité (moyenne entière des deux valeurs centrales si le total est pair), sans développer la liste; `mean` = somme(prix × quantité) // somme(quantités) (tronqué); `server_updated_at` = `captured_at`; `last_purchase_at` = horodatage du dernier point de la période 24 h (à défaut, du dernier point des 30 jours), formaté avec `format_utc`; `points` triés par horodatage.
 
-- [ ] **Step 1: Tests**: `test_decodes_median_mean_and_sold_count` (valeurs de l'écran de référence: médian 7 466, moyen 10 028, 66 articles vendus pour la période 24 h), `test_decodes_curve_points_in_order`, `test_server_update_and_last_purchase_dates_are_kept`, `test_each_period_is_returned_separately`, `test_unrelated_envelope_returns_empty_list`, `test_missing_fields_are_skipped_and_logged`.
-- [ ] **Step 2:** Run `pytest tests/test_market_stats.py -v`. Expected: FAIL.
-- [ ] **Step 3:** Implémenter sur le modèle de `hdv.py`.
-- [ ] **Step 4:** Run. Expected: PASS.
+- [ ] **Step 1: Tests**:
+  - `test_timeutil.py`: `parse_server_timestamp("2026-11-09T10:50:09.901212706Z")` donne le 2026-11-09 10:50:09 UTC (microsecondes 901212); un texte invalide lève `ValueError`; `format_utc` donne `2026-11-09T10:50:09Z`.
+  - `test_market_stats.py` (enveloppes `ire` construites à la main):
+    - `test_two_single_sale_points_give_mean_and_median_of_both` (valeurs de l'Âme capturée: deux points 91998 et 25000, quantité 1 chacun → médian 58499, moyen 58499, vendus 2).
+    - `test_median_and_mean_are_weighted_by_quantity` (cas à trois points calculé à la main).
+    - `test_mean_is_truncated_not_rounded` (moyenne 568,7 → 568).
+    - `test_seven_day_period_uses_points_within_seven_days_of_last_point` (points des 30 jours aux jours J-9, J-7 (exactement 7 jours: inclus), J-3, J).
+    - `test_last_purchase_is_last_hourly_point_timestamp` et `test_last_purchase_falls_back_to_last_daily_point_when_no_hourly_points`.
+    - `test_period_without_points_is_omitted`.
+    - `test_points_are_sorted_by_timestamp`.
+    - `test_unrelated_envelope_returns_empty_list`; `test_missing_item_or_timestamp_is_skipped_and_logged`; `test_truncated_payload_is_skipped_without_raising`.
+- [ ] **Step 2:** Run `.venv/Scripts/python.exe -m pytest tests/test_timeutil.py tests/test_market_stats.py -v -W error`. Expected: FAIL.
+- [ ] **Step 3:** Implémenter (fonctions courtes: lecture d'un point, regroupement par période, statistiques, sélection de la fenêtre de 7 jours).
+- [ ] **Step 4:** Run, puis la suite complète. Expected: PASS.
 - [ ] **Step 5:** Commit `feat: decode market stats`.
 
 ### Task 10: Commandes CLI et assemblage
 
 **Files:**
-- Modify: `src/dofus_prices/cli.py`
-- Create: `src/dofus_prices/__main__.py`, `src/dofus_prices/export.py`
-- Test: `tests/test_cli.py`, `tests/test_export.py`
+- Modify: `src/dofus_prices/cli.py` (déjà proche de la limite: si la limite de 200 lignes est menacée, créer `src/dofus_prices/commands.py` pour les commandes de lecture et le dire dans le rapport)
+- Create: `src/dofus_prices/export.py`, `src/dofus_prices/run_pipeline.py`
+- Test: `tests/test_cli.py`, `tests/test_export.py`, `tests/test_run_pipeline.py`
 
 **Interfaces:**
-- Consumes: `PacketPipeline`, `run_capture` (Task 6); `decode_lot_prices` (Task 8); `decode_market_stats` (Task 9); `StoreWriter`, `PriceStore` (Task 5).
+- Consumes: `PacketPipeline`, `CaptureAborted`, `run_capture` (capture); `decode_lot_prices` (hdv); `decode_market_stats` (market_stats); `StoreWriter`, `PriceStore`, `LotPrice`, `MarketStats` (storage); `format_utc` (timeutil).
 - Produces:
   - `export.py`: `write_lot_prices_csv(prices: Iterable[LotPrice], output: TextIO) -> None` (colonnes `item_id,server,lot_size,price,captured_at`).
-  - Sous-commandes de `cli.main`: `run [--db CHEMIN] [--interface NOM] [--server NOM]` (capture, décodage, écriture via `StoreWriter`), `prices [--item ID]`, `history ITEM_ID --lot TAILLE`, `export-csv --output CHEMIN`.
-  - `python -m dofus_prices` appelle `main`.
+  - `run_pipeline.py`: `make_envelope_handler(writer: StoreWriter, server: str, now: Callable[[], datetime]) -> Callable[[Envelope, FlowKey], None]` qui décode lots et cours, formate l'heure de capture avec `format_utc` (UTC, format unique) et soumet chaque enregistrement à `writer.submit`, sans écrire en base dans la boucle de capture.
+  - Sous-commandes de `cli.main` (en plus de `discover`): `run [--db CHEMIN] [--interface NOM] [--server NOM]` (défaut `--db prices.db`, `--server unknown`; arrêt propre sur Ctrl+C avec `writer.stop()`; mêmes messages d'erreur en français que `discover`), `prices [--db] [--item ID]`, `history ITEM_ID --lot TAILLE [--db]`, `stats ITEM_ID [--period 24h|7d|30d] [--db]`, `export-csv --output CHEMIN [--db]`. Les objets sont désignés par leur identifiant (les noms ne figurent pas dans le trafic).
 
-- [ ] **Step 1: Tests**: `test_export_writes_header_and_rows`, `test_cli_prices_lists_latest_prices` (base temporaire), `test_cli_history_filters_by_item_and_lot`, `test_cli_export_csv_creates_file`, `test_run_pipeline_stores_decoded_prices` (enveloppe synthétique injectée dans le callback, vérifie la ligne en base).
-- [ ] **Step 2:** Run `pytest tests/test_cli.py tests/test_export.py -v`. Expected: FAIL.
-- [ ] **Step 3:** Implémenter; le callback de `run` décode l'enveloppe et appelle `StoreWriter.submit`, sans écrire en base dans la boucle de capture; arrêt propre sur Ctrl+C (`stop()` vide la file).
+- [ ] **Step 1: Tests**: `test_export_writes_header_and_rows`; `test_handler_stores_lot_prices_and_market_stats` (enveloppes `jzs` et `ire` synthétiques, `now` injecté, base temporaire lue après `writer.stop()`; les horodatages stockés sont en UTC au format `YYYY-MM-DDTHH:MM:SSZ`); `test_handler_ignores_unrelated_envelopes`; `test_cli_prices_lists_latest_prices`; `test_cli_history_filters_by_item_and_lot`; `test_cli_stats_prints_requested_period`; `test_cli_export_csv_creates_file`; `test_cli_run_stops_cleanly_on_keyboard_interrupt` (capture injectée qui lève `KeyboardInterrupt`; la file est vidée avant la sortie); `test_cli_run_reports_unwritable_database` (chemin dont le dossier parent n'existe pas: message en français, code non nul).
+- [ ] **Step 2:** Run `.venv/Scripts/python.exe -m pytest tests/test_cli.py tests/test_export.py tests/test_run_pipeline.py -v -W error`. Expected: FAIL.
+- [ ] **Step 3:** Implémenter.
 - [ ] **Step 4:** Run `.\dev.ps1 test`. Expected: tout PASS.
 - [ ] **Step 5:** Commit `feat: cli commands and csv export`.
 
