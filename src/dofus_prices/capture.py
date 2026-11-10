@@ -44,6 +44,7 @@ class PacketPipeline:
         self._last_purge = clock()
         self._offload_warned = False
         self._first_message_seen = False
+        self._ipv6_warned = False
         self.abort_error: CaptureAborted | None = None
 
     def handle_packet(self, packet: Any) -> None:
@@ -58,7 +59,7 @@ class PacketPipeline:
 
     def _process(self, packet: Any) -> None:
         if not (packet.haslayer("IP") and packet.haslayer("TCP")):
-            logger.debug("ignoring a non IPv4/TCP packet")
+            self._ignore_unsupported(packet)
             return
         ip_layer, tcp_layer = packet["IP"], packet["TCP"]
         data = bytes(tcp_layer.payload)[: self._tcp_data_length(ip_layer, tcp_layer)]
@@ -69,6 +70,16 @@ class PacketPipeline:
         else:
             logger.debug("skipping a segment without TCP data")
         self._purge_if_due(now)
+
+    def _ignore_unsupported(self, packet: Any) -> None:
+        if packet.haslayer("IPv6") and packet.haslayer("TCP"):
+            self._warn_ipv6_once()
+        logger.debug("ignoring a non IPv4/TCP packet")
+
+    def _warn_ipv6_once(self) -> None:
+        if not self._ipv6_warned:
+            self._ipv6_warned = True
+            logger.warning("IPv6 is not supported: dropping IPv6 traffic on the game port")
 
     def _tcp_data_length(self, ip_layer: Any, tcp_layer: Any) -> int:
         """Return the TCP data length; a zero IP length means segmentation offload."""

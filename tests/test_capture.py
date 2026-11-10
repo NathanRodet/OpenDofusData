@@ -2,6 +2,7 @@
 
 import pytest
 from scapy.layers.inet import IP, TCP
+from scapy.layers.inet6 import IPv6
 from scapy.packet import Raw
 
 import logging
@@ -174,3 +175,12 @@ def test_first_envelope_logs_once_that_capture_is_working(pipeline, caplog) -> N
     pipeline.handle_packet(segment(1000, frame("One", b"1")))
     pipeline.handle_packet(segment(2000, frame("Two", b"2")))
     assert caplog.text.count("first Dofus message seen: capture is working") == 1
+
+
+def test_ipv6_packets_produce_one_warning(pipeline, delivered, caplog) -> None:
+    caplog.set_level(logging.WARNING)
+    packet = IPv6(src="fe80::1", dst="fe80::2") / TCP(sport=CLIENT_PORT, dport=DOFUS_PORT) / Raw(b"x")
+    pipeline.handle_packet(packet)
+    pipeline.handle_packet(packet)
+    assert delivered == []
+    assert caplog.text.count("IPv6 is not supported") == 1
