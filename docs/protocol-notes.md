@@ -9,6 +9,7 @@ Flux de messages Protobuf précédés de leur longueur, avec des enveloppes `typ
 ## Prix des lots (×1, ×10, ×100, ×1000)
 
 - Requête client: `kcy`, champ 1 = identifiant de l'objet, champ 2 = 1.
+- `kcy` existe aussi SANS le champ 2 (forme « désélection »). Le serveur répond alors par un `jzs` sans bloc de détail (champs 2 et 3 seulement): un accusé de réception sans prix, que le décodeur ignore à juste titre.
 - Réponse serveur: `jzs` = `{1: {1: objet, 2: prix compactés, 3: ?, 4: ?}, 2: ?, 3: objet}`.
 - Le champ 1.2 contient les prix en entiers variables compactés, dans l'ordre des lots ×1, ×10, ×100, ×1000. La valeur 0 signifie qu'il n'y a pas de lot de cette taille. Octets vérifiés contre l'écran:
 
@@ -37,6 +38,11 @@ Flux de messages Protobuf précédés de leur longueur, avec des enveloppes `typ
   - 7 jours: aucun message dédié; ce sont les points des 30 jours situés au plus 7 jours avant le dernier point (vérifié: 307 → 521 / 486 / 15 998, 376 → 46 / 73 / 14 208).
 - « Dernière mise à jour »: aucun champ serveur trouvé; elle vaut l'heure de la requête. L'outil utilise l'heure de capture.
 - Le « Prix moyen » de la liste (359 pour 307, 15 923 pour 34095) est la moyenne pondérée des 30 jours.
+
+## Questions ouvertes (à vérifier en jeu)
+
+- Ancre de la fenêtre de 7 jours: l'outil prend les points des 30 jours situés au plus 7 jours avant le DERNIER point des 30 jours. Cette ancre et l'heure de capture reproduisent toutes deux l'écran pour les objets 307 et 376 (échangés le jour de la capture). Pour un objet rarement échangé, la ligne 7j peut donc différer de l'onglet du jeu: comparer en jeu et, si le jeu n'affiche rien, ancrer sur `captured_at`.
+- Un objet consulté sans aucune offre envoie (probablement) un `jzs` avec tous les prix à 0, ce qui ne décode rien: `prices` continue donc d'afficher l'ancien prix. À vérifier en direct, puis décider s'il faut enregistrer un marqueur « aucune offre ».
 
 ## Limites
 

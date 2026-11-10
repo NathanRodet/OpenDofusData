@@ -93,6 +93,8 @@ Détails et octets vérifiés contre l'écran: [docs/protocol-notes.md](docs/pro
 - Les noms courts des messages (`jzs`, `ire`, `kcy`, `iqp`) changent à chaque mise à jour du jeu. Ils sont isolés dans `src/dofus_prices/messages.py`. Si l'outil ne décode plus rien après une mise à jour: lance `discover` avec `--hex-types` sur la nouvelle version, compare avec `docs/protocol-notes.md`, puis mets à jour `messages.py`.
 - Le pipeline `run` n'a pas encore été validé de bout en bout sur le jeu réel (validation de la v1 en attente). Les décodeurs ont été vérifiés sur deux captures du mode découverte.
 - Seuls les prix de lots et les cours du marché sont décodés: pas d'achats, de ventes ni de changements de prix, et pas d'affichage en direct.
+- Fenêtre de 7 jours: elle est ancrée sur le dernier point des 30 jours, ce qui reproduit l'écran pour les objets échangés le jour même; pour un objet rarement échangé, la ligne 7j peut différer de l'onglet du jeu (à vérifier en jeu).
+- Un objet sans aucune offre ne produit aucun enregistrement: `prices` continue d'afficher son ancien prix (comportement à vérifier en jeu, un marqueur « aucune offre » pourrait être ajouté).
 - Le serveur de jeu n'apparaît pas dans les messages: il se donne à la main avec `--server` (défaut `unknown`).
 - Dans Windows PowerShell 5.1, l'aide française de `dev.ps1` peut afficher des accents cassés (encodage du script).
 
