@@ -26,6 +26,8 @@ Depuis PowerShell, à la racine du projet:
 
 Cette commande crée le venv `.venv` et installe `requirements.txt` (`scapy` pour la capture, `pytest` pour les tests; le décodage Protobuf et SQLite utilisent la bibliothèque standard). Si PowerShell refuse d'exécuter le script, lance une fois `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. Npcap étant installé au niveau du système, il fonctionne depuis le venv sans configuration.
 
+Le projet est aussi un paquet Python (`pyproject.toml`). Dans le venv, `pip install -e .` installe la commande `dofus-prices`, équivalente à `python -m dofus_prices` (ex. `dofus-prices run --server Kourial`). `.\dev.ps1 setup` fait cette installation.
+
 ## Script de dev
 
 | Commande | Effet |

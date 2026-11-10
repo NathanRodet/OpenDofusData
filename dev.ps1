@@ -26,6 +26,7 @@ function Invoke-Setup {
     Write-Host "Installation des dépendances..."
     & $VenvPython -m pip install --upgrade pip
     & $VenvPython -m pip install -r (Join-Path $ProjectRoot "requirements.txt")
+    & $VenvPython -m pip install -e $ProjectRoot
     Write-Host "Prêt. Active le venv avec: .\.venv\Scripts\Activate.ps1"
 }
 
