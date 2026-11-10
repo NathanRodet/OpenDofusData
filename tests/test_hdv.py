@@ -10,7 +10,7 @@ from dofus_prices.protobuf import DecodeError
 from dofus_prices.storage import LotPrice
 
 SERVER = "Test"
-CAPTURED_AT = "2026-11-10T12:00:00+00:00"
+CAPTURED_AT = "2026-11-10T12:00:00Z"
 UNKNOWN_FIELD = 9
 LENGTH_DELIMITED_TAG_BITS = 2
 VARINT_TAG_BITS = 0

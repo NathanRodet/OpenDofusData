@@ -110,7 +110,8 @@ def test_cli_run_stops_cleanly_on_keyboard_interrupt(tmp_path: Path, capsys) -> 
     argv = ["run", "--db", str(database), "--server", "Ilyzaelle"]
     assert run_cli(argv, fake_capture) == 0
     output = capsys.readouterr().out
-    assert str(database) in output and "Ilyzaelle" in output and "4" in output
+    assert str(database) in output and "Ilyzaelle" in output
+    assert "Arrêt. 4 messages décodés." in output
     store = PriceStore(str(database))
     try:
         assert [lot.captured_at for lot in store.latest_prices(307)] == [CAPTURED_AT] * 4
