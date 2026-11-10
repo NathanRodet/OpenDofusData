@@ -78,6 +78,8 @@ def _add_run_command(commands: argparse._SubParsersAction) -> None:
     _database_option(run_parser)
     run_parser.add_argument("--interface", default=None, help="interface réseau à écouter")
     run_parser.add_argument("--server", default=DEFAULT_SERVER, help="nom du serveur de jeu enregistré")
+    run_parser.add_argument("--verbose", action="store_true",
+                            help="affiche en direct les valeurs décodées (tables) pendant la capture")
 
 
 def _add_read_commands(commands: argparse._SubParsersAction) -> None:

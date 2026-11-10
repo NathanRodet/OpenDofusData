@@ -11,13 +11,16 @@ from dofus_prices.capture_errors import CaptureFunction, fail, run_guarded_captu
 from dofus_prices.framing import Envelope
 from dofus_prices.hdv import decode_lot_prices
 from dofus_prices.market_stats import decode_market_stats
+from dofus_prices.records import LotPrice, MarketStats
 from dofus_prices.storage import StoreWriter
 from dofus_prices.tcp import FlowKey
 from dofus_prices.timeutil import format_utc
+from dofus_prices.verbose_table import format_lot_prices, format_market_stats
 
 logger = logging.getLogger(__name__)
 
 Clock = Callable[[], datetime]
+Echo = Callable[[str], None]
 
 
 def utc_now() -> datetime:
@@ -26,31 +29,55 @@ def utc_now() -> datetime:
 
 
 class EnvelopeHandler:
-    """Decodes each envelope and submits its records to the writer."""
+    """Decodes each envelope and submits its records to the writer.
 
-    def __init__(self, writer: StoreWriter, server: str, now: Clock) -> None:
+    When `echo` is given, the decoded values are also passed to it as text tables. The
+    echo runs on the capture thread, which is acceptable for this debug option. If it
+    raises OSError (for example a closed console), one warning is logged and echoing stops.
+    """
+
+    def __init__(self, writer: StoreWriter, server: str, now: Clock, echo: Echo | None = None) -> None:
         self._writer = writer
         self._server = server
         self._now = now
+        self._echo = echo
         self.submitted_count = 0
 
     def __call__(self, envelope: Envelope, key: FlowKey) -> None:
         captured_at = format_utc(self._now())
         lots = decode_lot_prices(envelope, self._server, captured_at)
         stats = decode_market_stats(envelope, self._server, captured_at)
+        self._log(lots, stats)
+        for record in [*lots, *stats]:
+            self._writer.submit(record)
+            self.submitted_count += 1
+        self._show(lots, stats)
+
+    def _log(self, lots: list[LotPrice], stats: list[MarketStats]) -> None:
         if lots:
             logger.info("item %d: %d lot prices", lots[0].item_id, len(lots))
         if stats:
             periods = ", ".join(row.period for row in stats)
             logger.info("item %d: %d market periods (%s)", stats[0].item_id, len(stats), periods)
-        for record in [*lots, *stats]:
-            self._writer.submit(record)
-            self.submitted_count += 1
+
+    def _show(self, lots: list[LotPrice], stats: list[MarketStats]) -> None:
+        for block in (format_lot_prices(lots), format_market_stats(stats)):
+            if block and self._echo is not None:
+                self._echo_block(block)
+
+    def _echo_block(self, block: str) -> None:
+        try:
+            self._echo(block + "\n")  # the extra newline leaves a blank line once printed
+        except OSError as error:
+            logger.warning("affichage --verbose désactivé (%s); la capture continue", error)
+            self._echo = None
 
 
-def make_envelope_handler(writer: StoreWriter, server: str, now: Clock) -> EnvelopeHandler:
+def make_envelope_handler(
+    writer: StoreWriter, server: str, now: Clock, echo: Echo | None = None
+) -> EnvelopeHandler:
     """Build the envelope callback storing lot prices and market stats via the writer."""
-    return EnvelopeHandler(writer, server, now)
+    return EnvelopeHandler(writer, server, now, echo)
 
 
 def _capture_and_drain(
@@ -78,5 +105,6 @@ def run_command(arguments: argparse.Namespace, capture: CaptureFunction, now: Cl
         return fail(f"Impossible d'ouvrir la base de données {arguments.db} : {error}")
     print(f"Base de données : {arguments.db}. Serveur enregistré : {arguments.server}. "
           "Ctrl+C pour arrêter.")
-    handler = make_envelope_handler(writer, arguments.server, now)
+    echo = print if arguments.verbose else None
+    handler = make_envelope_handler(writer, arguments.server, now, echo)
     return _capture_and_drain(writer, handler, arguments.interface, capture)

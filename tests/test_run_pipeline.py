@@ -63,3 +63,57 @@ def test_handler_logs_nothing_for_unrelated_envelopes(tmp_path: Path, caplog) ->
     make_envelope_handler(writer, "unknown", lambda: CAPTURE_MOMENT)(Envelope("other", b"\x08\x01"), FLOW_KEY)
     writer.stop()
     assert caplog.text == ""
+
+
+def make_echo_handler(tmp_path: Path, echo) -> tuple:
+    submitted: list[object] = []
+
+    class RecordingWriter:
+        def submit(self, record: object) -> None:
+            submitted.append(record)
+
+    return make_envelope_handler(RecordingWriter(), "unknown", lambda: CAPTURE_MOMENT, echo=echo), submitted
+
+
+def test_echo_receives_one_lots_block_for_a_lot_envelope(tmp_path: Path) -> None:
+    blocks: list[str] = []
+    handler, _ = make_echo_handler(tmp_path, blocks.append)
+    handler(lot_envelope(), FLOW_KEY)
+    assert len(blocks) == 1 and blocks[0].startswith("Lots - objet 307 (10:29:17 UTC)")
+
+
+def test_echo_receives_one_stats_block_for_a_stats_envelope(tmp_path: Path) -> None:
+    blocks: list[str] = []
+    handler, _ = make_echo_handler(tmp_path, blocks.append)
+    handler(stats_envelope(), FLOW_KEY)
+    assert len(blocks) == 1 and blocks[0].startswith(f"Cours du marché - objet {STATS_ITEM_ID}")
+
+
+def test_echo_is_not_called_for_unrelated_envelopes(tmp_path: Path) -> None:
+    blocks: list[str] = []
+    handler, _ = make_echo_handler(tmp_path, blocks.append)
+    handler(Envelope("other", b""), FLOW_KEY)
+    assert blocks == []
+
+
+def test_handler_without_echo_still_submits(tmp_path: Path) -> None:
+    handler, submitted = make_echo_handler(tmp_path, None)
+    handler(lot_envelope(), FLOW_KEY)
+    assert len(submitted) == 4
+
+
+def test_failing_echo_warns_once_and_stops_echoing(tmp_path: Path, caplog) -> None:
+    calls: list[str] = []
+
+    def broken_echo(text: str) -> None:
+        calls.append(text)
+        raise OSError("console closed")
+
+    handler, submitted = make_echo_handler(tmp_path, broken_echo)
+    handler(lot_envelope(), FLOW_KEY)
+    handler(stats_envelope(), FLOW_KEY)
+    handler(lot_envelope(), FLOW_KEY)
+    assert len(calls) == 1
+    assert len(submitted) == 4 + 1 + 4
+    warnings = [record for record in caplog.records if record.levelno == logging.WARNING]
+    assert len(warnings) == 1

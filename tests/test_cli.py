@@ -120,6 +120,25 @@ def test_cli_run_stops_cleanly_on_keyboard_interrupt(tmp_path: Path, capsys) -> 
         store.close()
 
 
+def run_with_lot_envelope(tmp_path: Path, extra: list[str]) -> int:
+    def fake_capture(pipeline: PacketPipeline, interface: str | None) -> None:
+        pipeline.on_envelope(lot_envelope(), FLOW_KEY)
+
+    return run_cli(["run", "--db", str(tmp_path / "p.db"), *extra], fake_capture)
+
+
+def test_cli_run_verbose_prints_the_decoded_table(tmp_path: Path, capsys) -> None:
+    assert run_with_lot_envelope(tmp_path, ["--verbose"]) == 0
+    output = capsys.readouterr().out
+    assert "Lots - objet 307 (10:29:17 UTC)" in output
+    assert " 1000   499 999" in output
+
+
+def test_cli_run_without_verbose_prints_no_table(tmp_path: Path, capsys) -> None:
+    assert run_with_lot_envelope(tmp_path, []) == 0
+    assert "Lots - objet" not in capsys.readouterr().out
+
+
 def test_cli_run_reports_unwritable_database(tmp_path: Path, capsys) -> None:
     called: list[bool] = []
     database = tmp_path / "no_such_dir" / "p.db"
