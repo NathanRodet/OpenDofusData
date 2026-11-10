@@ -35,13 +35,13 @@ Flux de messages Protobuf précédés de leur longueur, avec des enveloppes `typ
   - prix moyen = somme(prix × quantité) / somme(quantités), tronqué à l'entier (568,7 s'affiche 568);
   - dernier achat = horodatage du dernier point des 24 heures (heure locale = UTC + 1 en novembre);
   - 30 jours: tous les points du champ 3;
-  - 7 jours: aucun message dédié; ce sont les points des 30 jours situés au plus 7 jours avant le dernier point (vérifié: 307 → 521 / 486 / 15 998, 376 → 46 / 73 / 14 208).
+  - 7 jours: aucun message dédié; fenêtre qui débute à minuit UTC de (date de capture − 7 jours), bornes incluses: `début = (capture − 7 jours)` tronqué à 00:00:00 UTC, on garde les points des 30 jours dont l'horodatage est `>= début`. Vérifié sur quatre objets: 307 → 521 / 486 / 15 998, 376 → 46 / 73 / 14 208, 1554 (Rune Ra Vi), 32526 (Filet multiplicateur de Volkorne, capturé le 2026-11-10T20:16:17Z → 5 989 / 5 788 / 724). L'ancienne règle (au plus 7 jours avant le dernier point) échouait sur 32526: elle écartait le point du 2026-11-03T16:23 UTC (21 vendus, prix 6 047) que le jeu garde, et donnait 5 989 / 5 781 / 703.
 - « Dernière mise à jour »: aucun champ serveur trouvé; elle vaut l'heure de la requête. L'outil utilise l'heure de capture.
 - Le « Prix moyen » de la liste (359 pour 307, 15 923 pour 34095) est la moyenne pondérée des 30 jours.
 
 ## Questions ouvertes (à vérifier en jeu)
 
-- Ancre de la fenêtre de 7 jours: l'outil prend les points des 30 jours situés au plus 7 jours avant le DERNIER point des 30 jours. Cette ancre et l'heure de capture reproduisent toutes deux l'écran pour les objets 307 et 376 (échangés le jour de la capture). Pour un objet rarement échangé, la ligne 7j peut donc différer de l'onglet du jeu: comparer en jeu et, si le jeu n'affiche rien, ancrer sur `captured_at`. L'onglet 7 jours a aussi été vérifié en direct sur un objet échangé en continu (Rune Ra Vi : 1 935 / 1 938 / 243 717) et sur les captures hors ligne, qui ne permettent pas de départager l'ancre.
+- Fenêtre de 7 jours: la règle « minuit UTC de (date de capture − 7 jours) » est vérifiée sur quatre objets (307, 376, 1554, 32526). Confirmation en attente à l'écran: le Filet multiplicateur de Dragodinde (id 32525, aucune vente depuis 2 jours), prédit à 11 630 / 12 253 / 112.
 - RÉSOLU: objet sans aucune offre (vérifié en jeu avec la Rune Pata Ré Pa, id 20624, fiche « Cet objet n'est pas en vente actuellement »): le décodage ne produit rien, 0 enregistrement. Décision du propriétaire: on n'enregistre pas de prix quand il n'y a pas d'offre; l'absence de relevé ne signifie pas prix 0, le dernier prix connu garde son horodatage d'origine.
 
 ## Limites

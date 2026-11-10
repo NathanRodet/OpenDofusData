@@ -1,7 +1,7 @@
 """Decoding of HDV market statistics messages: pure logic."""
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import NamedTuple
 
 from dofus_prices.framing import Envelope
@@ -23,7 +23,7 @@ from dofus_prices.protobuf import (
     to_signed,
 )
 from dofus_prices.records import MarketStats
-from dofus_prices.timeutil import format_utc, parse_server_timestamp
+from dofus_prices.timeutil import STORED_TIMESTAMP_FORMAT, format_utc, parse_server_timestamp
 
 logger = logging.getLogger(__name__)
 
@@ -109,12 +109,23 @@ def _build_stats(item_id: int, server: str, period: str, points: list[SamplePoin
                        mean, total, captured_at, format_utc(last_purchase), captured_at)
 
 
-def _seven_day_points(daily: list[SamplePoint]) -> list[SamplePoint]:
-    """Daily points at most 7 days (inclusive) before the last daily point."""
+def _window_anchor(daily: list[SamplePoint], captured_at: str) -> datetime:
+    """Capture moment; the last daily point when captured_at is unparsable."""
+    try:
+        return datetime.strptime(captured_at, STORED_TIMESTAMP_FORMAT).replace(tzinfo=timezone.utc)
+    except ValueError:
+        logger.warning("unparsable captured_at %r, 7d window anchored on the last daily point",
+                       captured_at)
+        return daily[-1].moment
+
+
+def _seven_day_points(daily: list[SamplePoint], captured_at: str) -> list[SamplePoint]:
+    """Daily points from midnight UTC of (capture date - 7 days), inclusive."""
     if not daily:
         return []
-    cutoff = daily[-1].moment - SEVEN_DAYS
-    return [point for point in daily if point.moment >= cutoff]
+    anchor = _window_anchor(daily, captured_at)
+    start = (anchor - SEVEN_DAYS).replace(hour=0, minute=0, second=0, microsecond=0)
+    return [point for point in daily if point.moment >= start]
 
 
 def _build_all_periods(hourly: list[SamplePoint], daily: list[SamplePoint],
@@ -122,7 +133,7 @@ def _build_all_periods(hourly: list[SamplePoint], daily: list[SamplePoint],
     """Statistics of the 24h, 7d and 30d periods, omitting empty ones."""
     item_id = (hourly or daily)[0].item_id
     last_purchase = (hourly or daily)[-1].moment
-    periods = (("24h", hourly), ("7d", _seven_day_points(daily)), ("30d", daily))
+    periods = (("24h", hourly), ("7d", _seven_day_points(daily, captured_at)), ("30d", daily))
     built = [_build_stats(item_id, server, period, points, last_purchase, captured_at)
              for period, points in periods if points]
     return [stats for stats in built if stats is not None]

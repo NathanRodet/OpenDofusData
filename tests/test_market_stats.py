@@ -3,6 +3,8 @@ from datetime import datetime, timedelta, timezone
 
 from dofus_prices.framing import Envelope
 from dofus_prices.market_stats import decode_market_stats
+from dofus_prices.records import MarketStats
+from dofus_prices.timeutil import format_utc
 
 SERVER = "Ilyzaelle"
 CAPTURED_AT = "2026-11-09T12:00:00Z"
@@ -70,13 +72,78 @@ def test_mean_is_truncated_not_rounded() -> None:
     assert stats.mean == total // 17
 
 
-def test_seven_day_period_uses_points_within_seven_days_of_last_point() -> None:
-    daily = [point(price, LAST_DAY - timedelta(days=days))
-             for price, days in ((1, 9), (2, 7), (3, 3), (4, 0))]
-    result = by_period(stats_envelope(daily=daily))
-    assert result["30d"].sold_count == 4
-    assert result["7d"].sold_count == 3
-    assert [price for _, price, _ in result["7d"].points] == [2, 3, 4]
+def stats_at(envelope: Envelope, captured_at: str) -> dict:
+    return {stats.period: stats for stats in decode_market_stats(envelope, SERVER, captured_at)}
+
+
+def utc(day: int, hour: int = 0, minute: int = 0, second: int = 0) -> datetime:
+    return datetime(2026, 11, day, hour, minute, second, tzinfo=timezone.utc)
+
+
+def seven_day_prices(moments: list[datetime], captured_at: str) -> list[int]:
+    """Prices (1, 2, 3...) of the daily points kept in the 7d period."""
+    daily = [point(price, moment) for price, moment in enumerate(moments, start=1)]
+    result = stats_at(stats_envelope(daily=daily), captured_at)
+    return [price for _, price, _ in result["7d"].points] if "7d" in result else []
+
+
+def test_seven_day_window_starts_at_midnight_utc_seven_days_before_capture() -> None:
+    moments = [utc(2, 23, 59, 59), utc(3, 0, 0, 0), utc(3, 0, 0, 1), utc(10, 9)]
+    assert seven_day_prices(moments, "2026-11-10T20:16:17Z") == [2, 3, 4]
+
+
+def test_capture_shortly_after_midnight_uses_the_new_date() -> None:
+    moments = [utc(3, 23, 59, 59), utc(4, 0, 0, 0), utc(10, 0, 0, 5)]
+    assert seven_day_prices(moments, "2026-11-11T00:00:07Z") == [2, 3]
+
+
+def test_window_is_anchored_on_capture_not_on_last_daily_point() -> None:
+    assert seven_day_prices([utc(1, 12), utc(2, 12)], "2026-11-10T12:00:00Z") == []
+
+
+def test_fewer_than_seven_days_of_data_keeps_every_point() -> None:
+    moments = [utc(8, 10), utc(9, 10), utc(10, 10)]
+    assert seven_day_prices(moments, "2026-11-10T12:00:00Z") == [1, 2, 3]
+
+
+def test_single_point_gives_a_seven_day_period() -> None:
+    assert seven_day_prices([utc(10, 9)], "2026-11-10T12:00:00Z") == [1]
+
+
+def test_unparsable_captured_at_anchors_on_last_daily_point_and_warns(caplog) -> None:
+    moments = [utc(2, 23, 59, 59), utc(3, 0, 0, 0), utc(10, 9)]
+    with caplog.at_level(logging.WARNING):
+        prices = seven_day_prices(moments, "not a date")
+    assert prices == [2, 3]
+    assert "captured_at" in caplog.text
+
+
+# Real daily points [unix seconds, price, quantity] copied from the owner's database.
+VOLKORNE_POINTS = [[1791828547,4981,400],[1791931304,5370,100],[1792001143,5379,60],[1792105633,5261,32],[1792192046,5788,578],[1792266741,6308,16],[1792312697,5990,10],[1792450137,6399,20],[1792505149,6416,120],[1792621834,6399,110],[1792704127,5780,10],[1792773909,6344,220],[1792874893,5685,392],[1792958088,6353,161],[1793036385,6395,125],[1793088040,6399,20],[1793309223,6399,302],[1793403252,6384,127],[1793529659,6392,13],[1793636924,5999,2],[1793723016,6047,21],[1793815707,6555,1],[1793916428,4413,80],[1793996284,5989,40],[1794091398,5997,251],[1794173026,5989,201],[1794253013,5849,100],[1794331355,5700,30]]
+DRAGODINDE_POINTS = [[1791812441,6000,11],[1791904634,9899,22],[1791984436,19633,15],[1792336971,18713,70],[1792402925,17988,1],[1792540067,14353,45],[1792565897,13899,30],[1792710199,19670,131],[1792752949,12965,13],[1792863559,12958,11],[1792940959,13420,81],[1793045323,12768,13],[1793192497,11999,3],[1793306016,10999,1],[1793391478,13271,11],[1793566318,11216,23],[1793661444,11165,54],[1793670657,11099,10],[1793828661,11630,57],[1793916422,12698,20],[1793984310,13499,10],[1794087781,13899,14],[1794135301,14997,1]]
+MIDNIGHT_2026_11_03 = 1793664000
+
+
+def real_seven_day_stats(points: list[list[int]], item_id: int, captured_at: str,
+                         expected: tuple[int, int, int]) -> None:
+    """Assert the whole 7d MarketStats built from real points."""
+    daily = [point(price, datetime.fromtimestamp(stamp, timezone.utc), quantity, item_id)
+             for stamp, price, quantity in points]
+    kept = [tuple(row) for row in points if row[0] >= MIDNIGHT_2026_11_03]
+    last_day = format_utc(datetime.fromtimestamp(points[-1][0], timezone.utc))
+    median, mean, sold = expected
+    result = stats_at(stats_envelope(daily=daily), captured_at)["7d"]
+    assert result == MarketStats(item_id, SERVER, "7d", kept, median, mean, sold,
+                                 captured_at, last_day, captured_at)
+
+
+def test_real_item_32526_matches_the_game_screen() -> None:
+    real_seven_day_stats(VOLKORNE_POINTS, 32526, "2026-11-10T20:16:17Z", (5989, 5788, 724))
+
+
+def test_real_item_32525_prediction() -> None:
+    # Predicted by the same rule, NOT yet confirmed on the game screen.
+    real_seven_day_stats(DRAGODINDE_POINTS, 32525, "2026-11-10T20:14:59Z", (11630, 12253, 112))
 
 
 def test_last_purchase_is_last_hourly_point_timestamp() -> None:
