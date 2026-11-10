@@ -3,7 +3,7 @@
 import logging
 import time
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Protocol
 
 from dofus_prices.framing import Envelope, EnvelopeExtractor
 from dofus_prices.tcp import DEFAULT_MAX_FLOWS, FlowKey, FlowTable, payload_length
@@ -43,12 +43,14 @@ class PacketPipeline:
         self._extractors: dict[FlowKey, EnvelopeExtractor] = {}
         self._last_purge = clock()
         self._offload_warned = False
+        self.abort_error: CaptureAborted | None = None
 
     def handle_packet(self, packet: Any) -> None:
         """Process one captured packet; never raises."""
         try:
             self._process(packet)
-        except CaptureAborted:
+        except CaptureAborted as error:
+            self.abort_error = error
             raise
         except Exception:
             logger.exception("error while processing a packet")
@@ -115,8 +117,38 @@ class PacketPipeline:
             self._extractors.pop(key, None)
 
 
-def run_capture(pipeline: PacketPipeline, interface: str | None = None) -> None:
-    """Sniff Dofus traffic and feed it to the pipeline until interrupted."""
+class SniffFunction(Protocol):
+    """The subset of scapy.sendrecv.sniff used by run_capture."""
+
+    def __call__(self, **kwargs: Any) -> Any: ...
+
+
+def _load_scapy_sniff() -> SniffFunction:
     from scapy.all import sniff
 
-    sniff(filter=BPF_FILTER, store=False, prn=pipeline.handle_packet, iface=interface)
+    return sniff
+
+
+def run_capture(
+    pipeline: PacketPipeline,
+    interface: str | None = None,
+    sniff_function: SniffFunction | None = None,
+) -> None:
+    """Sniff Dofus traffic and feed it to the pipeline until interrupted.
+
+    Scapy's sniff swallows every exception raised by its callback and, unless
+    chainCC is set, KeyboardInterrupt too. So chainCC=True lets Ctrl+C propagate,
+    and a CaptureAborted recorded by the pipeline stops sniff through stop_filter
+    and is re-raised here once sniff has returned.
+    """
+    sniff = sniff_function or _load_scapy_sniff()
+    sniff(
+        filter=BPF_FILTER,
+        store=False,
+        prn=pipeline.handle_packet,
+        iface=interface,
+        chainCC=True,
+        stop_filter=lambda packet: pipeline.abort_error is not None,
+    )
+    if pipeline.abort_error is not None:
+        raise pipeline.abort_error
