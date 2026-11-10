@@ -2,6 +2,9 @@
 
 from dataclasses import dataclass
 
+LOT_SIZES = (1, 10, 100, 1000)
+MARKET_PERIODS = ("24h", "7d", "30d")
+
 
 @dataclass
 class LotPrice:

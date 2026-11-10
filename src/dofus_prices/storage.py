@@ -7,12 +7,10 @@ import sqlite3
 import threading
 from collections.abc import Iterator
 
-from dofus_prices.records import LotPrice, MarketStats
+from dofus_prices.records import LOT_SIZES, MARKET_PERIODS, LotPrice, MarketStats
 
 logger = logging.getLogger(__name__)
 
-LOT_SIZES = (1, 10, 100, 1000)
-MARKET_PERIODS = ("24h", "7d", "30d")
 WRITER_JOIN_TIMEOUT_SECONDS = 30.0
 
 SCHEMA_STATEMENTS = (

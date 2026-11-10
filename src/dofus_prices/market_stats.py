@@ -22,7 +22,7 @@ from dofus_prices.protobuf import (
     decode_fields,
     to_signed,
 )
-from dofus_prices.storage import MarketStats
+from dofus_prices.records import MarketStats
 from dofus_prices.timeutil import format_utc, parse_server_timestamp
 
 logger = logging.getLogger(__name__)

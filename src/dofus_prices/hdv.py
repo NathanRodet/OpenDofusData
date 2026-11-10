@@ -18,7 +18,7 @@ from dofus_prices.protobuf import (
     decode_fields,
     read_varint,
 )
-from dofus_prices.storage import LOT_SIZES, LotPrice
+from dofus_prices.records import LOT_SIZES, LotPrice
 
 logger = logging.getLogger(__name__)
 
