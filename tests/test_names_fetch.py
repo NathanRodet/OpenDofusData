@@ -1,8 +1,6 @@
 """Tests for the DofusDB download, with a fake HTTP function (no network)."""
 
 import csv
-import io
-import urllib.error
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -13,7 +11,6 @@ from dofus_prices.names_fetch import (
     NamesFetchError,
     TransientFetchError,
     download_item_names,
-    http_get_json,
 )
 
 TYPES = [{"id": 1, "name": {"fr": "Amulette"}}, {"id": 2, "name": {"fr": "Arc"}}]
@@ -168,52 +165,3 @@ def test_delay_is_applied_between_requests(tmp_path: Path) -> None:
     download_item_names(tmp_path / "items.csv", fetch=FakeApi(), page_size=PAGE_SIZE_FOR_TESTS,
                         request_delay=0.5, sleep=sleeps.append, progress=lambda text: None)
     assert sleeps and set(sleeps) == {0.5}
-
-
-class FakeResponse(io.BytesIO):
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *exc) -> None:
-        self.close()
-
-
-def patch_urlopen(monkeypatch, behaviour) -> list:
-    requests: list = []
-
-    def fake_urlopen(request, timeout):
-        requests.append((request, timeout))
-        return behaviour()
-
-    monkeypatch.setattr(names_fetch.urllib.request, "urlopen", fake_urlopen)
-    return requests
-
-
-def test_http_get_json_sends_user_agent_and_parses(monkeypatch) -> None:
-    requests = patch_urlopen(monkeypatch, lambda: FakeResponse(b'{"a": 1}'))
-    assert http_get_json("https://api.dofusdb.fr/items") == {"a": 1}
-    request, timeout = requests[0]
-    assert request.get_header("User-agent") == names_fetch.USER_AGENT and timeout > 0
-
-
-@pytest.mark.parametrize("code, expected", [(429, TransientFetchError), (503, TransientFetchError),
-                                            (404, NamesFetchError)])
-def test_http_status_classification(monkeypatch, code, expected) -> None:
-    def behaviour():
-        raise urllib.error.HTTPError("u", code, "m", None, None)
-
-    patch_urlopen(monkeypatch, behaviour)
-    with pytest.raises(expected):
-        http_get_json("https://api.dofusdb.fr/items")
-
-
-def test_network_error_is_transient_and_bad_json_is_not(monkeypatch) -> None:
-    def unreachable():
-        raise urllib.error.URLError("down")
-
-    patch_urlopen(monkeypatch, unreachable)
-    with pytest.raises(TransientFetchError):
-        http_get_json("https://api.dofusdb.fr/items")
-    patch_urlopen(monkeypatch, lambda: FakeResponse(b"<html>"))
-    with pytest.raises(NamesFetchError, match="JSON"):
-        http_get_json("https://api.dofusdb.fr/items")

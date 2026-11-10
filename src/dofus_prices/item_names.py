@@ -43,7 +43,7 @@ def _read_entries(path: Path) -> list[ItemEntry]:
 
 
 class ItemNames:
-    """In-memory index of item names with accent-insensitive search."""
+    """In-memory index id -> French name, loaded from the local CSV."""
 
     def __init__(self, entries: Iterable[ItemEntry] = ()) -> None:
         self._names = {entry.item_id: entry.name for entry in entries}

@@ -88,8 +88,16 @@ def _write_rows(file, entries: list[ItemEntry]) -> None:
         writer.writerow([entry.item_id, entry.name, level, entry.type_name])
 
 
+def _discard(temporary: str | None) -> None:
+    if temporary is not None:
+        Path(temporary).unlink(missing_ok=True)
+
+
 def write_items_csv(entries: list[ItemEntry], path: Path) -> None:
-    """Write the CSV to a temp file next to the target, then rename it atomically."""
+    """Write the CSV to a temp file next to the target, then rename it atomically.
+
+    The temp file is removed on any failure, including Ctrl+C.
+    """
     temporary = None
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -98,6 +106,8 @@ def write_items_csv(entries: list[ItemEntry], path: Path) -> None:
             _write_rows(file, entries)
         os.replace(temporary, path)
     except OSError as error:
-        if temporary is not None:
-            Path(temporary).unlink(missing_ok=True)
+        _discard(temporary)
         raise NamesFetchError(f"Impossible d'écrire {path} : {error}") from error
+    except BaseException:
+        _discard(temporary)
+        raise

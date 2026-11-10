@@ -1,8 +1,11 @@
 """Layering test: the pure decoders must not pull in the SQLite storage layer."""
 
+import ast
 import subprocess
 import sys
 from pathlib import Path
+
+import pytest
 
 SOURCE_DIRECTORY = Path(__file__).resolve().parent.parent / "src"
 # -I ignores PYTHONPATH, so the script extends sys.path itself from the first argument.
@@ -37,3 +40,37 @@ def test_name_index_modules_do_not_import_network_storage_or_capture() -> None:
         text=True,
     )
     assert result.returncode == 0, result.stderr
+
+
+GUARDED_MODULES = (
+    "capture", "capture_errors", "tcp", "framing", "protobuf", "hdv", "market_stats", "records",
+    "storage", "run_pipeline", "commands", "export", "verbose_table", "timeutil", "discovery",
+)
+FORBIDDEN_IMPORTS = ("dofus_prices.names_fetch", "dofus_prices.names_build",
+                     "dofus_prices.item_names", "urllib")
+
+
+def forbidden_imports(source: str) -> list[str]:
+    """Return the forbidden modules imported by a source text (import and from-import)."""
+    found: list[str] = []
+    for node in ast.walk(ast.parse(source)):
+        names = [alias.name for alias in node.names] if isinstance(node, ast.Import) else []
+        if isinstance(node, ast.ImportFrom) and node.module:
+            names = [node.module, *(f"{node.module}.{alias.name}" for alias in node.names)]
+        found += [name for name in names
+                  if any(name == bad or name.startswith(bad + ".") for bad in FORBIDDEN_IMPORTS)]
+    return found
+
+
+def test_guard_detects_offending_sources() -> None:
+    assert forbidden_imports("import urllib.request") == ["urllib.request"]
+    assert forbidden_imports("from dofus_prices import item_names") == ["dofus_prices.item_names"]
+    assert forbidden_imports("from urllib import parse") != []
+    assert forbidden_imports("from dofus_prices.names_build import write_items_csv") != []
+    assert forbidden_imports("import json; from dofus_prices.hdv import decode_lot_prices") == []
+
+
+@pytest.mark.parametrize("module", GUARDED_MODULES)
+def test_capture_decoder_and_storage_modules_stay_offline(module: str) -> None:
+    source = (SOURCE_DIRECTORY / "dofus_prices" / f"{module}.py").read_text(encoding="utf-8")
+    assert forbidden_imports(source) == []

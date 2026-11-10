@@ -16,6 +16,7 @@ from dofus_prices.names_fetch import (
     http_get_json,
 )
 
+INTERRUPTED_MESSAGE = "Interrompu, aucun fichier modifié."
 UPDATE_NOTICE = (
     "Cette commande contacte api.dofusdb.fr une seule fois pour télécharger les noms d'objets "
     "(environ 430 requêtes, quelques dizaines de secondes). La capture, elle, reste hors ligne."
@@ -47,5 +48,7 @@ def names_update_command(
                                       sleep=sleep)
     except NamesFetchError as error:
         return fail(str(error))
+    except KeyboardInterrupt:
+        return fail(INTERRUPTED_MESSAGE)
     _print_summary(summary, time.monotonic() - started)
     return EXIT_OK

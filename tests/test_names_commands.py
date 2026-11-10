@@ -35,3 +35,14 @@ def test_names_update_reports_a_failure_in_french(tmp_path: Path, capsys) -> Non
 
 def test_names_update_default_output_is_data_items_csv() -> None:
     assert parse_update([]).output == "data/items.csv"
+
+
+def test_names_update_interrupted_says_so_and_fails(tmp_path: Path, capsys) -> None:
+    def interrupted(url: str) -> object:
+        raise KeyboardInterrupt
+
+    arguments = parse_update(["--output", str(tmp_path / "items.csv")])
+    assert names_commands.names_update_command(arguments, fetch=interrupted, request_delay=0.0,
+                                               sleep=lambda seconds: None) != 0
+    assert "Interrompu, aucun fichier modifié." in capsys.readouterr().err
+    assert list(tmp_path.iterdir()) == []
