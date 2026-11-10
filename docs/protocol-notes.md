@@ -42,7 +42,7 @@ Flux de messages Protobuf précédés de leur longueur, avec des enveloppes `typ
 ## Questions ouvertes (à vérifier en jeu)
 
 - Ancre de la fenêtre de 7 jours: l'outil prend les points des 30 jours situés au plus 7 jours avant le DERNIER point des 30 jours. Cette ancre et l'heure de capture reproduisent toutes deux l'écran pour les objets 307 et 376 (échangés le jour de la capture). Pour un objet rarement échangé, la ligne 7j peut donc différer de l'onglet du jeu: comparer en jeu et, si le jeu n'affiche rien, ancrer sur `captured_at`. L'onglet 7 jours a aussi été vérifié en direct sur un objet échangé en continu (Rune Ra Vi : 1 935 / 1 938 / 243 717) et sur les captures hors ligne, qui ne permettent pas de départager l'ancre.
-- RÉSOLU: objet sans aucune offre (vérifié en jeu avec la Rune Pata Ré Pa, id 1, fiche « Cet objet n'est pas en vente actuellement »): le décodage ne produit rien, 0 enregistrement. Décision du propriétaire: on n'enregistre pas de prix quand il n'y a pas d'offre; l'absence de relevé ne signifie pas prix 0, le dernier prix connu garde son horodatage d'origine.
+- RÉSOLU: objet sans aucune offre (vérifié en jeu avec la Rune Pata Ré Pa, id 20624, fiche « Cet objet n'est pas en vente actuellement »): le décodage ne produit rien, 0 enregistrement. Décision du propriétaire: on n'enregistre pas de prix quand il n'y a pas d'offre; l'absence de relevé ne signifie pas prix 0, le dernier prix connu garde son horodatage d'origine.
 
 ## Limites
 
