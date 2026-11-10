@@ -167,9 +167,11 @@ def run_capture(
 
     Scapy's sniff swallows every exception raised by its callback and, unless
     chainCC is set, KeyboardInterrupt too. So chainCC=True lets Ctrl+C propagate,
-    and a CaptureAborted recorded by the pipeline stops sniff through stop_filter
-    and is re-raised here once sniff has returned.
+    and a CaptureAborted recorded by the pipeline is re-raised here once sniff has
+    returned. Scapy already ends the loop at once when the callback raises (it closes
+    the failed socket); stop_filter is only a safeguard. Stale abort state is cleared first.
     """
+    pipeline.abort_error = None
     sniff = sniff_function or _load_scapy_sniff()
     sniff(**_sniff_arguments(pipeline, interface))
     if pipeline.abort_error is not None:

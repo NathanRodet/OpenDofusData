@@ -78,3 +78,12 @@ def test_sniff_is_called_with_the_expected_arguments() -> None:
     assert fake.kwargs["prn"] == pipeline.handle_packet
     assert callable(fake.kwargs["stop_filter"])
     assert fake.kwargs["stop_filter"](object()) is False
+
+
+def test_stale_abort_state_does_not_stop_a_new_capture() -> None:
+    pipeline = PacketPipeline(lambda envelope, key: None)
+    pipeline.abort_error = CaptureAborted("from an earlier run")
+    fake = FakeSniff([])
+    run_capture(pipeline, sniff_function=fake)
+    assert pipeline.abort_error is None
+    assert fake.kwargs["stop_filter"](object()) is False
