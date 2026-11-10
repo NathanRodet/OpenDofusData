@@ -6,6 +6,7 @@ from pathlib import Path
 
 from dofus_prices.capture_errors import EXIT_OK, fail
 from dofus_prices.item_names import DEFAULT_NAMES_PATH
+from dofus_prices.names_db_commands import add_names_db_commands
 from dofus_prices.names_build import NamesFetchError
 from dofus_prices.names_fetch import (
     REQUEST_DELAY_SECONDS,
@@ -24,7 +25,8 @@ UPDATE_NOTICE = (
 
 
 def add_names_commands(commands: argparse._SubParsersAction) -> None:
-    """Register the names-update command."""
+    """Register names-update, names-import and names-gaps."""
+    add_names_db_commands(commands)
     update = commands.add_parser("names-update", help="télécharge l'index des noms d'objets (DofusDB)")
     update.add_argument("--output", default=DEFAULT_NAMES_PATH,
                         help=f"fichier CSV à écrire (défaut : {DEFAULT_NAMES_PATH})")

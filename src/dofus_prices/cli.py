@@ -21,6 +21,7 @@ from dofus_prices.commands import (
 )
 from dofus_prices.discovery import DiscoveryLogger, LogSizeLimitReached
 from dofus_prices.framing import Envelope
+from dofus_prices.names_db_commands import names_gaps_command, names_import_command
 from dofus_prices.names_commands import add_names_commands, names_update_command
 from dofus_prices.run_pipeline import Clock, run_command, utc_now
 from dofus_prices.storage import LOT_SIZES, MARKET_PERIODS
@@ -162,6 +163,8 @@ READ_COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {
     "stats": stats_command,
     "export-csv": export_csv_command,
     "names-update": names_update_command,
+    "names-import": names_import_command,
+    "names-gaps": names_gaps_command,
 }
 
 

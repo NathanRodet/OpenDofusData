@@ -65,3 +65,15 @@ def test_unreadable_file_gives_an_empty_index_with_a_warning(tmp_path: Path, cap
     with caplog.at_level(logging.WARNING):
         index = ItemNames.load(path)
     assert len(index) == 0 and "illisible" in caplog.text
+
+
+def test_entries_expose_level_and_type(names: ItemNames) -> None:
+    by_id = {entry.item_id: entry for entry in names.entries()}
+    assert len(by_id) == len(names) == 5
+    assert (by_id[307].name, by_id[307].level, by_id[307].type_name) == ("Ailes de Moskito", 1, "Aile")
+    assert by_id[600].type_name == ""
+
+
+def test_entry_with_an_empty_level_has_no_level(tmp_path: Path) -> None:
+    loaded = ItemNames.load(write_csv(tmp_path / "items.csv", ["7,Sans niveau,,Divers"]))
+    assert [entry.level for entry in loaded.entries()] == [None]

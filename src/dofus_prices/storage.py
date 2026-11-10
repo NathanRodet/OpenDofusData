@@ -7,6 +7,7 @@ import sqlite3
 import threading
 from collections.abc import Iterator
 
+from dofus_prices.names_schema import NAMES_SCHEMA_STATEMENTS
 from dofus_prices.records import LOT_SIZES, MARKET_PERIODS, LotPrice, MarketStats
 
 logger = logging.getLogger(__name__)
@@ -46,7 +47,7 @@ class PriceStore:
     def __init__(self, path: str) -> None:
         connection = sqlite3.connect(path)
         try:
-            for statement in SCHEMA_STATEMENTS:
+            for statement in (*SCHEMA_STATEMENTS, *NAMES_SCHEMA_STATEMENTS):
                 connection.execute(statement)
             connection.commit()
         except sqlite3.Error:
@@ -93,6 +94,11 @@ class PriceStore:
             f"SELECT {STATS_COLUMNS} FROM market_stats WHERE item_id = ? AND period = ? "
             "ORDER BY captured_at, id", (item_id, period))
         return [_stats_from_row(row) for row in rows]
+
+    @property
+    def connection(self) -> sqlite3.Connection:
+        """The open SQLite connection (for the reference-data commands)."""
+        return self._open()
 
     def close(self) -> None:
         """Close the connection; safe to call more than once."""

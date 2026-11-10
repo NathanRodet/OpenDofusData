@@ -35,7 +35,8 @@ def _stats_row(stats: MarketStats) -> tuple[object, ...]:
             stats.last_purchase_at, stats.server_updated_at)
 
 
-def _check_database_path(path: str) -> str | None:
+def check_database_path(path: str) -> str | None:
+    """Return a French problem description, or None when the path is an existing file."""
     if Path(path).is_dir():
         return f"{path} est un dossier, pas une base de données."
     if not Path(path).is_file():
@@ -43,9 +44,9 @@ def _check_database_path(path: str) -> str | None:
     return None
 
 
-def _with_store(arguments: argparse.Namespace, action: Callable[[PriceStore], int]) -> int:
+def with_store(arguments: argparse.Namespace, action: Callable[[PriceStore], int]) -> int:
     """Run an action on an existing database, never creating a missing one."""
-    problem = _check_database_path(arguments.db)
+    problem = check_database_path(arguments.db)
     if problem is not None:
         return fail(problem)
     try:
@@ -68,12 +69,12 @@ def _print_prices(prices: list[LotPrice]) -> int:
 
 def prices_command(arguments: argparse.Namespace) -> int:
     """Print the latest price per item, server and lot size."""
-    return _with_store(arguments, lambda store: _print_prices(store.latest_prices(arguments.item)))
+    return with_store(arguments, lambda store: _print_prices(store.latest_prices(arguments.item)))
 
 
 def history_command(arguments: argparse.Namespace) -> int:
     """Print every captured price of an item at one lot size."""
-    return _with_store(
+    return with_store(
         arguments,
         lambda store: _print_prices(store.price_history(arguments.item_id, arguments.lot)),
     )
@@ -95,7 +96,7 @@ def _print_stats(item_id: int, stats: list[MarketStats]) -> int:
 def stats_command(arguments: argparse.Namespace) -> int:
     """Print the most recent stored market statistics per period."""
     periods = (arguments.period,) if arguments.period else MARKET_PERIODS
-    return _with_store(
+    return with_store(
         arguments,
         lambda store: _print_stats(arguments.item_id, _latest_stats(store, arguments.item_id, periods)),
     )
@@ -111,4 +112,4 @@ def _export(store: PriceStore, output: Path) -> int:
 
 def export_csv_command(arguments: argparse.Namespace) -> int:
     """Export every stored lot price to a CSV file."""
-    return _with_store(arguments, lambda store: _export(store, Path(arguments.output)))
+    return with_store(arguments, lambda store: _export(store, Path(arguments.output)))
