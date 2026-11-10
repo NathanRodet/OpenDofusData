@@ -40,7 +40,7 @@ def default_config_path(
 def _parse_config(path: Path) -> dict[str, object] | None:
     """Return the config object, or None when the file cannot be read as a JSON object."""
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
+        data = json.loads(path.read_text(encoding="utf-8-sig"))
     except (OSError, UnicodeError, ValueError) as error:
         logger.warning("config illisible (%s : %s), ignorée", path, error)
         return None

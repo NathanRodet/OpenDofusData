@@ -8,17 +8,21 @@ from pathlib import Path
 
 from dofus_prices.app_config import default_config_path, load_config, save_config
 from dofus_prices.capture_errors import EXIT_OK, fail
-from dofus_prices.game_servers import DEFAULT_SERVERS_PATH, load_servers
-from dofus_prices.server_choice import SERVER_KEY, normalise_server_name, resolve_server
+from dofus_prices.game_servers import DEFAULT_SERVERS_PATH, available_servers, canonical_name
+from dofus_prices.server_choice import SERVER_KEY, ServerResolution, resolve_server
 
 logger = logging.getLogger(__name__)
 
-SOURCE_LABELS = {"option": " (option)", "config": " (mémorisé)", "prompt": " (choisi)",
+SOURCE_LABELS = {"option": " (option)", "config": " (mémorisé ; --choose-server pour changer)", "prompt": " (choisi)",
                  "default": ""}
 NO_SERVER_MESSAGE = "Aucun serveur mémorisé."
 SHOW_MESSAGE = "Serveur mémorisé : {name}"
 SET_MESSAGE = "Serveur mémorisé : {name} (enregistré dans {path})"
 EMPTY_NAME_MESSAGE = "Nom de serveur vide."
+UNLISTED_NAME_MESSAGE = ("Serveur « {name} » absent de la liste. Mets la liste à jour avec "
+                         r".\dev.ps1 run servers-update, puis choisis un nom de .\dev.ps1 run servers.")
+INTERRUPTED_MESSAGE = "Interrompu, aucune capture lancée."
+EXIT_INTERRUPTED = 130
 CLEARED_MESSAGE = "Serveur oublié."
 SAVE_FAILED = "Impossible d'écrire la configuration {path} : {error}"
 SAVE_WARNING = "Choix non mémorisé : écriture de {path} impossible ({error})"
@@ -38,13 +42,21 @@ def add_server_command(commands: argparse._SubParsersAction) -> None:
     group.add_argument("--clear", action="store_true", help="oublie le serveur mémorisé")
 
 
+def _resolve_with_prompt(arguments: argparse.Namespace, config: dict[str, object]) -> ServerResolution:
+    try:
+        return resolve_server(
+            arguments.server, available_servers(DEFAULT_SERVERS_PATH), config,
+            is_interactive(), arguments.choose_server, input, print)
+    except KeyboardInterrupt:
+        print(INTERRUPTED_MESSAGE)
+        raise SystemExit(EXIT_INTERRUPTED) from None
+
+
 def resolve_run_server(arguments: argparse.Namespace) -> None:
     """Fill arguments.server and arguments.server_label for a capture session."""
     path = default_config_path()
     config = load_config(path)
-    resolution = resolve_server(
-        arguments.server, load_servers(DEFAULT_SERVERS_PATH), config, is_interactive(),
-        arguments.choose_server, input, print)
+    resolution = _resolve_with_prompt(arguments, config)
     if resolution.save:
         try:
             save_config(path, {**config, SERVER_KEY: resolution.name})
@@ -71,7 +83,9 @@ def _write(path: Path, config: dict[str, object]) -> int:
 def _set(path: Path, config: dict[str, object], name: str) -> int:
     if not name.strip():
         return fail(EMPTY_NAME_MESSAGE)
-    canonical = normalise_server_name(name.strip(), load_servers(DEFAULT_SERVERS_PATH), print)
+    canonical = canonical_name(available_servers(DEFAULT_SERVERS_PATH), name.strip())
+    if canonical is None:
+        return fail(UNLISTED_NAME_MESSAGE.format(name=name.strip()))
     code = _write(path, {**config, SERVER_KEY: canonical})
     if code == EXIT_OK:
         print(SET_MESSAGE.format(name=canonical, path=path))

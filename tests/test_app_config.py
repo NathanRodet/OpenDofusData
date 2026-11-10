@@ -1,5 +1,6 @@
 """Tests for the persistent user configuration file (temp files only)."""
 
+import codecs
 import json
 import logging
 import os
@@ -119,3 +120,9 @@ def test_other_platforms_use_dot_config(tmp_path: Path) -> None:
 
 def test_suite_config_path_is_the_isolated_temp_file() -> None:
     assert default_config_path() == Path(os.environ[CONFIG_ENV_VAR])
+
+
+def test_config_saved_with_a_bom_is_read(tmp_path: Path) -> None:
+    path = tmp_path / "config.json"
+    path.write_bytes(codecs.BOM_UTF8 + b'{"server": "Brial"}')
+    assert load_config(path) == {"server": "Brial"}

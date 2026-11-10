@@ -16,11 +16,9 @@ OTHER_TYPE_LABEL = "Autres"
 UNLISTED_WARNING = ("serveur « {name} » absent de la liste "
                     "(servers-update pour la mettre à jour)")
 PROMPT_TEXT = "Numéro ou nom du serveur (Entrée pour passer) : "
-FREE_TEXT_PROMPT = "Nom du serveur (Entrée pour passer) : "
+EMPTY_OPTION_WARNING = "--server vide ignoré"
 INVALID_CHOICE = "Choix invalide : tape un numéro de la liste ou le nom exact du serveur."
 SKIPPED_MESSAGE = "Aucun serveur choisi : les prix seront enregistrés avec « unknown »."
-NO_LIST_MESSAGE = (r"Liste des serveurs absente : télécharge-la avec .\dev.ps1 run servers-update. "
-                   "Tu peux aussi saisir le nom du serveur à la main.")
 NON_INTERACTIVE_HINT = ("Serveur inconnu : indique-le avec --server NOM ou mémorise-le avec "
                         "« server --set NOM » (voir le README).")
 
@@ -92,20 +90,33 @@ def _prompt_for_listed_server(ordered: Sequence[GameServer], ask: Ask, say: Say)
     return None
 
 
-def _prompt_for_free_text(ask: Ask, say: Say) -> str | None:
-    say(NO_LIST_MESSAGE)
-    return _ask_or_none(ask, FREE_TEXT_PROMPT) or None
-
-
 def _from_prompt(servers: Sequence[GameServer], ask: Ask, say: Say) -> ServerResolution:
-    if servers:
-        name = _prompt_for_listed_server(_display_order(servers), ask, say)
-    else:
-        name = _prompt_for_free_text(ask, say)
+    name = _prompt_for_listed_server(_display_order(servers), ask, say) if servers else None
     if name is None:
         say(SKIPPED_MESSAGE)
         return _default_resolution()
     return ServerResolution(name, "prompt", True)
+
+
+def _clean_option(explicit: str | None, say: Say) -> str | None:
+    """Strip the option; a blank one is ignored with one warning."""
+    if explicit is None:
+        return None
+    if not explicit.strip():
+        say(EMPTY_OPTION_WARNING)
+        return None
+    return explicit.strip()
+
+
+def _saved_server(config: Mapping[str, object]) -> str | None:
+    saved = config.get(SERVER_KEY)
+    return saved.strip() or None if isinstance(saved, str) else None
+
+
+def _from_config(saved: str, servers: Sequence[GameServer], say: Say) -> ServerResolution:
+    if saved != UNKNOWN_SERVER and canonical_name(servers, saved) is None:
+        say(UNLISTED_WARNING.format(name=saved))
+    return ServerResolution(saved, "config", False)
 
 
 def resolve_server(
@@ -113,11 +124,12 @@ def resolve_server(
     interactive: bool, force_choice: bool, ask: Ask, say: Say,
 ) -> ServerResolution:
     """Pick the server: option, saved choice, prompt, else unknown (never saved)."""
-    if explicit is not None:
-        return ServerResolution(normalise_server_name(explicit, servers, say), "option", False)
-    saved = config.get(SERVER_KEY)
-    if not force_choice and isinstance(saved, str) and saved:
-        return ServerResolution(saved, "config", False)
+    option = _clean_option(explicit, say)
+    if option is not None:
+        return ServerResolution(normalise_server_name(option, servers, say), "option", False)
+    saved = _saved_server(config)
+    if not force_choice and saved is not None:
+        return _from_config(saved, servers, say)
     if interactive:
         return _from_prompt(servers, ask, say)
     say(NON_INTERACTIVE_HINT)

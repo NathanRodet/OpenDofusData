@@ -26,6 +26,19 @@ class GameServer:
     community_id: int | None
 
 
+CLASSIC_TYPE_LABEL = "Classique"
+_CLASSIC_SERVERS_BY_COMMUNITY = (
+    (2, ((290, "Tal Kasha"),)),
+    (0, ((291, "Imagiro"), (292, "Orukam"), (293, "Tylezia"), (294, "Hell Mina"))),
+    (12, ((295, "Draconiros"), (350, "Rafal"), (351, "Brial"), (352, "Salar"),
+          (353, "Dakal"), (354, "Mikhal"), (355, "Kourial"))),
+    (8, ((800, "Shukrute"),)),
+)
+BUNDLED_CLASSIC_SERVERS: tuple[GameServer, ...] = tuple(
+    GameServer(server_id, name, CLASSIC_GAME_TYPE_ID, CLASSIC_TYPE_LABEL, community)
+    for community, servers in _CLASSIC_SERVERS_BY_COMMUNITY for server_id, name in servers)
+
+
 def _bounded_int(text: str) -> int:
     value = int(text)
     if not 0 <= value <= MAX_SQLITE_INTEGER:
@@ -79,3 +92,8 @@ def canonical_name(servers: Sequence[GameServer], text: str) -> str | None:
         if server.name.casefold() == wanted:
             return server.name
     return None
+
+
+def available_servers(path: str | Path) -> list[GameServer]:
+    """The servers of the CSV file when it has a valid row, else the bundled classic list."""
+    return load_servers(path) or list(BUNDLED_CLASSIC_SERVERS)

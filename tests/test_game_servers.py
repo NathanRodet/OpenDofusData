@@ -3,7 +3,13 @@
 import logging
 from pathlib import Path
 
-from dofus_prices.game_servers import GameServer, canonical_name, load_servers
+from dofus_prices.game_servers import (
+    BUNDLED_CLASSIC_SERVERS,
+    GameServer,
+    available_servers,
+    canonical_name,
+    load_servers,
+)
 
 HEADER = "id,name_fr,game_type_id,game_type_fr,community_id\n"
 
@@ -53,3 +59,26 @@ def test_canonical_name_is_exact_and_case_insensitive() -> None:
     assert canonical_name(servers, "Dracon") is None
     assert canonical_name(servers, "Dracóniros") is None
     assert canonical_name([], "x") is None
+
+
+def test_bundled_list_has_the_thirteen_classic_servers() -> None:
+    assert len(BUNDLED_CLASSIC_SERVERS) == 13
+    assert all(server.game_type_id == 0 and server.game_type == "Classique"
+               for server in BUNDLED_CLASSIC_SERVERS)
+    assert GameServer(355, "Kourial", 0, "Classique", 12) in BUNDLED_CLASSIC_SERVERS
+    assert GameServer(290, "Tal Kasha", 0, "Classique", 2) in BUNDLED_CLASSIC_SERVERS
+    assert GameServer(291, "Imagiro", 0, "Classique", 0) in BUNDLED_CLASSIC_SERVERS
+    assert GameServer(800, "Shukrute", 0, "Classique", 8) in BUNDLED_CLASSIC_SERVERS
+
+
+def test_available_servers_falls_back_to_the_bundled_list(tmp_path: Path) -> None:
+    assert available_servers(tmp_path / "absent.csv") == list(BUNDLED_CLASSIC_SERVERS)
+    empty = tmp_path / "servers.csv"
+    empty.write_text(HEADER + "x,Bad,0,C,1" + chr(10), encoding="utf-8")
+    assert available_servers(empty) == list(BUNDLED_CLASSIC_SERVERS)
+
+
+def test_available_servers_prefers_the_file_rows(tmp_path: Path) -> None:
+    path = tmp_path / "servers.csv"
+    path.write_text(HEADER + "9,Zed,77,,1" + chr(10), encoding="utf-8")
+    assert available_servers(path) == [GameServer(9, "Zed", 77, "", 1)]

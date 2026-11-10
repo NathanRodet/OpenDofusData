@@ -66,7 +66,7 @@ def test_second_run_is_silent_and_uses_saved(interactive, capsys) -> None:
     capsys.readouterr()
     assert run_cli(["run", "--db", "p.db"]) == 0
     output = capsys.readouterr().out
-    assert "Serveur enregistré : Draconiros (mémorisé)" in output
+    assert "Serveur enregistré : Draconiros (mémorisé ; --choose-server pour changer)" in output
     assert "Classique" not in output
 
 
@@ -134,9 +134,9 @@ def test_unwritable_config_does_not_abort(interactive, capsys, monkeypatch) -> N
 def test_corrupt_servers_file_does_not_abort(interactive, capsys) -> None:
     SERVERS_FILE.parent.mkdir(parents=True)
     SERVERS_FILE.write_bytes(b"\xff\xfe\x00\x80")
-    interactive.append("Mon Serveur")
+    interactive.append("Kourial")
     assert run_cli(["run", "--db", "p.db"]) == 0
-    assert "Serveur enregistré : Mon Serveur (choisi)" in capsys.readouterr().out
+    assert "Serveur enregistré : Kourial (choisi)" in capsys.readouterr().out
 
 
 def test_captured_records_carry_the_saved_server(tmp_path: Path) -> None:
@@ -165,11 +165,69 @@ def test_server_command_shows_nothing_then_set_then_show(capsys) -> None:
     assert "Hell Mina" in capsys.readouterr().out
 
 
-def test_server_set_unlisted_warns_and_saves_as_given(capsys) -> None:
+def test_server_set_unlisted_is_refused_and_nothing_is_saved(capsys) -> None:
     make_servers(SERVERS_FILE)
-    assert run_cli(["server", "--set", "Inconnu"]) == 0
-    assert "absent de la liste" in capsys.readouterr().out
-    assert saved_server() == "Inconnu"
+    assert run_cli(["server", "--set", "Inconnu"]) != 0
+    error = capsys.readouterr().err
+    assert "Inconnu" in error and "servers-update" in error
+    assert not config_file().exists()
+
+
+def test_server_set_uses_the_bundled_list_without_a_servers_file() -> None:
+    assert run_cli(["server", "--set", "kourial"]) == 0
+    assert saved_server() == "Kourial"
+
+
+def test_first_run_without_servers_file_lists_the_bundled_servers(interactive, capsys) -> None:
+    interactive.append("")
+    assert run_cli(["run", "--db", "p.db"]) == 0
+    output = capsys.readouterr().out
+    assert sum(line.startswith("  ") and line.strip()[0].isdigit() for line in output.splitlines()) == 13
+    assert "  1. Brial" in output and "Kourial" in output
+
+
+def test_first_run_prompt_rejects_free_text_and_saves_nothing(interactive) -> None:
+    interactive.extend(["Mon Serveur", "Mon Serveur", "Mon Serveur"])
+    assert run_cli(["run", "--db", "p.db"]) == 0
+    assert not config_file().exists()
+
+
+def test_servers_file_rows_replace_the_bundled_list(interactive, capsys) -> None:
+    make_servers(SERVERS_FILE)
+    interactive.append("")
+    run_cli(["run", "--db", "p.db"])
+    output = capsys.readouterr().out
+    assert "Zed" in output and "Kourial" not in output
+
+
+def test_unlisted_remembered_server_warns_once_and_is_used(capsys) -> None:
+    write_config('{"server": "Fantome", "version": 1}')
+    assert run_cli(["run", "--db", "p.db"]) == 0
+    output = capsys.readouterr().out
+    assert output.count("absent de la liste") == 1
+    assert "Serveur enregistré : Fantome (mémorisé" in output
+
+
+def test_blank_option_is_ignored_with_one_warning(interactive, capsys) -> None:
+    write_config('{"server": "Brial", "version": 1}')
+    assert run_cli(["run", "--db", "p.db", "--server", "  "]) == 0
+    output = capsys.readouterr().out
+    assert output.count("--server vide ignoré") == 1
+    assert "Serveur enregistré : Brial (mémorisé" in output
+
+
+def test_ctrl_c_at_the_prompt_stops_cleanly_without_capture(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(server_choice_commands, "is_interactive", lambda: True)
+
+    def interrupted(prompt: str = "") -> str:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(builtins, "input", interrupted)
+    started: list[str] = []
+    with pytest.raises(SystemExit) as stop:
+        run_cli(["run", "--db", "p.db"], lambda pipeline, interface: started.append("x"))
+    assert stop.value.code not in (0, None) and started == []
+    assert "Interrompu, aucune capture lancée." in capsys.readouterr().out
 
 
 def test_server_clear_removes_the_key_and_keeps_others() -> None:
@@ -190,5 +248,5 @@ def test_server_set_write_failure_reports_error(capsys, monkeypatch) -> None:
         raise OSError("read-only")
 
     monkeypatch.setattr(server_choice_commands, "save_config", failing_save)
-    assert run_cli(["server", "--set", "Zed"]) != 0
+    assert run_cli(["server", "--set", "Brial"]) != 0
     assert "read-only" in capsys.readouterr().err

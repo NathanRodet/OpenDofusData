@@ -59,13 +59,38 @@ def test_option_without_servers_or_unknown_does_not_warn() -> None:
 
 def test_config_server_is_used_silently() -> None:
     script = Script()
-    result = resolve(script, config={"server": "Brial"})
-    assert result == ServerResolution("Brial", "config", False)
+    result = resolve(script, config={"server": "Zed"})
+    assert result == ServerResolution("Zed", "config", False)
     assert script.prompts == [] and script.said == []
 
 
+def test_config_server_not_in_list_warns_once_and_is_still_used() -> None:
+    script = Script()
+    result = resolve(script, config={"server": "Fantome"})
+    assert result == ServerResolution("Fantome", "config", False)
+    assert script.said == ["serveur « Fantome » absent de la liste "
+                           "(servers-update pour la mettre à jour)"]
+    assert resolve(Script(), config={"server": "ZED"}).name == "ZED"
+
+
+def test_blank_option_is_ignored_with_one_warning_and_resolution_continues() -> None:
+    for blank in ("", "   "):
+        script = Script()
+        result = resolve(script, explicit=blank, config={"server": "Zed"})
+        assert result == ServerResolution("Zed", "config", False)
+        assert script.said == ["--server vide ignoré"]
+    prompted = Script("1")
+    assert resolve(prompted, explicit=" ").source == "prompt"
+    assert prompted.said.count("--server vide ignoré") == 1
+
+
+def test_option_and_config_names_are_stripped() -> None:
+    assert resolve(Script(), explicit="  hell mina ").name == "Hell Mina"
+    assert resolve(Script(), config={"server": "  Zed  "}).name == "Zed"
+
+
 def test_config_server_ignored_when_not_a_non_empty_string() -> None:
-    for bad in (None, 3, "", ["x"]):
+    for bad in (None, 3, "", "  ", ["x"]):
         script = Script("1")
         assert resolve(script, config={"server": bad}).source == "prompt"
 
@@ -121,16 +146,10 @@ def test_empty_answer_and_eof_skip_without_saving() -> None:
     assert resolve(Script()) == ServerResolution("unknown", "default", False)
 
 
-def test_no_servers_file_offers_free_text() -> None:
+def test_empty_list_never_asks_and_never_saves_free_text() -> None:
     script = Script("Mon Serveur")
-    result = resolve(script, servers=[])
-    assert result == ServerResolution("Mon Serveur", "prompt", True)
-    assert any(r".\dev.ps1 run servers-update" in line for line in script.said)
-
-
-def test_no_servers_file_empty_answer_or_eof_skips() -> None:
-    assert resolve(Script(""), servers=[]) == ServerResolution("unknown", "default", False)
-    assert resolve(Script(), servers=[]) == ServerResolution("unknown", "default", False)
+    assert resolve(script, servers=[]) == ServerResolution("unknown", "default", False)
+    assert script.prompts == []
 
 
 def test_non_interactive_gives_unknown_with_one_line_hint() -> None:
