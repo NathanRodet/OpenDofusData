@@ -46,6 +46,7 @@ Flux de messages Protobuf précédés de leur longueur, avec des enveloppes `typ
 
 ## Limites
 
+- Les identifiants d'objets des messages capturés (y compris le champ d'objet de la fenêtre de recyclage) sont les identifiants d'objets DofusDB: vérifié pour 307, 376, 34095, 33528, 33530, 8139 et 17134.
 - Les messages ne contiennent pas les noms d'objets, seulement leurs identifiants.
 - Le serveur de jeu (Dofus a plusieurs serveurs) n'est pas identifié dans ces messages: l'outil prend le nom du serveur en option.
 

@@ -20,3 +20,20 @@ def test_pure_modules_do_not_import_sqlite() -> None:
         text=True,
     )
     assert result.returncode == 0, result.stderr
+
+
+NAMES_CHECK_SCRIPT = (
+    "import sys; sys.path.insert(0, sys.argv[1]); "
+    "import dofus_prices.item_names, dofus_prices.names_build; "
+    "banned = {'sqlite3', 'scapy', 'urllib.request'}; "
+    "sys.exit(1 if banned & set(sys.modules) else 0)"
+)
+
+
+def test_name_index_modules_do_not_import_network_storage_or_capture() -> None:
+    result = subprocess.run(
+        [sys.executable, "-I", "-c", NAMES_CHECK_SCRIPT, str(SOURCE_DIRECTORY)],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr

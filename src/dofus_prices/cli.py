@@ -21,6 +21,7 @@ from dofus_prices.commands import (
 )
 from dofus_prices.discovery import DiscoveryLogger, LogSizeLimitReached
 from dofus_prices.framing import Envelope
+from dofus_prices.names_commands import add_names_commands, names_update_command
 from dofus_prices.run_pipeline import Clock, run_command, utc_now
 from dofus_prices.storage import LOT_SIZES, MARKET_PERIODS
 from dofus_prices.tcp import FlowKey
@@ -66,6 +67,7 @@ def build_parser() -> argparse.ArgumentParser:
                           metavar="NAMES",
                           help="types de message (ex. jzs,ire) avec aperçu hex de leurs octets (données personnelles possibles)")
     _add_database_commands(commands)
+    add_names_commands(commands)
     return parser
 
 
@@ -159,6 +161,7 @@ READ_COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {
     "history": history_command,
     "stats": stats_command,
     "export-csv": export_csv_command,
+    "names-update": names_update_command,
 }
 
 
