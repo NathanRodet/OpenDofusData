@@ -41,7 +41,7 @@ Flux de messages Protobuf précédés de leur longueur, avec des enveloppes `typ
 
 ## Questions ouvertes (à vérifier en jeu)
 
-- Fenêtre de 7 jours: la règle « minuit UTC de (date de capture − 7 jours) » est vérifiée sur quatre objets (307, 376, 1554, 32526). Confirmation en attente à l'écran: le Filet multiplicateur de Dragodinde (id 32525, aucune vente depuis 2 jours), prédit à 11 630 / 12 253 / 112.
+- Fenêtre de 7 jours: la règle « minuit UTC de (date de capture − 7 jours) » est vérifiée sur cinq objets (307, 376, 1554, 32526, 32525). Le Filet multiplicateur de Dragodinde (id 32525, aucune vente depuis 2 jours) affiche 11 630 / 12 253 / 112, comme prédit.
 - RÉSOLU: objet sans aucune offre (vérifié en jeu avec la Rune Pata Ré Pa, id 20624, fiche « Cet objet n'est pas en vente actuellement »): le décodage ne produit rien, 0 enregistrement. Décision du propriétaire: on n'enregistre pas de prix quand il n'y a pas d'offre; l'absence de relevé ne signifie pas prix 0, le dernier prix connu garde son horodatage d'origine.
 
 ## Limites

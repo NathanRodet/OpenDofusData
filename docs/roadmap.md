@@ -2,10 +2,9 @@
 
 État au 2026-11-11: la v1 (capture locale, décodage des prix de lots et des cours du marché, base SQLite, noms d'objets, choix du serveur) est terminée et fusionnée dans `main`.
 
-## À valider en jeu
+## Validé en jeu
 
-- Fenêtre des 7 jours: ouvrir l'onglet « 7 jours » du Filet multiplicateur de Dragodinde (id 32525) et comparer à la prédiction 11 630 / 12 253 / 112.
-- Les lignes `market_stats` de la base locale enregistrées avant la correction de la règle des 7 jours utilisent l'ancienne règle. Elles peuvent être recalculées depuis les points des 30 jours déjà stockés (sauvegarde de la base d'abord).
+- Fenêtre des 7 jours: confirmée sur cinq objets, dont le Filet multiplicateur de Dragodinde (11 630 / 12 253 / 112). Les lignes 7 jours de la base locale ont été recalculées (sauvegarde `data/prices.backup-before-7d-recompute.db`).
 
 ## Packaging et distribution (non commencé)
 
