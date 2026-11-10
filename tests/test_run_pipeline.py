@@ -1,5 +1,6 @@
 """Tests for the envelope handler feeding the store writer."""
 
+import logging
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -38,3 +39,27 @@ def test_handler_ignores_unrelated_envelopes(tmp_path: Path) -> None:
     handler(Envelope("other", b"\x08\x01"), FLOW_KEY)
     writer.stop()
     assert handler.submitted_count == 0
+
+
+def test_handler_logs_item_and_lot_price_count(tmp_path: Path, caplog) -> None:
+    caplog.set_level(logging.INFO)
+    writer = StoreWriter(str(tmp_path / "prices.db"))
+    make_envelope_handler(writer, "unknown", lambda: CAPTURE_MOMENT)(lot_envelope(), FLOW_KEY)
+    writer.stop()
+    assert "item 307: 4 lot prices" in caplog.text
+
+
+def test_handler_logs_item_and_market_periods(tmp_path: Path, caplog) -> None:
+    caplog.set_level(logging.INFO)
+    writer = StoreWriter(str(tmp_path / "prices.db"))
+    make_envelope_handler(writer, "unknown", lambda: CAPTURE_MOMENT)(stats_envelope(), FLOW_KEY)
+    writer.stop()
+    assert f"item {STATS_ITEM_ID}: 1 market periods (24h)" in caplog.text
+
+
+def test_handler_logs_nothing_for_unrelated_envelopes(tmp_path: Path, caplog) -> None:
+    caplog.set_level(logging.INFO)
+    writer = StoreWriter(str(tmp_path / "prices.db"))
+    make_envelope_handler(writer, "unknown", lambda: CAPTURE_MOMENT)(Envelope("other", b"\x08\x01"), FLOW_KEY)
+    writer.stop()
+    assert caplog.text == ""

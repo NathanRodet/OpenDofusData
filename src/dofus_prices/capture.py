@@ -43,6 +43,7 @@ class PacketPipeline:
         self._extractors: dict[FlowKey, EnvelopeExtractor] = {}
         self._last_purge = clock()
         self._offload_warned = False
+        self._first_message_seen = False
         self.abort_error: CaptureAborted | None = None
 
     def handle_packet(self, packet: Any) -> None:
@@ -102,12 +103,18 @@ class PacketPipeline:
 
     def _notify(self, envelope: Envelope, key: FlowKey) -> None:
         """Call the callback for one envelope, containing its failures."""
+        self._log_first_message_once()
         try:
             self.on_envelope(envelope, key)
         except CaptureAborted:
             raise
         except Exception:
             logger.exception("error in the envelope callback")
+
+    def _log_first_message_once(self) -> None:
+        if not self._first_message_seen:
+            self._first_message_seen = True
+            logger.info("first Dofus message seen: capture is working")
 
     def _purge_if_due(self, now: float) -> None:
         if now - self._last_purge < PURGE_INTERVAL_SECONDS:

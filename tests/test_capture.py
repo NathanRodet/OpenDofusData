@@ -167,3 +167,10 @@ def test_evicted_flow_starts_from_a_fresh_extractor(delivered) -> None:
     pipeline.handle_packet(other)
     pipeline.handle_packet(segment(1010, data[10:]))
     assert [envelope.type_name for envelope, _ in delivered] == ["Other"]
+
+
+def test_first_envelope_logs_once_that_capture_is_working(pipeline, caplog) -> None:
+    caplog.set_level(logging.INFO)
+    pipeline.handle_packet(segment(1000, frame("One", b"1")))
+    pipeline.handle_packet(segment(2000, frame("Two", b"2")))
+    assert caplog.text.count("first Dofus message seen: capture is working") == 1
