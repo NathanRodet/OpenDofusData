@@ -52,7 +52,7 @@ def test_cli_prices_lists_latest_prices(tmp_path: Path, capsys) -> None:
 def test_cli_prices_on_empty_database_says_so(tmp_path: Path, capsys) -> None:
     PriceStore(str(tmp_path / "p.db")).close()
     assert run_cli(["prices", "--db", str(tmp_path / "p.db")]) == 0
-    assert "aucun prix enregistré" in capsys.readouterr().out
+    assert "Aucun prix enregistré" in capsys.readouterr().out
 
 
 def test_cli_history_filters_by_item_and_lot(tmp_path: Path, capsys) -> None:
@@ -79,7 +79,7 @@ def test_cli_stats_prints_requested_period(tmp_path: Path, capsys) -> None:
 def test_cli_stats_without_data_says_so(tmp_path: Path, capsys) -> None:
     seed(tmp_path / "p.db")
     assert run_cli(["stats", "12345", "--db", str(tmp_path / "p.db")]) == 0
-    assert "aucune statistique" in capsys.readouterr().out
+    assert "Aucune statistique" in capsys.readouterr().out
 
 
 def test_cli_export_csv_creates_file(tmp_path: Path) -> None:
@@ -149,3 +149,24 @@ def test_cli_run_reports_aborted_capture(tmp_path: Path, capsys) -> None:
 
     assert run_cli(["run", "--db", str(tmp_path / "p.db")], aborting_capture) != 0
     assert "boom" in capsys.readouterr().err
+
+
+def test_read_commands_report_a_file_that_is_not_a_database(tmp_path: Path, capsys) -> None:
+    garbage = tmp_path / "garbage.db"
+    garbage.write_text("this is not a sqlite database " * 20, encoding="utf-8")
+    before = garbage.read_bytes()
+    for command in (["prices"], ["export-csv", "--output", str(tmp_path / "o.csv")]):
+        assert run_cli([*command, "--db", str(garbage)]) != 0
+        assert "Base de données illisible" in capsys.readouterr().err
+    assert garbage.read_bytes() == before
+
+
+def test_read_commands_report_a_directory_as_database(tmp_path: Path, capsys) -> None:
+    assert run_cli(["prices", "--db", str(tmp_path)]) != 0
+    assert "est un dossier" in capsys.readouterr().err
+
+
+def test_empty_selection_says_nothing_matches(tmp_path: Path, capsys) -> None:
+    seed(tmp_path / "p.db")
+    assert run_cli(["prices", "--item", "5", "--db", str(tmp_path / "p.db")]) == 0
+    assert "pour cette sélection" in capsys.readouterr().out

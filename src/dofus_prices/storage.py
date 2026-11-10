@@ -6,7 +6,8 @@ import queue
 import sqlite3
 import threading
 from collections.abc import Iterator
-from dataclasses import dataclass
+
+from dofus_prices.records import LotPrice, MarketStats
 
 logger = logging.getLogger(__name__)
 
@@ -41,41 +42,19 @@ LATEST_LOTS_SQL = f"""
     WHERE rank = 1 ORDER BY item_id, server, lot_size"""
 
 
-@dataclass
-class LotPrice:
-    """Total price of one lot of an item on a server (never a unit price)."""
-
-    item_id: int
-    server: str
-    lot_size: int
-    price: int
-    captured_at: str
-
-
-@dataclass
-class MarketStats:
-    """Market statistics of an item over a period, with its price curve."""
-
-    item_id: int
-    server: str
-    period: str
-    points: list[tuple[int, int, int]]  # (unix seconds, price, quantity)
-    median: int
-    mean: int
-    sold_count: int
-    server_updated_at: str
-    last_purchase_at: str
-    captured_at: str
-
-
 class PriceStore:
     """Append-only SQLite history of lot prices and market statistics."""
 
     def __init__(self, path: str) -> None:
-        self._connection: sqlite3.Connection | None = sqlite3.connect(path)
-        for statement in SCHEMA_STATEMENTS:
-            self._connection.execute(statement)
-        self._connection.commit()
+        connection = sqlite3.connect(path)
+        try:
+            for statement in SCHEMA_STATEMENTS:
+                connection.execute(statement)
+            connection.commit()
+        except sqlite3.Error:
+            connection.close()
+            raise
+        self._connection: sqlite3.Connection | None = connection
 
     def save_lot_price(self, lot: LotPrice) -> None:
         """Append a lot price; raise ValueError if the lot size is not allowed."""

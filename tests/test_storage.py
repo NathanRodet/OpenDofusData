@@ -142,3 +142,17 @@ def test_store_writer_survives_an_overflowing_record(tmp_path, caplog: pytest.Lo
         assert [lot.price for lot in reader.price_history(100, 1)] == [2]
     finally:
         reader.close()
+
+
+def test_failed_open_closes_the_connection(tmp_path) -> None:
+    import gc
+    import sqlite3
+    import warnings
+
+    garbage = tmp_path / "garbage.db"
+    garbage.write_text("not a database " * 50, encoding="utf-8")
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        with pytest.raises(sqlite3.DatabaseError):
+            PriceStore(str(garbage))
+        gc.collect()

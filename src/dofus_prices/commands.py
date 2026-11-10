@@ -1,6 +1,7 @@
 """Read commands: prices, history, stats and CSV export, all reading an existing database."""
 
 import argparse
+import sqlite3
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
@@ -12,8 +13,8 @@ COLUMN_SEPARATOR = "  "
 PRICE_HEADERS = ("item", "server", "lot", "price", "captured_at (UTC)")
 STATS_HEADERS = ("period", "median", "mean", "sold", "points", "last purchase (UTC)",
                  "data updated (UTC)")
-NO_PRICES_MESSAGE = "Base vide : aucun prix enregistré."
-NO_STATS_MESSAGE = "Base sans donnée : aucune statistique enregistrée pour l'objet {item_id}."
+NO_PRICES_MESSAGE = "Aucun prix enregistré pour cette sélection."
+NO_STATS_MESSAGE = "Aucune statistique enregistrée pour l'objet {item_id}."
 
 
 def format_table(headers: Sequence[str], rows: Sequence[Sequence[object]]) -> str:
@@ -34,15 +35,27 @@ def _stats_row(stats: MarketStats) -> tuple[object, ...]:
             stats.last_purchase_at, stats.server_updated_at)
 
 
+def _check_database_path(path: str) -> str | None:
+    if Path(path).is_dir():
+        return f"{path} est un dossier, pas une base de données."
+    if not Path(path).is_file():
+        return f"Base de données introuvable : {path}"
+    return None
+
+
 def _with_store(arguments: argparse.Namespace, action: Callable[[PriceStore], int]) -> int:
     """Run an action on an existing database, never creating a missing one."""
-    if not Path(arguments.db).is_file():
-        return fail(f"Base de données introuvable : {arguments.db}")
-    store = PriceStore(arguments.db)
+    problem = _check_database_path(arguments.db)
+    if problem is not None:
+        return fail(problem)
     try:
-        return action(store)
-    finally:
-        store.close()
+        store = PriceStore(arguments.db)
+        try:
+            return action(store)
+        finally:
+            store.close()
+    except sqlite3.Error as error:
+        return fail(f"Base de données illisible : {arguments.db} ({error})")
 
 
 def _print_prices(prices: list[LotPrice]) -> int:
