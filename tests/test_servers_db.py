@@ -87,9 +87,11 @@ def test_failure_in_items_rolls_back_servers_too(tmp_path: Path) -> None:
     assert (items_of(database), servers_of(database)) == before
 
 
-def test_old_database_gains_the_servers_table(tmp_path: Path) -> None:
+def test_old_database_gains_the_servers_table(tmp_path: Path, capsys) -> None:
     old = make_database(tmp_path / "old.db", [1])
     with closing(sqlite3.connect(old)) as connection:
         connection.execute("DROP TABLE servers")
-    do_import(old, make_names(tmp_path / "items.csv", ["1,Un,5,T"]))
+    names = make_names(tmp_path / "items.csv", ["1,Un,5,T"])
+    assert import_both(old, names, tmp_path / NO_SERVERS) == 0
     assert servers_of(old) == []
+    assert "servers-update" in capsys.readouterr().out
