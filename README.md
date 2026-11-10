@@ -82,8 +82,27 @@ Piège PowerShell: une valeur contenant des virgules doit être entre guillemets
 - `.\dev.ps1 run servers-update [--output chemin]` télécharge la liste (quelques requêtes vers `api.dofusdb.fr`; la capture reste hors ligne).
 - `.\dev.ps1 run servers [--servers data/servers.csv]` affiche un tableau `id  nom  type`, trié par type puis par nom.
 - `names-import` charge aussi cette liste dans la table `servers` de la base (`server_id`, `name_fr`, `game_type_id`, `game_type_fr`, `community_id`), dans la même transaction que `items`. Sans fichier de serveurs, seuls les objets sont importés.
-- `--server NOM` de `run` / `capture` est normalisé d'après la liste: `draconiros` devient `Draconiros`. Un nom absent de la liste est gardé tel quel avec un avertissement; sans fichier, rien n'est vérifié. La valeur par défaut `unknown` n'avertit pas.
+- `--server NOM` de `run` / `capture` (voir « Serveur de jeu ») est normalisé d'après la liste: `draconiros` devient `Draconiros`. Un nom absent de la liste est gardé tel quel avec un avertissement; sans fichier, rien n'est vérifié. `unknown` n'avertit pas.
 - La détection du serveur à partir du trafic n'est pas encore implémentée: cette liste en sera la base.
+
+## Serveur de jeu
+
+Chaque enregistrement porte le nom du serveur de jeu (Brial, Dakal...). Le trafic ne permet pas encore de le détecter: tu le choisis une fois dans la liste et l'outil s'en souvient. Ordre de priorité:
+
+1. `--server NOM` (`run` / `capture`): utilisé pour cette session seulement, jamais mémorisé, sans question.
+2. Le serveur mémorisé, utilisé sans rien demander.
+3. Sinon, dans un terminal: une liste numérotée par type de jeu (numéro ou nom exact; Entrée passe). Le choix est mémorisé.
+4. Sinon (sortie redirigée, pas de terminal): `unknown`, jamais mémorisé.
+
+- `--choose-server` redemande le serveur même s'il est déjà mémorisé.
+- `.\dev.ps1 run server` affiche le serveur mémorisé; `server --set NOM` le définit (même validation que `--server`); `server --clear` l'oublie.
+- Sans `data/servers.csv`, l'outil propose de saisir le nom à la main (télécharge la liste avec `servers-update`). Une configuration ou une liste illisible n'interrompt jamais la capture.
+- Le choix est stocké dans `%APPDATA%\OpenDofusData\config.json` (ailleurs: `~/.config/opendofusdata/config.json`); la variable d'environnement `OPENDOFUSDATA_CONFIG` donne un autre chemin complet. Un fichier corrompu est conservé en `config.json.corrupt` avant d'être remplacé.
+- La détection automatique du serveur à partir du trafic est prévue, pas encore implémentée.
+
+## Confidentialité
+
+L'outil ne garde que des données de jeu: identifiants d'objets, prix, quantités, horodatages et nom du serveur de jeu. Il ne stocke ni n'envoie d'adresses IP, de comptes, de noms de personnages ni de chat. Rien ne quitte ta machine dans cette version; l'envoi prévu vers un serveur distant ne transmettra que ces mêmes données de jeu. L'outil est libre et open source: son comportement peut être vérifié dans le code.
 
 ## Mode découverte et vie privée
 

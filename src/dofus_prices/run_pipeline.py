@@ -104,7 +104,8 @@ def run_command(arguments: argparse.Namespace, capture: CaptureFunction, now: Cl
         writer = StoreWriter(arguments.db)
     except (sqlite3.Error, OSError) as error:
         return fail(f"Impossible d'ouvrir la base de données {arguments.db} : {error}")
-    print(f"Base de données : {arguments.db}. Serveur enregistré : {arguments.server}. "
+    label = getattr(arguments, "server_label", "")
+    print(f"Base de données : {arguments.db}. Serveur enregistré : {arguments.server}{label}. "
           "Ctrl+C pour arrêter.")
     echo = print if arguments.verbose else None
     handler = make_envelope_handler(writer, arguments.server, now, echo)

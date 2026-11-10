@@ -7,7 +7,8 @@ from pathlib import Path
 
 from dofus_prices.capture_errors import EXIT_OK, fail
 from dofus_prices.commands import format_table
-from dofus_prices.game_servers import DEFAULT_SERVERS_PATH, GameServer, canonical_name, load_servers
+from dofus_prices.game_servers import (DEFAULT_SERVERS_PATH, UNKNOWN_SERVER, GameServer,
+                                       canonical_name, load_servers)
 from dofus_prices.names_build import NamesFetchError
 from dofus_prices.names_commands import INTERRUPTED_MESSAGE
 from dofus_prices.names_fetch import (
@@ -17,9 +18,9 @@ from dofus_prices.names_fetch import (
     Sleep,
     http_get_json,
 )
+from dofus_prices.server_choice import UNLISTED_WARNING
 from dofus_prices.servers_fetch import download_game_servers
 
-UNKNOWN_SERVER = "unknown"
 DEV_RUN = r".\dev.ps1 run"
 UPDATE_NOTICE = (
     "Cette commande contacte api.dofusdb.fr une seule fois pour télécharger la liste des "
@@ -29,8 +30,6 @@ LIST_NOTE = ("Liste issue de DofusDB : elle peut contenir des serveurs qui n'exi
              "dans Dofus 3.")
 NO_SERVERS_MESSAGE = ("Liste des serveurs absente ou vide : {path}. "
                       f"Télécharge-la d'abord avec : {DEV_RUN} servers-update")
-UNLISTED_WARNING = ("serveur « {name} » absent de la liste "
-                    "(servers-update pour la mettre à jour)")
 SERVER_HEADERS = ("id", "nom", "type")
 
 

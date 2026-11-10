@@ -9,6 +9,7 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 DEFAULT_SERVERS_PATH = "data/servers.csv"
+UNKNOWN_SERVER = "unknown"
 SERVERS_CSV_HEADER = ("id", "name_fr", "game_type_id", "game_type_fr", "community_id")
 
 
