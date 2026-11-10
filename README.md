@@ -132,6 +132,8 @@ Règles de calcul des statistiques:
 
 Détails et octets vérifiés contre l'écran: [docs/protocol-notes.md](docs/protocol-notes.md).
 
+Suite prévue du projet: [docs/roadmap.md](docs/roadmap.md).
+
 ## Limites connues et maintenance
 
 - Les noms courts des messages (`jzs`, `ire`, `kcy`, `iqp`) changent à chaque mise à jour du jeu. Ils sont isolés dans `src/dofus_prices/messages.py`. Si l'outil ne décode plus rien après une mise à jour: lance `discover` avec `--hex-types` sur la nouvelle version, compare avec `docs/protocol-notes.md`, puis mets à jour `messages.py`.
