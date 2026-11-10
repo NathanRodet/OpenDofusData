@@ -23,7 +23,7 @@ def make_lot(price: int, captured_at: str, lot_size: int = 1, item_id: int = 100
 
 def make_stats(period: str = "7d", captured_at: str = "2026-11-09T10:00:00+00:00") -> MarketStats:
     return MarketStats(
-        item_id=100, server="Ilyzaelle", period=period, points=[(1700000000, 50), (1700086400, 55)],
+        item_id=100, server="Ilyzaelle", period=period, points=[(1700000000, 50, 2), (1700086400, 55, 5)],
         median=52, mean=53, sold_count=7, server_updated_at="2026-11-09T09:00:00+00:00",
         last_purchase_at="2026-11-08T20:00:00+00:00", captured_at=captured_at,
     )
@@ -74,6 +74,7 @@ def test_market_stats_roundtrip_keeps_points_and_dates(store: PriceStore) -> Non
     loaded = store.market_stats_history(100, "7d")
     assert loaded == [stats]
     assert all(isinstance(point, tuple) for point in loaded[0].points)
+    assert loaded[0].points == [(1700000000, 50, 2), (1700086400, 55, 5)]
 
 
 def test_close_twice_is_safe(tmp_path) -> None:

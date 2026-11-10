@@ -59,7 +59,7 @@ class MarketStats:
     item_id: int
     server: str
     period: str
-    points: list[tuple[int, int]]
+    points: list[tuple[int, int, int]]  # (unix seconds, price, quantity)
     median: int
     mean: int
     sold_count: int
