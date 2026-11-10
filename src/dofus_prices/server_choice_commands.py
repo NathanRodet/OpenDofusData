@@ -10,19 +10,11 @@ from dofus_prices.app_config import default_config_path, load_config, save_confi
 from dofus_prices.capture_errors import EXIT_OK, fail
 from dofus_prices.game_servers import DEFAULT_SERVERS_PATH, load_servers
 from dofus_prices.server_choice import SERVER_KEY, normalise_server_name, resolve_server
-from dofus_prices.server_detect import ServerResolver
-from dofus_prices.server_ip_commands import (
-    build_server_resolver,
-    forget_command,
-    ips_command,
-    learn_command,
-)
 
 logger = logging.getLogger(__name__)
 
 SOURCE_LABELS = {"option": " (option)", "config": " (mémorisé)", "prompt": " (choisi)",
                  "default": ""}
-EXPLICIT_SOURCES = ("option", "prompt")
 NO_SERVER_MESSAGE = "Aucun serveur mémorisé."
 SHOW_MESSAGE = "Serveur mémorisé : {name}"
 SET_MESSAGE = "Serveur mémorisé : {name} (enregistré dans {path})"
@@ -38,18 +30,12 @@ def is_interactive() -> bool:
 
 
 def add_server_command(commands: argparse._SubParsersAction) -> None:
-    """Register the server command (show, --set, --clear, --learn, --ips, --forget)."""
-    parser = commands.add_parser("server", help="gère le serveur mémorisé et les adresses des serveurs")
+    """Register the server command (show, --set, --clear)."""
+    parser = commands.add_parser("server", help="affiche, définit ou oublie le serveur mémorisé")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--set", dest="set_name", default=None, metavar="NOM",
                        help="mémorise ce serveur")
     group.add_argument("--clear", action="store_true", help="oublie le serveur mémorisé")
-    group.add_argument("--learn", dest="learn_name", nargs="?", const="", default=None,
-                       metavar="NOM", help="associe l'adresse du serveur de jeu connecté à NOM "
-                       "(défaut : le serveur mémorisé)")
-    group.add_argument("--ips", action="store_true", help="liste les adresses de serveur connues")
-    group.add_argument("--forget", dest="forget_ip", default=None, metavar="IP",
-                       help="oublie une adresse apprise")
 
 
 def resolve_run_server(arguments: argparse.Namespace) -> None:
@@ -66,13 +52,6 @@ def resolve_run_server(arguments: argparse.Namespace) -> None:
             logger.warning(SAVE_WARNING.format(path=path, error=error))
     arguments.server = resolution.name
     arguments.server_label = SOURCE_LABELS[resolution.source]
-    arguments.server_explicit = resolution.source in EXPLICIT_SOURCES
-
-
-def prepare_run_server(arguments: argparse.Namespace) -> ServerResolver:
-    """Resolve the session server, then build the per-address resolver of the capture."""
-    resolve_run_server(arguments)
-    return build_server_resolver(arguments)
 
 
 def _show(config: dict[str, object]) -> int:
@@ -111,13 +90,7 @@ def _clear(path: Path, config: dict[str, object]) -> int:
 
 
 def server_command(arguments: argparse.Namespace) -> int:
-    """Show, set, clear the remembered server or manage addresses, without capturing."""
-    if arguments.learn_name is not None:
-        return learn_command(arguments)
-    if arguments.ips:
-        return ips_command(arguments)
-    if arguments.forget_ip is not None:
-        return forget_command(arguments)
+    """Show, set (--set) or clear (--clear) the remembered server without capturing."""
     path = default_config_path()
     config = load_config(path)
     if arguments.set_name is not None:

@@ -51,8 +51,6 @@ FORBIDDEN_IMPORTS = ("dofus_prices.names_fetch", "dofus_prices.names_build",
                      "dofus_prices.servers_fetch", "dofus_prices.servers_build",
                      "dofus_prices.servers_commands", "dofus_prices.app_config",
                      "dofus_prices.server_choice", "dofus_prices.server_choice_commands",
-                     "dofus_prices.server_ips", "dofus_prices.server_detect",
-                     "dofus_prices.server_ip_commands", "dofus_prices.netstat_parse",
                      "urllib")
 
 
@@ -98,10 +96,6 @@ def test_server_list_modules_stay_out_of_the_capture_path() -> None:
     assert forbidden_imports("from dofus_prices.app_config import load_config") != []
     assert forbidden_imports("import dofus_prices.server_choice") != []
     assert forbidden_imports("from dofus_prices import server_choice_commands") != []
-    assert forbidden_imports("from dofus_prices.server_ips import ServerIps") != []
-    assert forbidden_imports("import dofus_prices.server_detect") != []
-    assert forbidden_imports("from dofus_prices import netstat_parse") != []
-    assert forbidden_imports("from dofus_prices.server_ip_commands import x") != []
 
 
 def test_pure_server_modules_do_not_import_network_storage_or_capture() -> None:

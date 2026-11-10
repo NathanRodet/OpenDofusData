@@ -23,7 +23,7 @@ from dofus_prices.framing import Envelope
 from dofus_prices.names_db_commands import names_gaps_command, names_import_command
 from dofus_prices.names_commands import add_names_commands, names_update_command
 from dofus_prices.run_pipeline import Clock, run_command, utc_now
-from dofus_prices.server_choice_commands import CHOICE_COMMANDS, add_server_command, prepare_run_server
+from dofus_prices.server_choice_commands import CHOICE_COMMANDS, add_server_command, resolve_run_server
 from dofus_prices.servers_commands import SERVER_COMMANDS, add_servers_commands
 from dofus_prices.storage import LOT_SIZES, MARKET_PERIODS
 from dofus_prices.tcp import FlowKey
@@ -182,7 +182,8 @@ def run(argv: list[str] | None, capture: CaptureFunction, now: Clock = utc_now) 
     if arguments.command == "discover":
         return _discover(arguments, capture)
     if arguments.command == "run":
-        return run_command(arguments, capture, now, prepare_run_server(arguments))
+        resolve_run_server(arguments)
+        return run_command(arguments, capture, now)
     if arguments.command in READ_COMMANDS:
         return READ_COMMANDS[arguments.command](arguments)
     parser.print_help()

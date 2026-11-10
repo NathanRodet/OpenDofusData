@@ -115,7 +115,7 @@ def test_run_command_stores_the_canonical_name(tmp_path: Path, monkeypatch) -> N
     monkeypatch.chdir(tmp_path)
     seen: list[str] = []
 
-    def fake_run_command(arguments, capture, now, resolver=None) -> int:
+    def fake_run_command(arguments, capture, now) -> int:
         seen.append(arguments.server)
         return 0
 

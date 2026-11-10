@@ -87,28 +87,22 @@ Piège PowerShell: une valeur contenant des virgules doit être entre guillemets
 
 ## Serveur de jeu
 
-Chaque enregistrement porte le nom du serveur de jeu (Kourial, Brial, Dakal...). Le contenu du trafic ne l'indique pas (aucun identifiant de serveur dans les messages): l'outil le reconnaît à l'adresse IP du serveur de jeu auquel tu es connecté (la machine distante du port 5555). Il apprend une fois « cette adresse = Kourial », puis reconnaît le serveur tout seul.
+Chaque enregistrement porte le nom du serveur de jeu (Brial, Dakal...). Le trafic ne permet pas encore de le détecter: tu le choisis une fois dans la liste et l'outil s'en souvient. Ordre de priorité:
 
-Pour chaque flux, dans l'ordre:
+1. `--server NOM` (`run` / `capture`): utilisé pour cette session seulement, jamais mémorisé, sans question.
+2. Le serveur mémorisé, utilisé sans rien demander.
+3. Sinon, dans un terminal: une liste numérotée par type de jeu (numéro ou nom exact; Entrée passe). Le choix est mémorisé.
+4. Sinon (sortie redirigée, pas de terminal): `unknown`, jamais mémorisé.
 
-1. Adresse connue (table livrée avec l'outil, ou apprise et stockée dans la configuration): le serveur correspondant, quel que soit le choix de la session. Livrée: `99.81.217.174` = Kourial.
-2. Adresse inconnue et serveur choisi explicitement pendant cette session (`--server NOM` ou liste numérotée au premier lancement): l'outil apprend « adresse = ce serveur », l'enregistre dans la configuration (`"ips"` dans `config.json`) et l'affiche une fois: « adresse du serveur de jeu x.x.x.x associée à « NOM » ».
-3. Adresse inconnue et serveur seulement mémorisé (ou par défaut): relevés marqués `unknown` et un avertissement par adresse. L'outil ne devine jamais: un mauvais serveur dans les données est pire que `unknown`. Corrige avec `.\dev.ps1 capture --choose-server` ou `.\dev.ps1 run server --learn NOM` pendant que tu es connecté.
-4. Pas d'adresse exploitable: le serveur de la session s'il est choisi ou mémorisé, sinon `unknown`.
-
-Choix de la session (priorité): `--server NOM` (cette session, sans question; `--choose-server` redemande), puis le serveur mémorisé, puis, dans un terminal, la liste numérotée (numéro ou nom exact; Entrée passe; le choix est mémorisé), sinon `unknown`.
-
+- `--choose-server` redemande le serveur même s'il est déjà mémorisé.
 - `.\dev.ps1 run server` affiche le serveur mémorisé; `server --set NOM` le définit (même validation que `--server`); `server --clear` l'oublie.
-- `server --learn [NOM]` (jeu lancé et connecté): lit les connexions actives (`netstat -n -p tcp`, sans dépendance supplémentaire), garde celles vers le port 5555 et associe leur adresse à NOM (par défaut: le serveur mémorisé). Sans connexion de jeu: « aucune connexion de jeu active : lance le jeu et connecte-toi ».
-- `server --ips` liste les adresses connues (`adresse  serveur  origine`, livré ou appris); `server --forget IP` oublie une adresse apprise.
-- Seule l'adresse du serveur de jeu est conservée. Ton adresse (celle de ta machine) n'est jamais stockée ni journalisée; les adresses privées, locales ou IPv6 sont refusées (IPv4 publique seulement pour l'instant). Une entrée invalide dans la configuration est ignorée avec un avertissement.
-- La table livrée (`BUNDLED_SERVER_IPS` dans `server_ips.py`) peut s'enrichir par contributions: propose l'adresse d'un serveur que tu as observée (`Get-NetTCPConnection -RemotePort 5555`).
-- Sans `data/servers.csv`, l'outil propose de saisir le nom à la main (télécharge la liste avec `servers-update`). Une configuration ou une liste illisible n'interrompt jamais la capture; un échec d'écriture de la configuration n'est qu'un avertissement.
-- La configuration est stockée dans `%APPDATA%\OpenDofusData\config.json` (ailleurs: `~/.config/opendofusdata/config.json`); la variable d'environnement `OPENDOFUSDATA_CONFIG` donne un autre chemin complet. Un fichier corrompu est conservé en `config.json.corrupt` avant d'être remplacé.
+- Sans `data/servers.csv`, l'outil propose de saisir le nom à la main (télécharge la liste avec `servers-update`). Une configuration ou une liste illisible n'interrompt jamais la capture.
+- Le choix est stocké dans `%APPDATA%\OpenDofusData\config.json` (ailleurs: `~/.config/opendofusdata/config.json`); la variable d'environnement `OPENDOFUSDATA_CONFIG` donne un autre chemin complet. Un fichier corrompu est conservé en `config.json.corrupt` avant d'être remplacé.
+- La détection automatique du serveur à partir du trafic est prévue, pas encore implémentée.
 
 ## Confidentialité
 
-L'outil ne garde que des données de jeu: identifiants d'objets, prix, quantités, horodatages et nom du serveur de jeu. Il ne stocke ni n'envoie d'adresse IP de joueur (seule l'adresse publique du serveur de jeu est mémorisée dans ta configuration locale, pour le reconnaître), de comptes, de noms de personnages ni de chat. Rien ne quitte ta machine dans cette version; l'envoi prévu vers un serveur distant ne transmettra que ces mêmes données de jeu. L'outil est libre et open source: son comportement peut être vérifié dans le code.
+L'outil ne garde que des données de jeu: identifiants d'objets, prix, quantités, horodatages et nom du serveur de jeu. Il ne stocke ni n'envoie d'adresses IP, de comptes, de noms de personnages ni de chat. Rien ne quitte ta machine dans cette version; l'envoi prévu vers un serveur distant ne transmettra que ces mêmes données de jeu. L'outil est libre et open source: son comportement peut être vérifié dans le code.
 
 ## Mode découverte et vie privée
 
