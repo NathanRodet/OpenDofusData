@@ -5,8 +5,15 @@ import sqlite3
 
 from dofus_prices.capture_errors import EXIT_OK, fail
 from dofus_prices.commands import check_database_path, format_table, with_store
+from dofus_prices.game_servers import DEFAULT_SERVERS_PATH, GameServer, load_servers
 from dofus_prices.item_names import DEFAULT_NAMES_PATH, ItemNames
-from dofus_prices.names_db import UnknownItem, count_items, replace_items, unknown_items
+from dofus_prices.names_db import (
+    UnknownItem,
+    count_items,
+    count_servers,
+    replace_items,
+    unknown_items,
+)
 from dofus_prices.storage import PriceStore
 
 DEFAULT_DATABASE = "prices.db"
@@ -15,6 +22,8 @@ GAP_HEADERS = ("id", "relevés lots", "relevés stats", "premier relevé", "dern
 DEV_RUN = r".\dev.ps1 run"
 NO_NAMES_MESSAGE = ("Fichier de noms absent ou vide : {path}. "
                     f"Télécharge-le d'abord avec : {DEV_RUN} names-update")
+NO_SERVERS_NOTE = ("Liste des serveurs absente ou illisible : seuls les objets sont importés. "
+                   f"Pour la télécharger : {DEV_RUN} servers-update")
 NOT_IMPORTED_MESSAGE = ("La table des noms est vide : aucun nom n'a encore été importé. "
                         f"Lance : {DEV_RUN} names-import")
 NO_GAP_MESSAGE = "Aucun identifiant sans nom : tous les objets de la base ont un nom."
@@ -26,6 +35,8 @@ def add_names_db_commands(commands: argparse._SubParsersAction) -> None:
     importer.add_argument("--db", default=DEFAULT_DATABASE, help="base SQLite (défaut : prices.db)")
     importer.add_argument("--names", default=DEFAULT_NAMES_PATH,
                           help=f"fichier CSV des noms (défaut : {DEFAULT_NAMES_PATH})")
+    importer.add_argument("--servers", default=DEFAULT_SERVERS_PATH,
+                          help=f"fichier CSV des serveurs (défaut : {DEFAULT_SERVERS_PATH})")
     gaps = commands.add_parser("names-gaps", help="liste les objets de la base sans nom")
     gaps.add_argument("--db", default=DEFAULT_DATABASE, help="base SQLite (défaut : prices.db)")
 
@@ -45,9 +56,13 @@ def _print_import_summary(imported: int, gaps: list[UnknownItem]) -> None:
         print(f"... et {len(gaps) - GAP_LISTING_LIMIT} autre(s) (voir : names-gaps).")
 
 
-def _import_into(store: PriceStore, names: ItemNames) -> int:
-    imported = replace_items(store.connection, names.entries())
+def _import_into(store: PriceStore, names: ItemNames, servers: list[GameServer]) -> int:
+    imported = replace_items(store.connection, names.entries(), servers or None)
     _print_import_summary(imported, unknown_items(store.connection))
+    if servers:
+        print(f"{count_servers(store.connection)} serveurs importés dans la table servers.")
+    else:
+        print(NO_SERVERS_NOTE)
     return EXIT_OK
 
 
@@ -59,7 +74,8 @@ def names_import_command(arguments: argparse.Namespace) -> int:
     names = ItemNames.load(arguments.names)
     if len(names) == 0:
         return fail(NO_NAMES_MESSAGE.format(path=arguments.names))
-    return with_store(arguments, lambda store: _import_into(store, names))
+    servers = load_servers(arguments.servers)
+    return with_store(arguments, lambda store: _import_into(store, names, servers))
 
 
 def _print_gaps(store: PriceStore) -> int:

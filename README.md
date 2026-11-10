@@ -39,7 +39,7 @@ Cette commande crée le venv `.venv` et installe `requirements.txt` (`scapy` pou
 
 ## Utilisation
 
-La commande de base est `.\dev.ps1 capture`: elle lance la capture avec les valeurs par défaut (base `prices.db`, serveur `unknown`), et accepte `--db`, `--interface`, `--server` et `--verbose`. Pour les autres sous-commandes, `.\dev.ps1 run` transmet tout ce qui suit au programme: `.\dev.ps1 run prices` lance la sous-commande `prices`. `.\dev.ps1 capture` équivaut à `.\dev.ps1 run run`.
+La commande de base est `.\dev.ps1 capture`: elle lance la capture avec les valeurs par défaut (base `prices.db`, serveur mémorisé, voir « Serveur de jeu »), et accepte `--db`, `--interface`, `--server` et `--verbose`. Pour les autres sous-commandes, `.\dev.ps1 run` transmet tout ce qui suit au programme: `.\dev.ps1 run prices` lance la sous-commande `prices`. `.\dev.ps1 capture` équivaut à `.\dev.ps1 run run`.
 
 | Sous-commande | Effet | Exemple |
 |---|---|---|
@@ -50,7 +50,7 @@ La commande de base est `.\dev.ps1 capture`: elle lance la capture avec les vale
 | `export-csv` | Exporte tous les prix en CSV (`--output` obligatoire) | `.\dev.ps1 run export-csv --output prix.csv` |
 | `discover` | Journalise la structure des messages (voir plus bas) | `.\dev.ps1 run discover` |
 
-Options communes: `--db` (base SQLite, défaut `prices.db`) pour `run`, `prices`, `history`, `stats` et `export-csv`; `--interface` (interface réseau à écouter, interface par défaut de Scapy si absent) pour `run` et `discover`. `--server` (défaut `unknown`) n'existe que pour `run`, comme `--verbose` (affichage en direct des valeurs décodées). Les commandes de lecture n'ouvrent jamais une base absente: elles signalent l'erreur.
+Options communes: `--db` (base SQLite, défaut `prices.db`) pour `run`, `prices`, `history`, `stats` et `export-csv`; `--interface` (interface réseau à écouter, interface par défaut de Scapy si absent) pour `run` et `discover`. `--server NOM` (défaut: le serveur mémorisé, sinon la liste proposée au premier lancement, sinon `unknown`) et `--choose-server` n'existent que pour `run`, comme `--verbose` (affichage en direct des valeurs décodées). Les commandes de lecture n'ouvrent jamais une base absente: elles signalent l'erreur.
 
 Pour capturer:
 
@@ -74,6 +74,35 @@ Piège PowerShell: une valeur contenant des virgules doit être entre guillemets
 - Trois vues sont créées avec le schéma: `lot_prices_named` (toutes les colonnes de `lot_prices` plus `item_name`, `item_level`, `item_type`), `market_stats_named` (idem pour `market_stats`, sans `points_json` pour rester léger) et `unknown_items` (un identifiant par ligne avec `lot_price_rows`, `stats_rows`, `first_seen`, `last_seen`). Un identifiant sans nom apparaît comme `N/A`.
 - Exemple: `sqlite3 prices.db "SELECT item_name, lot_size, price, captured_at FROM lot_prices_named ORDER BY captured_at DESC LIMIT 10"`
 - `.\dev.ps1 run names-gaps [--db prices.db]` affiche le contenu de `unknown_items` (les trous à investiguer). La capture (`run`) ne connaît toujours pas les noms et reste hors ligne.
+
+## Serveurs de jeu
+
+`data/servers.csv` est une liste locale des serveurs de jeu (colonnes `id,name_fr,game_type_id,game_type_fr,community_id`, triée par identifiant), construite à partir de l'API publique DofusDB comme l'index des noms d'objets. Elle peut contenir des serveurs qui n'existent pas dans Dofus 3 (serveurs de tournoi, Kolizeum, etc.). La communauté reste un simple numéro.
+
+- `.\dev.ps1 run servers-update [--output chemin]` télécharge la liste (quelques requêtes vers `api.dofusdb.fr`; la capture reste hors ligne).
+- `.\dev.ps1 run servers [--servers data/servers.csv]` affiche un tableau `id  nom  type`, trié par type puis par nom.
+- `names-import` charge aussi cette liste dans la table `servers` de la base (`server_id`, `name_fr`, `game_type_id`, `game_type_fr`, `community_id`), dans la même transaction que `items`. Sans fichier de serveurs, seuls les objets sont importés.
+- `--server NOM` de `run` / `capture` (voir « Serveur de jeu ») est normalisé d'après la liste: `draconiros` devient `Draconiros`. Un nom absent de la liste est gardé tel quel avec un avertissement (jamais mémorisé). Sans fichier `data/servers.csv` (ou sans ligne valide), la liste intégrée des 13 serveurs classiques sert de repli: l'outil fonctionne sans `servers-update`. `unknown` n'avertit pas.
+- `servers-update` ne garde par défaut que les serveurs classiques (`game_type_id` 0); `--all` garde tout. Le nombre de lignes reçues est vérifié contre le total de l'API AVANT ce filtre, puis les deux nombres sont affichés.
+
+## Serveur de jeu
+
+Chaque enregistrement porte le nom du serveur de jeu (Brial, Dakal...). Le trafic ne permet pas de le détecter: tu le choisis une fois dans la liste (celle de `data/servers.csv`, sinon la liste intégrée des serveurs classiques) et l'outil s'en souvient. Ordre de priorité:
+
+1. `--server NOM` (`run` / `capture`): utilisé pour cette session seulement, jamais mémorisé, sans question.
+2. Le serveur mémorisé, utilisé sans rien demander (un avertissement si son nom n'est plus dans la liste). Il s'applique à TOUTES les captures: si tu joues sur deux serveurs, passe `--server NOM` ou `--choose-server`; la ligne de démarrage affiche `(mémorisé ; --choose-server pour changer)` comme rappel.
+3. Sinon, dans un terminal: une liste numérotée par type de jeu (numéro ou nom exact; Entrée passe). Le choix est mémorisé.
+4. Sinon (sortie redirigée, pas de terminal): `unknown`, jamais mémorisé.
+
+- `--choose-server` redemande le serveur même s'il est déjà mémorisé.
+- `.\dev.ps1 run server` affiche le serveur mémorisé; `server --set NOM` le définit (seuls les noms de la liste sont acceptés, sans tenir compte de la casse; sinon erreur et `servers-update` pour la rafraîchir); `server --clear` l'oublie.
+- Sans `data/servers.csv`, la liste intégrée des serveurs classiques est proposée: aucun nom libre n'est accepté ni mémorisé. Un `--server` vide est ignoré avec un avertissement. Une configuration ou une liste illisible n'interrompt jamais la capture.
+- Le choix est stocké dans `%APPDATA%\OpenDofusData\config.json` (ailleurs: `~/.config/opendofusdata/config.json`); la variable d'environnement `OPENDOFUSDATA_CONFIG` donne un autre chemin complet. Un fichier corrompu est conservé en `config.json.corrupt` avant d'être remplacé.
+- La détection automatique du serveur à partir du trafic est prévue, pas encore implémentée.
+
+## Confidentialité
+
+Pour le fonctionnement normal (`capture` / `run` et la base de données), l'outil ne garde que des données de jeu: identifiants d'objets, prix, quantités, horodatages et nom du serveur de jeu choisi par le joueur. Il ne stocke ni n'envoie jamais d'adresses IP, de comptes, de noms de personnages ni de chat (il utilise les adresses en mémoire pour suivre les connexions, sans les écrire). Le mode découverte optionnel avec `--include-text` ou `--hex-types` (désactivé par défaut, voir plus bas) peut écrire du texte issu des messages (éventuellement du chat ou des identifiants) dans un journal LOCAL que le joueur relit avant de le partager. Rien ne quitte ta machine dans cette version; l'envoi prévu vers un serveur distant ne transmettra que ces mêmes données de jeu. L'outil est libre et open source: son comportement peut être vérifié dans le code.
 
 ## Mode découverte et vie privée
 
@@ -110,7 +139,7 @@ Détails et octets vérifiés contre l'écran: [docs/protocol-notes.md](docs/pro
 - Seuls les prix de lots et les cours du marché sont décodés: pas d'achats, de ventes ni de changements de prix, et pas d'affichage en direct.
 - Fenêtre de 7 jours: la règle (minuit UTC sept jours avant la date de capture) est vérifiée à l'écran sur quatre objets; une confirmation reste en attente (Filet multiplicateur de Dragodinde, id 32525).
 - Un objet sans aucune offre (« Cet objet n'est pas en vente actuellement ») ne produit aucun enregistrement, par décision: l'absence de relevé ne signifie pas prix 0, le dernier prix connu garde son horodatage d'origine.
-- Le nom du serveur de jeu sera donné plus tard par le client: l'option `--server` (défaut `unknown`) n'est pour l'instant qu'un espace réservé, le serveur n'apparaissant pas dans les messages.
+- Le serveur de jeu n'apparaît pas dans les messages: c'est le joueur qui le choisit (voir « Serveur de jeu »).
 - Dans Windows PowerShell 5.1, l'aide française de `dev.ps1` peut afficher des accents cassés (encodage du script).
 
 ## Tests et conventions
