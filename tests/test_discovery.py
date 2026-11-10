@@ -288,10 +288,33 @@ def test_cli_hex_types_is_passed_through_with_one_notice(tmp_path: Path, capsys)
     argv = ["discover", "--output", str(output), "--hex-types", "jzs,ire"]
     assert cli.run(argv, fake_capture) == 0
     assert json.loads(output.read_text(encoding="utf-8"))["fields"][0]["packed"] == PACKED_VALUES
-    assert capsys.readouterr().out.count("ire, jzs") == 1
+    out = capsys.readouterr().out
+    assert out.count("ire, jzs") == 1
+    assert out.count("données personnelles si ces types transportent du chat") == 1
+    assert "Attention : le journal" not in out
+    cli.run(["discover", "--output", str(tmp_path / "d.jsonl")], fake_capture)
+    assert "Aperçus d'octets" not in capsys.readouterr().out
 
 
 @pytest.mark.parametrize("value", ["jzs;ire", "jzs,,ire", "", "jz s"])
 def test_cli_rejects_invalid_hex_types(value: str) -> None:
     with pytest.raises(SystemExit):
         cli.build_parser().parse_args(["discover", "--hex-types", value])
+
+
+def test_hex_types_with_include_text_gives_both_and_typed_hex_wins() -> None:
+    long_text = b"a" * (MAX_TYPED_HEX_BYTES - 4)
+    payload = _length_field(long_text)
+    field = describe_envelope(
+        Envelope("jzs", payload), include_text=True, hex_types=frozenset({"jzs"})
+    )["fields"][0]
+    assert field["text"] == "a" * MAX_TEXT_CHARS
+    assert field["hex"] == long_text.hex()
+    assert "packed" in field
+
+
+def test_hex_types_match_is_case_sensitive() -> None:
+    description = describe_envelope(
+        Envelope("JZS", _length_field(PACKED_BYTES)), hex_types=frozenset({"jzs"})
+    )
+    assert not {"hex", "packed"} & _keys_anywhere(description)

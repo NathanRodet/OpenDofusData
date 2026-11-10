@@ -23,7 +23,9 @@ INCLUDE_TEXT_WARNING = (
 )
 HEX_TYPES_NOTICE = (
     "Aperçus d'octets (hex) activés uniquement pour les types de message : {names}. "
-    "Les autres types restent sans aperçu."
+    "Les autres types restent sans aperçu. Ces aperçus peuvent contenir des données "
+    "personnelles si ces types transportent du chat ou des identifiants : relisez le "
+    "journal avant de le partager."
 )
 CaptureFunction = Callable[[PacketPipeline, str | None], None]
 
@@ -49,7 +51,7 @@ def build_parser() -> argparse.ArgumentParser:
                           help="inclut des aperçus texte/hex (données personnelles possibles)")
     discover.add_argument("--hex-types", type=parse_hex_types, default=frozenset(),
                           metavar="NAMES",
-                          help="types de message (ex. jzs,ire) avec aperçu hex de leurs octets")
+                          help="types de message (ex. jzs,ire) avec aperçu hex de leurs octets (données personnelles possibles)")
     return parser
 
 
