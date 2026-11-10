@@ -51,6 +51,41 @@ def test_missing_servers_file_imports_items_only_with_a_note(tmp_path: Path, cap
     output = capsys.readouterr().out
     assert items_of(database) == [(1, "Un", 5, "T")] and servers_of(database) == []
     assert "servers-update" in output and "1 objets importés" in output
+    assert "absente ou illisible" in output
+
+
+def test_file_without_valid_row_is_reported_as_absent_or_unreadable(
+        tmp_path: Path, capsys) -> None:
+    database = make_database(tmp_path / "p.db", [1])
+    names = make_names(tmp_path / "items.csv", ["1,Un,5,T"])
+    broken = tmp_path / "broken.csv"
+    broken.write_text(SHORT_SERVERS.replace("1,Un,0,C,0", "x,Bad,0,C,1"), encoding="utf-8")
+    assert import_both(database, names, broken) == 0
+    assert "absente ou illisible" in capsys.readouterr().out
+    assert servers_of(database) == []
+
+
+def test_duplicate_server_id_is_deduplicated_and_import_succeeds(tmp_path: Path) -> None:
+    database = make_database(tmp_path / "p.db", [1])
+    names = make_names(tmp_path / "items.csv", ["1,Un,5,T"])
+    duplicated = tmp_path / "dup.csv"
+    duplicated.write_text(SHORT_SERVERS + "1,Deux,0,C,0\n", encoding="utf-8")
+    assert import_both(database, names, duplicated) == 0
+    assert servers_of(database) == [(1, "Deux", 0, "C", 0)]
+
+
+def test_interruption_during_servers_insert_changes_nothing(tmp_path: Path) -> None:
+    database, _, before = seeded(tmp_path)
+
+    def interrupted() -> Iterator[GameServer]:
+        yield GameServer(1, "Nouveau", 0, "C", 0)
+        raise KeyboardInterrupt
+
+    with closing(sqlite3.connect(database)) as connection:
+        with pytest.raises(KeyboardInterrupt):
+            names_db.replace_items(connection, [ItemEntry(9, "Neuf", 1, "T")], interrupted())
+        assert not connection.in_transaction
+    assert (items_of(database), servers_of(database)) == before
 
 
 def test_servers_are_replaced_not_merged(tmp_path: Path) -> None:

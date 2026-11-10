@@ -22,7 +22,7 @@ GAP_HEADERS = ("id", "relevés lots", "relevés stats", "premier relevé", "dern
 DEV_RUN = r".\dev.ps1 run"
 NO_NAMES_MESSAGE = ("Fichier de noms absent ou vide : {path}. "
                     f"Télécharge-le d'abord avec : {DEV_RUN} names-update")
-NO_SERVERS_NOTE = ("Liste des serveurs absente : seuls les objets sont importés. "
+NO_SERVERS_NOTE = ("Liste des serveurs absente ou illisible : seuls les objets sont importés. "
                    f"Pour la télécharger : {DEV_RUN} servers-update")
 NOT_IMPORTED_MESSAGE = ("La table des noms est vide : aucun nom n'a encore été importé. "
                         f"Lance : {DEV_RUN} names-import")

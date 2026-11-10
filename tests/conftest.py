@@ -1,7 +1,5 @@
 """Suite-wide isolation: relative default paths never resolve inside the repository."""
 
-from pathlib import Path
-
 import pytest
 
 

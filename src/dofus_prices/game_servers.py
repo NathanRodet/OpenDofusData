@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_SERVERS_PATH = "data/servers.csv"
 UNKNOWN_SERVER = "unknown"
 CLASSIC_GAME_TYPE_ID = 0
+MAX_SQLITE_INTEGER = 2**63 - 1
 SERVERS_CSV_HEADER = ("id", "name_fr", "game_type_id", "game_type_fr", "community_id")
 
 
@@ -25,30 +26,38 @@ class GameServer:
     community_id: int | None
 
 
+def _bounded_int(text: str) -> int:
+    value = int(text)
+    if not 0 <= value <= MAX_SQLITE_INTEGER:
+        raise ValueError(f"nombre hors limites : {text}")
+    return value
+
+
 def _optional_int(text: str) -> int | None:
-    return int(text) if text else None
+    return _bounded_int(text) if text else None
 
 
 def _parse_row(row: list[str]) -> GameServer:
     server_id, name, game_type_id, game_type, community_id = row
     if not name.strip():
         raise ValueError("nom vide")
-    return GameServer(int(server_id), name, _optional_int(game_type_id), game_type,
+    return GameServer(_bounded_int(server_id), name, _optional_int(game_type_id), game_type,
                       _optional_int(community_id))
 
 
 def _read_servers(path: Path) -> list[GameServer]:
-    servers: list[GameServer] = []
+    servers: dict[int, GameServer] = {}
     with path.open("r", encoding="utf-8", newline="") as file:
         reader = csv.reader(file)
         next(reader, None)
         for row in reader:
             try:
-                servers.append(_parse_row(row))
+                server = _parse_row(row)
+                servers[server.server_id] = server
             except ValueError as error:
                 logger.warning("ligne %d de la liste des serveurs ignorée (%s)",
                                reader.line_num, error)
-    return servers
+    return list(servers.values())
 
 
 def load_servers(path: str | Path) -> list[GameServer]:
