@@ -41,6 +41,8 @@ def check_database_path(path: str) -> str | None:
         return f"{path} est un dossier, pas une base de données."
     if not Path(path).is_file():
         return f"Base de données introuvable : {path}"
+    if Path(path).stat().st_size == 0:
+        return f"{path} est vide, pas une base de données."
     return None
 
 

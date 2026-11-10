@@ -156,3 +156,40 @@ def test_failed_open_closes_the_connection(tmp_path) -> None:
         with pytest.raises(sqlite3.DatabaseError):
             PriceStore(str(garbage))
         gc.collect()
+
+
+def test_every_connection_uses_the_long_busy_timeout(store: PriceStore) -> None:
+    from dofus_prices.storage import BUSY_TIMEOUT_SECONDS
+
+    milliseconds = store.connection.execute("PRAGMA busy_timeout").fetchone()[0]
+    assert milliseconds == int(BUSY_TIMEOUT_SECONDS * 1000) == 30_000
+
+
+def test_record_submitted_during_a_short_write_lock_is_saved(tmp_path) -> None:
+    import sqlite3
+
+    path = str(tmp_path / "prices.db")
+    PriceStore(path).close()
+    locked, release = threading.Event(), threading.Event()
+
+    def hold_lock() -> None:
+        holder = sqlite3.connect(path)
+        holder.execute("BEGIN IMMEDIATE")
+        locked.set()
+        release.wait()
+        holder.rollback()
+        holder.close()
+
+    holder_thread = threading.Thread(target=hold_lock)
+    holder_thread.start()
+    locked.wait()
+    writer = StoreWriter(path)
+    writer.submit(make_lot(7, "2026-11-09T10:00:00Z"))
+    threading.Timer(0.3, release.set).start()
+    writer.stop()
+    holder_thread.join()
+    reader = PriceStore(path)
+    try:
+        assert [lot.price for lot in reader.price_history(100, 1)] == [7]
+    finally:
+        reader.close()

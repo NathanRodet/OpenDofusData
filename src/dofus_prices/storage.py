@@ -13,6 +13,7 @@ from dofus_prices.records import LOT_SIZES, MARKET_PERIODS, LotPrice, MarketStat
 logger = logging.getLogger(__name__)
 
 WRITER_JOIN_TIMEOUT_SECONDS = 30.0
+BUSY_TIMEOUT_SECONDS = 30.0  # wait this long for a competing write lock before failing
 
 SCHEMA_STATEMENTS = (
     """CREATE TABLE IF NOT EXISTS lot_prices (
@@ -45,7 +46,7 @@ class PriceStore:
     """Append-only SQLite history of lot prices and market statistics."""
 
     def __init__(self, path: str) -> None:
-        connection = sqlite3.connect(path)
+        connection = sqlite3.connect(path, timeout=BUSY_TIMEOUT_SECONDS)
         try:
             for statement in (*SCHEMA_STATEMENTS, *NAMES_SCHEMA_STATEMENTS):
                 connection.execute(statement)

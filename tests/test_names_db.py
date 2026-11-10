@@ -151,3 +151,18 @@ def test_defaults_are_the_standard_paths() -> None:
     arguments = cli.build_parser().parse_args(["names-import"])
     assert (arguments.db, arguments.names) == ("prices.db", "data/items.csv")
     assert cli.build_parser().parse_args(["names-gaps"]).db == "prices.db"
+
+
+@pytest.mark.parametrize("argv", [["prices"], ["history", "1", "--lot", "1"], ["stats", "1"],
+                                  ["export-csv", "--output", "out.csv"], ["names-gaps"],
+                                  ["names-import"]])
+def test_empty_file_is_rejected_and_left_untouched(tmp_path: Path, capsys, argv: list[str]) -> None:
+    empty = tmp_path / "empty.db"
+    empty.write_bytes(b"")
+    names = make_names(tmp_path / "items.csv", ["1,Un,5,T"])
+    extra = ["--names", str(names)] if argv[0] == "names-import" else []
+    if argv[0] == "export-csv":
+        argv = [*argv[:2], str(tmp_path / "out.csv")]
+    assert run_cli([*argv, "--db", str(empty), *extra]) != 0
+    assert "est vide, pas une base de données" in capsys.readouterr().err
+    assert empty.stat().st_size == 0

@@ -109,8 +109,8 @@ Détails et octets vérifiés contre l'écran: [docs/protocol-notes.md](docs/pro
 - Le pipeline `run` n'a pas encore été validé de bout en bout sur le jeu réel (validation de la v1 en attente). Les décodeurs ont été vérifiés sur deux captures du mode découverte.
 - Seuls les prix de lots et les cours du marché sont décodés: pas d'achats, de ventes ni de changements de prix, et pas d'affichage en direct.
 - Fenêtre de 7 jours: elle est ancrée sur le dernier point des 30 jours, ce qui reproduit l'écran pour les objets échangés le jour même; pour un objet rarement échangé, la ligne 7j peut différer de l'onglet du jeu (à vérifier en jeu).
-- Un objet sans aucune offre ne produit aucun enregistrement: `prices` continue d'afficher son ancien prix (comportement à vérifier en jeu, un marqueur « aucune offre » pourrait être ajouté).
-- Le serveur de jeu n'apparaît pas dans les messages: il se donne à la main avec `--server` (défaut `unknown`).
+- Un objet sans aucune offre (« Cet objet n'est pas en vente actuellement ») ne produit aucun enregistrement, par décision: l'absence de relevé ne signifie pas prix 0, le dernier prix connu garde son horodatage d'origine.
+- Le nom du serveur de jeu sera donné plus tard par le client: l'option `--server` (défaut `unknown`) n'est pour l'instant qu'un espace réservé, le serveur n'apparaissant pas dans les messages.
 - Dans Windows PowerShell 5.1, l'aide française de `dev.ps1` peut afficher des accents cassés (encodage du script).
 
 ## Tests et conventions
