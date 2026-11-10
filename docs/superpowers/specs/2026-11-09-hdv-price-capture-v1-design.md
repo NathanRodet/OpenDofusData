@@ -2,7 +2,7 @@
 
 ## Intention
 
-Le joueur veut garder une trace locale des prix de l'hôtel des ventes (HDV) de Dofus 3 pendant qu'il joue. Une première idée était l'OCR de l'écran; on a retenu la capture réseau passive, plus fiable, car Dofus 3.7 envoie du Protobuf en clair sur TCP 5555. Le tout reste local: aucun envoi vers un serveur externe.
+Le joueur veut garder une trace locale des prix de l'hôtel des ventes (HDV) de Dofus 3 pendant qu'il joue. Une première idée était l'OCR de l'écran; on a retenu la capture réseau passive, plus fiable, car Dofus 3.7 envoie du Protobuf en clair sur TCP 5555. Dans la v1 tout reste local: aucun envoi vers un serveur externe. Objectif global à plus long terme (précisé par le joueur): ce client récolte les prix, les stocke en SQLite, puis alimentera un serveur distant; la synchronisation et le serveur seront conçus plus tard.
 
 ## Objectifs
 
@@ -16,7 +16,7 @@ Le joueur veut garder une trace locale des prix de l'hôtel des ventes (HDV) de 
 
 - Achats, mises en vente, modifications de prix.
 - Interface graphique et affichage en direct.
-- Tout envoi réseau sortant, toute modification du trafic (capture strictement passive).
+- Tout envoi réseau sortant vers un serveur distant (prévu plus tard, hors v1) et toute modification du trafic (capture strictement passive).
 - Support de macOS ou Linux.
 
 ## Anti-objectifs

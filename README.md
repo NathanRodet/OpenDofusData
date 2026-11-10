@@ -1,6 +1,6 @@
 # OpenDofusData
 
-Outil local pour Windows qui capture passivement le trafic réseau de Dofus 3 (TCP 5555) avec Npcap et Scapy, décode les messages de l'HDV et stocke les prix dans une base SQLite locale. Rien n'est envoyé vers un serveur externe.
+Outil local pour Windows qui capture passivement le trafic réseau de Dofus 3 (TCP 5555) avec Npcap et Scapy, décode les messages de l'HDV et stocke les prix dans une base SQLite locale. Objectif global: ce client récolte les prix, les stocke en SQLite, puis alimentera à terme un serveur distant (synchronisation et serveur hors périmètre de la v1). La v1 n'envoie rien à l'extérieur.
 
 ## Ce que fait l'outil (v1)
 

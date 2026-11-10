@@ -1,6 +1,6 @@
 # OpenDofusData
 
-Outil local (Python 3.13, Windows) qui capture le trafic réseau de Dofus (TCP 5555) via Npcap/Scapy, décode les messages de l'HDV et stocke les prix dans une base SQLite locale. Aucun envoi vers un serveur externe.
+Outil local (Python 3.13, Windows) qui capture le trafic réseau de Dofus (TCP 5555) via Npcap/Scapy, décode les messages de l'HDV et stocke les prix dans une base SQLite locale. Objectif global: ce client récolte les prix, les stocke en SQLite, puis alimentera à terme un serveur distant (la synchronisation et le serveur sont hors périmètre de la v1). La v1 n'envoie rien à l'extérieur.
 
 ## Règles de code
 
