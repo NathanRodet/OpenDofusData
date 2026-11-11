@@ -12,6 +12,8 @@ from enum import Enum
 from opendofusdata.capture import CaptureAborted, PacketPipeline
 from opendofusdata.capture_errors import CAPTURE_FAILED_MESSAGE
 from opendofusdata.capture_stoppable import StoppableCapture
+from opendofusdata.categories import DEFAULT_ENABLED, CategorySettings, FilteringWriter
+from opendofusdata.log_feed import FeedWriter, LogFeed
 from opendofusdata.run_pipeline import Clock, make_envelope_handler
 from opendofusdata.session_counters import CountingWriter, SessionCounters
 from opendofusdata.storage import StoreWriter
@@ -59,8 +61,12 @@ class CaptureSession:
         self, database_path: str, server: str, interface: str | None, capture: StoppableCapture,
         now: Clock, writer_factory: WriterFactory = StoreWriter,
         monotonic: Monotonic = time.monotonic, stop_timeout: float = STOP_TIMEOUT_SECONDS,
+        categories: CategorySettings | None = None, feed: LogFeed | None = None,
     ) -> None:
         self._settings = (database_path, server, interface)
+        self._pending: tuple[str, str] | None = None
+        self.categories = categories if categories is not None else CategorySettings(DEFAULT_ENABLED)
+        self.feed = feed if feed is not None else LogFeed()
         self._capture, self._now, self._writer_factory = capture, now, writer_factory
         self._monotonic, self._stop_timeout = monotonic, stop_timeout
         self._counters = SessionCounters()
@@ -79,11 +85,34 @@ class CaptureSession:
             return SessionSnapshot(self._status, self._settings[1], prices, stats,
                                    last_record_at, self._error)
 
+    @property
+    def database_path(self) -> str:
+        """The database of the current (or next, once started) capture."""
+        with self._lock:
+            return self._pending[0] if self._pending is not None else self._settings[0]
+
+    @property
+    def server(self) -> str:
+        """The server of the current (or next, once started) capture."""
+        with self._lock:
+            return self._pending[1] if self._pending is not None else self._settings[1]
+
+    def apply_settings(self, database_path: str, server: str) -> None:
+        """Choose the database and server of the next capture; a running one is not touched."""
+        with self._lock:
+            self._pending = (database_path, server)
+
+    def _promote_pending_settings(self) -> None:
+        if self._pending is not None:
+            self._settings = (*self._pending, self._settings[2])
+            self._pending = None
+
     def start(self) -> None:
         """Start capturing; does nothing while a capture is running or stopping."""
         with self._lock:
             if self._status in (CaptureStatus.RUNNING, CaptureStatus.STOPPING):
                 return
+            self._promote_pending_settings()
             writer = self._open_writer()
             if writer is None:
                 return
@@ -120,8 +149,9 @@ class CaptureSession:
 
     def _run(self, writer: StoreWriter, stop_event: threading.Event) -> None:
         _, server, interface = self._settings
-        counting = CountingWriter(writer, self._counters, self._now)
-        pipeline = PacketPipeline(make_envelope_handler(counting, server, self._now))
+        sink = FilteringWriter(FeedWriter(CountingWriter(writer, self._counters, self._now),
+                                          self.feed, self._now), self.categories)
+        pipeline = PacketPipeline(make_envelope_handler(sink, server, self._now))
         error = None
         try:
             error = self._capture_error(pipeline, interface, stop_event)

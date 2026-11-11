@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Passive capture of Dofus 3 packets into a local SQLite database."
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = ["scapy>=2.6,<3"]
+dependencies = ["scapy>=2.6,<3", "customtkinter>=6.0.0,<7"]
 
 [project.scripts]
 opendofusdata = "opendofusdata.cli:main"

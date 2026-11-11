@@ -196,7 +196,8 @@ def test_window_command_is_registered_and_dispatched(monkeypatch) -> None:
     seen: list[object] = []
     monkeypatch.setitem(cli.READ_COMMANDS, "window", lambda arguments: seen.append(arguments) or 0)
     assert cli.run(["window", "--server", "Brial"], capture=lambda pipeline, interface: None) == 0
-    assert seen[0].server == "Brial" and seen[0].db == cli.DEFAULT_DATABASE
+    assert seen[0].server == "Brial"
+    assert seen[0].db is None  # resolved later: option, then saved settings, then the default
 
 
 def add_item_name(path: Path) -> None:

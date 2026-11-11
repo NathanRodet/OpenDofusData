@@ -8,6 +8,8 @@ import pytest
 
 from opendofusdata.capture import CaptureAborted, PacketPipeline
 from opendofusdata.capture_session import CaptureSession, CaptureStatus
+from opendofusdata.categories import CategorySettings
+from opendofusdata.log_feed import LogFeed
 from opendofusdata.storage import PriceStore
 from tests.envelopes import FLOW_KEY, lot_envelope, stats_envelope
 
@@ -185,3 +187,73 @@ def test_status_is_final_even_if_the_writer_fails_to_stop(tmp_path) -> None:
     session.stop()
     wait_for(lambda: session.snapshot().status is CaptureStatus.ERROR)
     assert "disk gone" in session.snapshot().error_message
+
+
+def test_disabled_hdv_records_are_not_counted_or_stored(tmp_path) -> None:
+    ran = threading.Event()
+
+    def capture(pipeline, interface, stop) -> None:
+        feeding_capture_once(pipeline)
+        ran.set()
+        stop.wait(WAIT_SECONDS)
+
+    session = CaptureSession(str(tmp_path / "test.db"), "Brial", None, capture, fixed_now,
+                             categories=CategorySettings([]))
+    session.start()
+    wait_for(ran.is_set)
+    session.stop()
+    snapshot = session.snapshot()
+    assert (snapshot.price_count, snapshot.stats_count) == (0, 0)
+    store = PriceStore(str(tmp_path / "test.db"))
+    try:
+        assert store.latest_prices() == []
+    finally:
+        store.close()
+
+
+def feeding_capture_once(pipeline: PacketPipeline) -> None:
+    pipeline.on_envelope(lot_envelope(), FLOW_KEY)
+    pipeline.on_envelope(stats_envelope(), FLOW_KEY)
+
+
+def test_enabled_records_reach_the_feed_when_visible(tmp_path) -> None:
+    feed = LogFeed()
+    feed.set_visible(True)
+    session = CaptureSession(str(tmp_path / "test.db"), "Brial", None, feeding_capture, fixed_now, feed=feed)
+    session.start()
+    wait_for(lambda: len(feed.entries()) > 0)
+    session.stop()
+    assert feed.entries()[0].category == "HDV"
+
+
+def test_apply_settings_while_running_keeps_active_server_until_restart(tmp_path) -> None:
+    session = make_session(tmp_path, feeding_capture)
+    session.start()
+    session.apply_settings(str(tmp_path / "other.db"), "Kourial")
+    assert session.snapshot().server == "Brial"
+    session.stop()
+    session.start()
+    assert session.snapshot().server == "Kourial"
+    session.stop()
+
+
+def test_apply_settings_new_database_used_on_next_start(tmp_path) -> None:
+    session = make_session(tmp_path, feeding_capture)
+    new_path = str(tmp_path / "other.db")
+    session.apply_settings(new_path, "Brial")
+    session.start()
+    wait_for(lambda: session.snapshot().stats_count > 0)
+    session.stop()
+    store = PriceStore(new_path)
+    try:
+        assert len(store.latest_prices()) > 0
+    finally:
+        store.close()
+
+
+def test_unwritable_database_after_apply_gives_error_snapshot(tmp_path) -> None:
+    session = make_session(tmp_path, feeding_capture)
+    session.apply_settings(str(tmp_path / "missing_folder" / "x.db"), "Brial")
+    session.start()
+    snapshot = session.snapshot()
+    assert snapshot.status is CaptureStatus.ERROR and "x.db" in (snapshot.error_message or "")

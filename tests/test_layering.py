@@ -120,3 +120,18 @@ def test_window_logic_modules_need_no_gui_nor_scapy() -> None:
         [sys.executable, "-I", "-c", WINDOW_LOGIC_CHECK_SCRIPT, str(SOURCE_DIRECTORY)],
         capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
+
+
+CLIENT_LOGIC_CHECK_SCRIPT = (
+    "import sys; sys.path.insert(0, sys.argv[1]); "
+    "import opendofusdata.categories, opendofusdata.log_feed, opendofusdata.client_settings; "
+    "banned = {'tkinter', 'customtkinter', 'scapy', 'sqlite3', 'webbrowser'}; "
+    "sys.exit(1 if banned & set(sys.modules) else 0)"
+)
+
+
+def test_client_logic_modules_need_no_gui_scapy_nor_sqlite() -> None:
+    result = subprocess.run(
+        [sys.executable, "-I", "-c", CLIENT_LOGIC_CHECK_SCRIPT, str(SOURCE_DIRECTORY)],
+        capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr

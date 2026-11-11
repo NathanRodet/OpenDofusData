@@ -1,9 +1,9 @@
 """French texts of the capture window (pure functions, no tkinter)."""
 
 from opendofusdata.capture_session import CaptureStatus, SessionSnapshot
+from opendofusdata.log_feed import TIME_FORMAT
 
 NO_RECORD_TEXT = "aucun pour l'instant"
-TIME_FORMAT = "%H:%M:%S"
 STATUS_TEXTS = {
     CaptureStatus.RUNNING: "Capture active",
     CaptureStatus.STOPPING: "Arrêt en cours...",
@@ -15,12 +15,29 @@ RESTART_LABEL = "Relancer"
 STOPPING_LABEL = "Arrêt en cours..."
 
 
-def status_text(snapshot: SessionSnapshot) -> str:
-    """Status line; an error is followed by its French message."""
-    text = STATUS_TEXTS[snapshot.status]
+HEADLINE_TEXTS = {**STATUS_TEXTS, CaptureStatus.ERROR: "Erreur de capture"}
+
+
+def headline_text(snapshot: SessionSnapshot) -> str:
+    """The big status title of the home page (no error message)."""
+    return HEADLINE_TEXTS[snapshot.status]
+
+
+def error_detail_text(snapshot: SessionSnapshot) -> str:
+    """The error message shown under the title, empty when there is no error."""
     if snapshot.status is CaptureStatus.ERROR and snapshot.error_message:
-        return f"{text} : {snapshot.error_message}"
-    return text
+        return snapshot.error_message
+    return ""
+
+
+def records_text(count: int) -> str:
+    """'0 enregistrement', '1 enregistrement', '2 enregistrements' (French plural)."""
+    return f"{count} enregistrement" + ("s" if count > 1 else "")
+
+
+def total_records(snapshot: SessionSnapshot) -> int:
+    """Prices plus statistics recorded during this session."""
+    return snapshot.price_count + snapshot.stats_count
 
 
 def server_text(snapshot: SessionSnapshot) -> str:
