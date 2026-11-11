@@ -28,7 +28,8 @@ def load_item_labelers(connection: sqlite3.Connection) -> tuple[ItemLabeler, Ite
             lambda item_id: types.get(item_id, UNKNOWN_ITEM_TYPE))
 
 
-def _read_only_uri(path: str) -> str:
+def read_only_uri(path: str) -> str:
+    """The SQLite URI that opens an existing database file read-only."""
     return Path(path).resolve().as_uri() + "?mode=ro"
 
 
@@ -37,7 +38,7 @@ def item_labeler_for_database(path: str) -> ItemLabeler:
     if not Path(path).is_file():
         return lambda item_id: UNKNOWN_ITEM_NAME
     try:
-        with closing(sqlite3.connect(_read_only_uri(path), uri=True)) as connection:
+        with closing(sqlite3.connect(read_only_uri(path), uri=True)) as connection:
             return load_item_labelers(connection)[0]
     except sqlite3.Error as error:
         logger.warning("noms d'objets illisibles dans %s (%s)", path, error)

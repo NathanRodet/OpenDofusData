@@ -40,7 +40,3 @@ L'outil collectera quatre catégories: données HDV (fait), données de recyclag
 - `names-import` réduirait la table `servers` de la base locale de 27 à 15 lignes (CSV filtré aux serveurs classiques): non exécuté.
 - Plusieurs points mineurs différés sont listés dans `.superpowers/sdd/2026-11-09-hdv-price-capture-v1/progress.md` (local, non versionné).
 - Les noms de messages obfusqués (`jzs`, `ire`, `kcy`, `iqp`) changent à chaque version du jeu: `messages.py` est à remettre à jour avec le mode `discover`.
-
-## Branche conservée
-
-`feat/hdv-price-capture-v1` (ancienne branche de travail, déjà fusionnée) est gardée à ta demande initiale.

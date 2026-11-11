@@ -29,8 +29,8 @@ SAVE_WARNING = "Choix non mémorisé : écriture de {path} impossible ({error})"
 
 
 def is_interactive() -> bool:
-    """True when both stdin and stdout are terminals."""
-    return sys.stdin.isatty() and sys.stdout.isatty()
+    """True when both stdin and stdout are terminals (False in a windowed build with no console)."""
+    return all(stream is not None and stream.isatty() for stream in (sys.stdin, sys.stdout))
 
 
 def add_server_command(commands: argparse._SubParsersAction) -> None:

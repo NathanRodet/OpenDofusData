@@ -1,8 +1,9 @@
 """Tests of the persistent client settings helpers."""
 
 from opendofusdata.client_settings import (
-    DATABASE_KEY, DEFAULT_DATABASE, choose_database_path, config_with_database,
-    config_with_server, database_from_config, server_names,
+    DATABASE_KEY, DEFAULT_DATABASE, UPDATE_CHECK_KEY, choose_database_path, config_with_database,
+    config_with_server, config_with_update_check, database_from_config, server_names,
+    update_check_enabled,
 )
 from opendofusdata.server_choice import SERVER_KEY
 
@@ -30,6 +31,18 @@ def test_option_beats_config_beats_default() -> None:
     assert choose_database_path("cli.db", config) == "cli.db"
     assert choose_database_path(None, config) == "saved.db"
     assert choose_database_path(None, {}) == DEFAULT_DATABASE
+
+
+def test_update_check_is_on_by_default_and_ignores_invalid_values() -> None:
+    assert update_check_enabled({}) is True
+    assert update_check_enabled({UPDATE_CHECK_KEY: "no"}) is True
+    assert update_check_enabled({UPDATE_CHECK_KEY: False}) is False
+    assert update_check_enabled({UPDATE_CHECK_KEY: True}) is True
+
+
+def test_config_with_update_check_keeps_other_keys() -> None:
+    config = config_with_update_check({SERVER_KEY: "Brial"}, False)
+    assert config == {SERVER_KEY: "Brial", UPDATE_CHECK_KEY: False}
 
 
 def test_server_names_are_sorted_and_not_empty() -> None:

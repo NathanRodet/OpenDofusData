@@ -7,10 +7,9 @@ import customtkinter
 from opendofusdata.app_links import APP_NAME
 from opendofusdata.capture_session import CaptureStatus
 from opendofusdata.ui_theme import (
-    APPEARANCE_MODE, BUTTON_HEIGHT, COLOR_THEME, CORNER_RADIUS, DEFAULT_HEIGHT, DEFAULT_WIDTH,
-    MENU_BUTTON_WIDTH, MENU_TITLE_SIZE, MIN_HEIGHT, MIN_WIDTH, PADDING, SELECTED_COLOR, SIDEBAR_COLOR,
-    SIDEBAR_WIDTH, SMALL_PADDING,
-    TEXT_COLOR, TRANSPARENT, WINDOW_COLOR,
+    ACCENT_COLOR, APPEARANCE_MODE, BUTTON_HEIGHT, COLOR_THEME, CORNER_RADIUS, DEFAULT_HEIGHT,
+    DEFAULT_WIDTH, MENU_BUTTON_WIDTH, MENU_TITLE_SIZE, MIN_HEIGHT, MIN_WIDTH, PADDING, SELECTED_COLOR,
+    SIDEBAR_COLOR, SIDEBAR_WIDTH, SMALL_PADDING, TEXT_COLOR, TRANSPARENT, WINDOW_COLOR,
 )
 from opendofusdata.ui_widgets import Page, make_button, make_label
 from opendofusdata.window_context import WindowContext
@@ -21,6 +20,8 @@ logger = logging.getLogger(__name__)
 
 REFRESH_MILLISECONDS = 500
 CLOSE_POLL_MILLISECONDS = 100
+ABOUT_PAGE = "À propos"
+UPDATE_BADGE = "  ●"  # the notification sign shown after the menu entry when an update exists
 __all__ = ["CaptureWindow", "PAGE_NAMES"]
 
 
@@ -29,6 +30,8 @@ class CaptureWindow:
 
     def __init__(self, root: customtkinter.CTk, context: WindowContext) -> None:
         self._root, self._context = root, context
+        self._closing = False
+        context.restart_capture = self.restart_capture
         self._configure_root()
         self.menu_buttons: dict[str, customtkinter.CTkButton] = {}
         self.toggle_button = self._build_sidebar()
@@ -79,8 +82,9 @@ class CaptureWindow:
         self.render()
 
     def start(self) -> None:
-        """Start the capture and the periodic refresh."""
+        """Start the capture, the update check and the periodic refresh."""
         self._context.session.start()
+        self._context.updates.start_check()
         self._poll()
 
     def _poll(self) -> None:
@@ -97,6 +101,27 @@ class CaptureWindow:
         self.toggle_button.configure(text=button_label(snapshot),
                                     state="normal" if button_enabled(snapshot) else "disabled")
         self.pages[self.current_page].render(snapshot)
+        self._update_badge()
+        if self._context.updates.take_restart_request():
+            self.close()
+
+    def _update_badge(self) -> None:
+        """Show the notification sign on the À propos entry while a newer version exists."""
+        available = self._context.updates.available() is not None
+        self.menu_buttons[ABOUT_PAGE].configure(
+            text=ABOUT_PAGE + (UPDATE_BADGE if available else ""),
+            text_color=ACCENT_COLOR if available else TEXT_COLOR)
+
+    def restart_capture(self) -> None:
+        """Stop the running capture and start it again (to apply a new server or database)."""
+        self._context.session.request_stop()
+        self._start_when_stopped()
+
+    def _start_when_stopped(self) -> None:
+        if self._context.session.snapshot().status is CaptureStatus.STOPPING:
+            self._root.after(CLOSE_POLL_MILLISECONDS, self._start_when_stopped)
+        else:
+            self._context.session.start()
 
     def _toggle_capture(self) -> None:
         if self._context.session.snapshot().status is CaptureStatus.RUNNING:
@@ -107,6 +132,9 @@ class CaptureWindow:
 
     def close(self) -> None:
         """Ask the capture to stop, wait for it without freezing the window, then close."""
+        if self._closing:
+            return
+        self._closing = True
         self._context.session.request_stop()
         self._close_when_stopped()
 

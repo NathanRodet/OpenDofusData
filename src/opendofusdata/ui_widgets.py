@@ -48,10 +48,14 @@ def make_card(parent: customtkinter.CTkBaseClass) -> customtkinter.CTkFrame:
 
 
 def make_page(
-    parent: customtkinter.CTkBaseClass, max_width: int = PAGE_MAX_WIDTH,
+    parent: customtkinter.CTkBaseClass, max_width: int = PAGE_MAX_WIDTH, scrollable: bool = False,
 ) -> tuple[customtkinter.CTkFrame, customtkinter.CTkFrame]:
-    """Return (page frame, centred body column of at most `max_width`)."""
+    """Return (page frame, centred body column of at most `max_width`, scrolling if asked)."""
     frame = customtkinter.CTkFrame(parent, fg_color=TRANSPARENT, corner_radius=0)
+    if scrollable:
+        body = customtkinter.CTkScrollableFrame(frame, width=max_width, fg_color=TRANSPARENT)
+        body.pack(fill="y", expand=True, padx=PADDING, pady=PADDING)
+        return frame, body
     body = customtkinter.CTkFrame(frame, width=max_width, fg_color=TRANSPARENT)
     body.pack_propagate(False)
     body.pack(fill="y", expand=True, padx=PADDING, pady=PADDING)

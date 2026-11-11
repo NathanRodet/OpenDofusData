@@ -66,7 +66,7 @@ def test_message_asks_restart_while_running_and_not_when_stopped(root, tmp_path)
     assert page.message_label.cget("text") == "Enregistré."
     context.session.start()
     page.choose_server("Brial")
-    assert "relance la capture" in page.message_label.cget("text")
+    assert "redémarre" in page.message_label.cget("text")
     context.session.stop()
 
 
@@ -87,7 +87,7 @@ def test_current_server_missing_from_the_list_is_still_shown(root, tmp_path) -> 
 
 
 def test_about_page_names_the_app_and_says_nothing_is_sent(root, tmp_path) -> None:
-    page = AboutPage(root, lambda: None)
+    page = AboutPage(root, make_context(tmp_path), lambda url: None)
     assert "Rien n'est envoyé" in page.summary_label.cget("text")
     assert page.version_label.cget("text") == f"Version {__version__}"
 
