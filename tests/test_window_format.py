@@ -5,7 +5,8 @@ from datetime import datetime, timezone
 from opendofusdata.app_links import APP_NAME, SAAS_URL
 from opendofusdata.capture_session import CaptureStatus, SessionSnapshot
 from opendofusdata.window_format import (
-    button_enabled, button_label, counts_text, last_record_text, server_text, status_text,
+    button_enabled, button_label, counts_text, error_detail_text, headline_text, last_record_text,
+    records_text, server_text, total_records,
 )
 
 
@@ -14,11 +15,9 @@ def snapshot(status: CaptureStatus = CaptureStatus.RUNNING, error: str | None = 
     return SessionSnapshot(status, "Brial", 3, 2, last, error)
 
 
-def test_status_texts() -> None:
-    assert status_text(snapshot()) == "Capture active"
-    assert status_text(snapshot(CaptureStatus.STOPPED)) == "Capture arrêtée"
-    assert status_text(snapshot(CaptureStatus.ERROR, "Npcap absent")) == "Erreur : Npcap absent"
-    assert status_text(snapshot(CaptureStatus.ERROR)) == "Erreur"
+def test_headline_texts() -> None:
+    assert headline_text(snapshot(CaptureStatus.STOPPED)) == "Capture arrêtée"
+    assert headline_text(snapshot(CaptureStatus.STOPPING)) == "Arrêt en cours..."
 
 
 def test_server_and_counts() -> None:
@@ -46,7 +45,27 @@ def test_product_constants() -> None:
 
 def test_stopping_state_texts_and_disabled_button() -> None:
     stopping = snapshot(CaptureStatus.STOPPING)
-    assert status_text(stopping) == "Arrêt en cours..."
+    assert headline_text(stopping) == "Arrêt en cours..."
     assert button_label(stopping) == "Arrêt en cours..."
     assert not button_enabled(stopping)
     assert button_enabled(snapshot())
+
+
+def test_headline_is_the_status_without_the_error_message() -> None:
+    assert headline_text(snapshot(CaptureStatus.ERROR, "Npcap absent")) == "Erreur de capture"
+    assert headline_text(snapshot()) == "Capture active"
+
+
+def test_error_detail_only_when_in_error() -> None:
+    assert error_detail_text(snapshot(CaptureStatus.ERROR, "Npcap absent")) == "Npcap absent"
+    assert error_detail_text(snapshot(CaptureStatus.ERROR)) == ""
+    assert error_detail_text(snapshot()) == ""
+
+
+def test_records_text_uses_the_french_plural() -> None:
+    assert [records_text(count) for count in (0, 1, 2, 20)] == [
+        "0 enregistrement", "1 enregistrement", "2 enregistrements", "20 enregistrements"]
+
+
+def test_total_records_adds_prices_and_stats() -> None:
+    assert total_records(snapshot()) == 5

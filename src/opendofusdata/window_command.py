@@ -1,23 +1,29 @@
-"""The window command: server resolution, then the capture window (tkinter loaded lazily)."""
+"""The window command: server resolution, then the player window (GUI loaded lazily)."""
 
 import argparse
 import webbrowser
 from collections.abc import Callable
 
+from opendofusdata.app_config import default_config_path, load_config
 from opendofusdata.app_links import SAAS_URL
 from opendofusdata.capture_errors import EXIT_OK, fail
 from opendofusdata.capture_session import CaptureSession
 from opendofusdata.capture_stoppable import StoppableCapture, run_stoppable_capture
+from opendofusdata.categories import categories_from_config
+from opendofusdata.client_settings import choose_database_path, server_names
+from opendofusdata.item_labels import item_labeler_for_database
 from opendofusdata.run_pipeline import Clock, utc_now
 from opendofusdata.server_choice_commands import resolve_run_server
+from opendofusdata.window_context import WindowContext
 
 NO_DISPLAY_MESSAGE = "Impossible d'ouvrir la fenêtre ({error})."
 
 
 def add_window_command(commands: argparse._SubParsersAction, default_database: str) -> None:
     """Register the window command."""
-    parser = commands.add_parser("window", help="ouvre la fenêtre de capture des prix de l'HDV")
-    parser.add_argument("--db", default=default_database, help="base SQLite (défaut : prices.db)")
+    parser = commands.add_parser("window", help="ouvre la fenêtre OpenDofusData")
+    parser.add_argument("--db", default=None,
+                        help=f"base SQLite (défaut : celle des réglages, sinon {default_database})")
     parser.add_argument("--interface", default=None, help="interface réseau à écouter")
     parser.add_argument("--server", default=None, help="nom du serveur de jeu (sans mémorisation)")
     parser.add_argument("--choose-server", action="store_true",
@@ -29,19 +35,26 @@ def open_online_prices() -> None:
     webbrowser.open(SAAS_URL)
 
 
-def show_window(session: CaptureSession, open_online: Callable[[], None]) -> int:
-    """Build the window, run it until closed, and always stop the session afterwards."""
+def _display_error() -> type[Exception]:
+    """The exception tkinter raises when no display is available."""
     import tkinter
+
+    return tkinter.TclError
+
+
+def show_window(context: WindowContext) -> int:
+    """Build the window, run it until closed, and always stop the session afterwards."""
+    import customtkinter
 
     from opendofusdata.window_view import CaptureWindow
 
     try:
-        root = tkinter.Tk()
-    except tkinter.TclError as error:
+        root = customtkinter.CTk()
+    except _display_error() as error:
         return fail(NO_DISPLAY_MESSAGE.format(error=error))
-    CaptureWindow(root, session, open_online).start()
+    CaptureWindow(root, context).start()
     root.mainloop()
-    session.stop()
+    context.session.stop()
     return EXIT_OK
 
 
@@ -51,8 +64,13 @@ def window_command(
 ) -> int:
     """Resolve the server in the console (first-run prompt), then run the window."""
     resolve_run_server(arguments)
-    session = CaptureSession(arguments.db, arguments.server, arguments.interface, capture, now)
-    return show_window(session, open_online_prices)
+    config_path = default_config_path()
+    config = load_config(config_path)
+    database = choose_database_path(arguments.db, config)
+    session = CaptureSession(database, arguments.server, arguments.interface, capture, now,
+                             categories=categories_from_config(config))
+    return show_window(WindowContext(session, open_online_prices, config_path, server_names(),
+                                     item_labeler_for_database(database)))
 
 
 WINDOW_COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {"window": window_command}

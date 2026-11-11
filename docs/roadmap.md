@@ -6,22 +6,26 @@
 
 - Fenêtre des 7 jours: confirmée sur cinq objets, dont le Filet multiplicateur de Dragodinde (11 630 / 12 253 / 112). Les lignes 7 jours de la base locale ont été recalculées (sauvegarde `data/prices.backup-before-7d-recompute.db`).
 
-## Fenêtre de capture (fait)
+## Fenêtre du client (fait)
 
-- `opendofusdata window`: petite fenêtre tkinter (état, serveur, compteurs de la session, dernier enregistrement, Arrêter/Relancer, lien vers les prix en ligne). Choisie à la place d'une icône de zone de notification; pas de démarrage automatique avec Windows. L'adresse du site (`SAAS_URL` dans `app_links.py`) est un espace réservé tant que le serveur n'existe pas.
+- `opendofusdata window`: fenêtre CustomTkinter à menu latéral (Accueil, Données, Logs, Réglages, À propos), thème sombre, redimensionnable. Conception: [docs/superpowers/specs/2026-11-11-player-client-ui-design.md](superpowers/specs/2026-11-11-player-client-ui-design.md). Choisie à la place d'une icône de zone de notification; pas de démarrage automatique avec Windows. L'adresse du site (`SAAS_URL` dans `app_links.py`) est un espace réservé tant que le serveur n'existe pas; le dépôt (`REPOSITORY_URL`) pointe vers https://github.com/NathanRodet/OpenDofusData.
 
 ## Packaging et distribution (en cours)
 
 - Fait: `pyproject.toml` et commande `opendofusdata` (sans `.\dev.ps1`).
-- Installateur Windows, démarrage automatique (volontairement absent pour l'instant), mises à jour; sans signature de code (projet open source).
-- Choisir une licence (MIT, GPL, autre) et créer le dépôt distant; aucun remote n'est configuré.
+- Installateur Windows, démarrage automatique (volontairement absent pour l'instant); sans signature de code (projet open source).
+- Mises à jour, jamais automatiques: quand une nouvelle version existe, un signe de notification apparaît dans la page À propos; un clic récupère la nouvelle version puis relance l'application. À décider avant de construire: où sont publiées les versions (par exemple les Releases du dépôt GitHub), le format d'installation, la vérification d'intégrité du téléchargement, et le fait que la vérification contacte un serveur (la v1 n'envoie rien).
+- Choisir une licence (MIT, GPL, autre). Le dépôt https://github.com/NathanRodet/OpenDofusData est créé et sert de remote (`origin`).
 
-## Catégories de données désactivables (à faire avant le 2e décodeur)
+## Catégories de données
 
-- Chaque type de donnée est une catégorie nommée (`hdv`, puis `brisage`, `recyclage`, `familiers`...), enregistrée dans une liste de décodeurs.
-- Réglage du joueur `enabled_categories` dans `config.json`; par défaut seule `hdv` est active.
-- Une catégorie désactivée n'est ni enregistrée ni mise en file d'envoi (filtre à l'entrée de la capture, puis à l'envoi).
-- Cases à cocher dans la fenêtre et commande `opendofusdata categories`.
+L'outil collectera quatre catégories: données HDV (fait), données de recyclage des ressources, données de brisage, données d'expérience des pets. Les trois dernières demandent d'abord d'identifier les messages concernés avec `discover`, puis d'écrire un décodeur par catégorie.
+
+## Catégories désactivables
+
+- Fait: réglage `enabled_categories` dans `config.json` (défaut `["hdv"]`), filtre à l'entrée de la capture (`FilteringWriter`), interrupteurs dans la page Données de la fenêtre.
+- Reste à faire avec chaque nouveau décodeur: l'enregistrer comme catégorie (`categories.py`, `available=True`) et filtrer aussi à l'envoi quand la synchronisation existera.
+- Pas encore: commande `opendofusdata categories` en ligne de commande.
 
 ## Synchronisation et serveur (plus tard)
 
@@ -32,7 +36,7 @@
 ## Pistes facultatives
 
 - Caractéristiques (effets) des équipements dans l'HDV: non décodées.
-- Taux de recyclage: hors périmètre (calculé côté client du jeu, absent du réseau).
+- Recyclage: à vérifier lors de l'analyse des messages. Un ancien constat indiquait que le taux de recyclage est calculé côté client et absent du réseau; la collecte vise donc ce que le trafic expose réellement.
 - `names-import` réduirait la table `servers` de la base locale de 27 à 15 lignes (CSV filtré aux serveurs classiques): non exécuté.
 - Plusieurs points mineurs différés sont listés dans `.superpowers/sdd/2026-11-09-hdv-price-capture-v1/progress.md` (local, non versionné).
 - Les noms de messages obfusqués (`jzs`, `ire`, `kcy`, `iqp`) changent à chaque version du jeu: `messages.py` est à remettre à jour avec le mode `discover`.
