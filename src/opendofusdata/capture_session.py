@@ -53,6 +53,7 @@ class SessionSnapshot:
     last_record_at: datetime | None
     error_message: str | None
     recycling_count: int = 0
+    pet_count: int = 0
 
 
 class CaptureSession:
@@ -84,7 +85,8 @@ class CaptureSession:
                 self._status, self._error = CaptureStatus.ERROR, STOP_TIMEOUT_MESSAGE
             prices, stats, last_record_at = self._counters.read()
             return SessionSnapshot(self._status, self._settings[1], prices, stats,
-                                   last_record_at, self._error, self._counters.recycling_count())
+                                   last_record_at, self._error, self._counters.recycling_count(),
+                                   self._counters.pet_count())
 
     @property
     def database_path(self) -> str:

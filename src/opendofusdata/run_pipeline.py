@@ -11,6 +11,7 @@ from opendofusdata.capture_errors import CaptureFunction, fail, run_guarded_capt
 from opendofusdata.framing import Envelope
 from opendofusdata.hdv import decode_lot_prices
 from opendofusdata.market_stats import decode_market_stats
+from opendofusdata.pets import PetTracker
 from opendofusdata.recycling import RecyclingTracker
 from opendofusdata.records import LotPrice, MarketStats
 from opendofusdata.storage import StoreWriter
@@ -44,6 +45,7 @@ class EnvelopeHandler:
         self._now = now
         self._echo = echo
         self._recycling = RecyclingTracker(server)
+        self._pets = PetTracker(server)
         self.submitted_count = 0
 
     def __call__(self, envelope: Envelope, key: FlowKey) -> None:
@@ -51,8 +53,10 @@ class EnvelopeHandler:
         lots = decode_lot_prices(envelope, self._server, captured_at)
         stats = decode_market_stats(envelope, self._server, captured_at)
         self._log(lots, stats)
-        recycling = self._recycling.feed(envelope, direction_of(key) == DIRECTION_TO_CLIENT, captured_at)
-        for record in [*lots, *stats, *([recycling] if recycling else [])]:
+        from_server = direction_of(key) == DIRECTION_TO_CLIENT
+        others = [self._recycling.feed(envelope, from_server, captured_at),
+                  self._pets.feed(envelope, from_server, captured_at)]
+        for record in [*lots, *stats, *(record for record in others if record)]:
             self._writer.submit(record)
             self.submitted_count += 1
         self._show(lots, stats)

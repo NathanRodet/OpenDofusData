@@ -1,6 +1,7 @@
 """SQL of the recycling events table (schema, insert and read helpers)."""
 
 import json
+import sqlite3
 
 from opendofusdata.records import RecyclingEvent
 
@@ -26,3 +27,13 @@ def recycling_from_row(row: tuple) -> RecyclingEvent:
     server, captured_at, nuggets, items_json = row
     items = tuple((item_id, quantity) for item_id, quantity in json.loads(items_json))
     return RecyclingEvent(server, items, nuggets, captured_at)
+
+
+def save_recycling_event(connection: sqlite3.Connection, event: RecyclingEvent) -> None:
+    """Append one recycling (the items of the window and the nuggets obtained)."""
+    connection.execute(INSERT_RECYCLING_SQL, recycling_values(event))
+
+
+def recycling_events(connection: sqlite3.Connection) -> list[RecyclingEvent]:
+    """Every stored recycling, oldest first."""
+    return [recycling_from_row(row) for row in connection.execute(SELECT_RECYCLING_SQL)]

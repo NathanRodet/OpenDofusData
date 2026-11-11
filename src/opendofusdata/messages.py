@@ -30,3 +30,28 @@ RECYCLING_CLEAR_TYPE = "kiq"  # client -> server: the window is closed (it forge
 RECYCLING_REQUEST_TYPE = "kba"  # client -> server: the player clicked Recycler
 RECYCLING_RESULT_TYPE = "kdd"  # server -> client: the result
 RECYCLING_NUGGETS_FIELD = 3  # nuggets obtained; absent when the result is 0
+
+# Pets (see docs/protocol-notes.md, captures of 2026-11-11). Objects are identified by an
+# instance id that changes with each connection; the inventory maps it to the DofusDB item id.
+INVENTORY_LIST_TYPE = "irl"  # server -> client at login: every object of the inventory
+INVENTORY_ENTRY_FIELD = 2  # repeated: {1: object, 4: container}
+OBJECT_FIELD = 1
+OBJECT_QUANTITY_FIELD = 3
+OBJECT_ITEM_FIELD = 4  # DofusDB item id
+OBJECT_INSTANCE_FIELD = 5
+OBJECT_EFFECTS_FIELD = 7  # repeated effects
+EFFECT_ID_FIELD = 10
+EFFECT_VALUE_FIELD = 5  # plain value (prospection)
+EFFECT_DETAIL_FIELD = 9  # {2: maximum, 4: current}
+EFFECT_DETAIL_MAX_FIELD = 2
+EFFECT_DETAIL_CURRENT_FIELD = 4
+EFFECT_PROSPECTION = 176
+EFFECT_PET_LEVEL = 2821
+EFFECT_PET_EXPERIENCE = 2819
+PET_FEED_TYPE = "irb"  # client -> server: {2: pet instance, 3: repeated {1: quantity, 3: stack instance}}
+PET_FEED_PET_FIELD = 2
+PET_FEED_RESOURCE_FIELD = 3
+PET_FEED_QUANTITY_FIELD = 1
+PET_FEED_STACK_FIELD = 3
+PET_UPDATE_TYPE = "iqy"  # server -> client: the pet after the upgrade, {1: {1: object, 4: container}}
+PET_UPDATE_ENTRY_FIELD = 1

@@ -4,7 +4,7 @@ import threading
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
-from opendofusdata.records import Record, RecyclingEvent
+from opendofusdata.records import PetFeeding, Record, RecyclingEvent
 from opendofusdata.session_counters import RecordSink
 
 CATEGORY_HDV = "hdv"
@@ -27,7 +27,7 @@ CATEGORIES = (
     DataCategory(CATEGORY_HDV, "HDV", True),
     DataCategory(CATEGORY_RECYCLING, "Recyclage des ressources (bêta)", True),
     DataCategory(CATEGORY_BREAKING, "Brisage", False),
-    DataCategory(CATEGORY_PETS, "Expérience des pets", False),
+    DataCategory(CATEGORY_PETS, "Expérience des pets (bêta)", True),
 )
 KNOWN_KEYS = tuple(category.key for category in CATEGORIES)
 CATEGORY_LABELS = {category.key: category.label for category in CATEGORIES}
@@ -74,7 +74,9 @@ def config_with_categories(config: Mapping[str, object], settings: CategorySetti
 
 def category_of(record: Record) -> str:
     """The data category a record belongs to."""
-    return CATEGORY_RECYCLING if isinstance(record, RecyclingEvent) else CATEGORY_HDV
+    if isinstance(record, RecyclingEvent):
+        return CATEGORY_RECYCLING
+    return CATEGORY_PETS if isinstance(record, PetFeeding) else CATEGORY_HDV
 
 
 class FilteringWriter:

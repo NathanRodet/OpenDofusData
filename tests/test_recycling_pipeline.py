@@ -9,6 +9,7 @@ from opendofusdata.categories import (
 )
 from opendofusdata.log_feed import LogFeed, entry_from_record, format_log_row
 from opendofusdata.records import LotPrice, RecyclingEvent
+from opendofusdata.recycling_store import recycling_events
 from opendofusdata.run_pipeline import make_envelope_handler
 from opendofusdata.storage import PriceStore
 from tests.envelopes import FLOW_KEY, lot_envelope
@@ -85,7 +86,7 @@ def test_an_enabled_recycling_is_counted_stored_and_logged(tmp_path) -> None:
     assert session.snapshot().recycling_count == 1
     store = PriceStore(str(tmp_path / "s.db"))
     try:
-        assert store.recycling_events()[0].nuggets == 3
+        assert recycling_events(store.connection)[0].nuggets == 3
     finally:
         store.close()
     entry = feed.entries()[0]
@@ -108,7 +109,7 @@ def test_a_disabled_recycling_is_neither_counted_nor_stored(tmp_path) -> None:
     assert session.snapshot().recycling_count == 0
     store = PriceStore(str(tmp_path / "s.db"))
     try:
-        assert store.recycling_events() == []
+        assert recycling_events(store.connection) == []
     finally:
         store.close()
 

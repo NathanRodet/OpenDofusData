@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from opendofusdata.categories import CATEGORY_HDV, CATEGORY_LABELS
-from opendofusdata.records import MARKET_PERIODS, LotPrice, Record, RecyclingEvent
+from opendofusdata.records import MARKET_PERIODS, LotPrice, PetFeeding, PetState, Record, RecyclingEvent
 from opendofusdata.session_counters import RecordSink
 
 MAX_LOG_LINES = 200
@@ -16,6 +16,8 @@ NameLookup = Callable[[int], str]
 LOG_COLUMNS = ("Heure", "Type", "Objet", "Détail", "Valeur")
 HDV_LABEL = CATEGORY_LABELS[CATEGORY_HDV]
 RECYCLING_LABEL = "Recyclage"
+PET_LABEL = "Familier"
+UNKNOWN = "?"
 ITEM_SEPARATOR = ", "
 PERIOD_UNITS = {"h": "h", "d": "j"}  # hours stay h, days become j (jours)
 PERIOD_LABELS = {period: f"stats {period[:-1]} {PERIOD_UNITS[period[-1]]}" for period in MARKET_PERIODS}
@@ -61,8 +63,21 @@ def _plural(count: int, word: str) -> str:
     return f"{count} {word}" + ("s" if count > 1 else "")
 
 
+def _pet_gain(before: PetState, after: PetState) -> str:
+    """The experience gained, or the levels gained when the pet went up."""
+    if before.level is not None and after.level is not None and after.level > before.level:
+        return f"+{after.level - before.level} niv"
+    if before.experience is None or after.experience is None:
+        return f"+{UNKNOWN} XP"
+    return f"+{after.experience - before.experience} XP"
+
+
 def entry_from_record(record: Record, moment: datetime) -> LogEntry:
     """Summarise a lot price (price of the lot), market stats (median) or a recycling."""
+    if isinstance(record, PetFeeding):
+        level = UNKNOWN if record.after.level is None else record.after.level
+        return LogEntry(moment, PET_LABEL, record.resources[0][0], f"niv {level}",
+                        _pet_gain(record.before, record.after), record.resources)
     if isinstance(record, RecyclingEvent):
         first_item = record.items[0][0] if record.items else 0
         return LogEntry(moment, RECYCLING_LABEL, first_item, _plural(len(record.items), "objet"),

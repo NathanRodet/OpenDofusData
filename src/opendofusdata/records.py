@@ -42,4 +42,26 @@ class MarketStats:
     last_purchase_at: str
     captured_at: str
 
-Record = LotPrice | MarketStats | RecyclingEvent
+@dataclass(frozen=True)
+class PetState:
+    """What a pet shows in its effects: level, experience (current and maximum), prospection."""
+
+    level: int | None
+    experience: int | None
+    experience_max: int | None
+    prospection: int | None
+
+
+@dataclass(frozen=True)
+class PetFeeding:
+    """One pet upgrade: the resources given (item id, quantity) and the pet before and after."""
+
+    server: str
+    pet_item_id: int
+    resources: tuple[tuple[int, int], ...]
+    before: PetState
+    after: PetState
+    captured_at: str
+
+
+Record = LotPrice | MarketStats | RecyclingEvent | PetFeeding

@@ -8,11 +8,8 @@ import threading
 from collections.abc import Iterator
 
 from opendofusdata.names_schema import NAMES_SCHEMA_STATEMENTS
-from opendofusdata.recycling_store import (
-    INSERT_RECYCLING_SQL, RECYCLING_SCHEMA_STATEMENTS, SELECT_RECYCLING_SQL, recycling_from_row,
-    recycling_values,
-)
-from opendofusdata.records import LOT_SIZES, MARKET_PERIODS, LotPrice, MarketStats, Record, RecyclingEvent
+from opendofusdata.extra_store import EXTRA_SAVERS, EXTRA_SCHEMA_STATEMENTS
+from opendofusdata.records import LOT_SIZES, MARKET_PERIODS, LotPrice, MarketStats, Record
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +49,7 @@ class PriceStore:
     def __init__(self, path: str) -> None:
         connection = sqlite3.connect(path, timeout=BUSY_TIMEOUT_SECONDS)
         try:
-            for statement in (*SCHEMA_STATEMENTS, *NAMES_SCHEMA_STATEMENTS, *RECYCLING_SCHEMA_STATEMENTS):
+            for statement in (*SCHEMA_STATEMENTS, *NAMES_SCHEMA_STATEMENTS, *EXTRA_SCHEMA_STATEMENTS):
                 connection.execute(statement)
             connection.commit()
         except sqlite3.Error:
@@ -76,13 +73,10 @@ class PriceStore:
                stats.captured_at)
         self._insert(f"INSERT INTO market_stats ({STATS_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", row)
 
-    def save_recycling_event(self, event: RecyclingEvent) -> None:
-        """Append one recycling (the items of the window and the nuggets obtained)."""
-        self._insert(INSERT_RECYCLING_SQL, recycling_values(event))
-
-    def recycling_events(self) -> list[RecyclingEvent]:
-        """Every stored recycling, oldest first."""
-        return [recycling_from_row(row) for row in self._open().execute(SELECT_RECYCLING_SQL)]
+    def save_record(self, record: Record) -> None:
+        """Append a recycling or pet record (their tables are created with the others)."""
+        EXTRA_SAVERS[type(record)](self._open(), record)
+        self._open().commit()
 
     def latest_prices(self, item_id: int | None = None) -> list[LotPrice]:
         """Return the most recent price per (item, server, lot size)."""
@@ -189,9 +183,9 @@ class StoreWriter:
         try:
             if isinstance(record, LotPrice):
                 store.save_lot_price(record)
-            elif isinstance(record, RecyclingEvent):
-                store.save_recycling_event(record)
-            else:
+            elif isinstance(record, MarketStats):
                 store.save_market_stats(record)
+            else:
+                store.save_record(record)
         except Exception:
             logger.exception("Failed to save record %r", record)

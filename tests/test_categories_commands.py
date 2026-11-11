@@ -44,7 +44,7 @@ def test_unknown_category_fails_and_lists_the_known_keys(capsys) -> None:
 
 
 def test_a_category_without_decoder_cannot_be_enabled(capsys) -> None:
-    assert run("--enable", "pets") == EXIT_FAILED
+    assert run("--enable", "breaking") == EXIT_FAILED
     assert "pas encore disponible" in capsys.readouterr().err
 
 
