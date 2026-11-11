@@ -24,14 +24,43 @@ Tant que les autres décodeurs n'existent pas, seule la catégorie HDV est enreg
 - Tout est stocké avec l'historique complet dans SQLite (`prices.db` par défaut).
 - Les objets sont identifiés par leur identifiant seulement: le trafic ne contient pas les noms.
 
-## Prérequis
+## Installer et lancer (joueurs)
+
+1. Installe [Npcap](https://npcap.com) (Windows 11). Il n'est pas fourni avec OpenDofusData. Ne coche pas « Restrict Npcap driver's access to Administrators only », sinon lance OpenDofusData en administrateur. Le mode « WinPcap API-compatible » n'est pas nécessaire.
+2. Télécharge `OpenDofusData.exe` depuis la page [Releases](https://github.com/NathanRodet/OpenDofusData/releases). `OpenDofusData.exe.sha256` contient son empreinte SHA-256 si tu veux la vérifier (`Get-FileHash OpenDofusData.exe`).
+3. Double-clique sur `OpenDofusData.exe`, de préférence AVANT de te connecter au jeu. Le programme n'est pas signé: Windows peut afficher « Windows a protégé votre ordinateur » (SmartScreen). Clique sur « Informations complémentaires » puis « Exécuter quand même ».
+4. Dans la page **Réglages**, choisis ton serveur de jeu (le trafic ne permet pas de le deviner). La capture redémarre toute seule avec ce choix. Facultatif: « Télécharger les noms » pour voir les noms d'objets dans les logs.
+
+Aucune installation de Python n'est nécessaire. Les données (`prices.db`), la configuration (`config.json`) et le journal technique (`opendofusdata.log`) sont dans `%APPDATA%\OpenDofusData`.
+
+## La fenêtre OpenDofusData
+
+Thème sombre, menu à gauche, cinq pages. Elle est redimensionnable (minimum 640×400). « Arrêter » (en bas du menu) stoppe proprement la capture, le bouton devient « Relancer »; fermer la fenêtre l'arrête aussi. Elle peut rester ouverte en arrière-plan pendant que tu joues. Pas de démarrage automatique avec Windows.
+
+| Page | Contenu |
+|---|---|
+| Accueil | État (Capture active, arrêtée ou erreur avec un message clair, par exemple Npcap absent ou droits insuffisants), serveur, enregistrements de la session, heure du dernier relevé, « Voir les prix en ligne » (adresse provisoire tant que le serveur n'existe pas) |
+| Données | Une ligne par catégorie (HDV, recyclage, brisage, pets) avec un interrupteur. Seule l'HDV est décodée aujourd'hui, les autres sont « bientôt ». Désactiver une catégorie arrête de l'enregistrer tout de suite |
+| Logs | Interrupteur « Afficher les logs », désactivé par défaut. Activé, il affiche en colonnes (heure, type, objet, détail, valeur) les 200 dernières données captées. Désactivé, rien n'est affiché ni gardé |
+| Réglages | Serveur de jeu, emplacement de la base de données (un changement relance la capture), téléchargement des noms d'objets, vérification des mises à jour au démarrage |
+| À propos | Version, mises à jour, ce qui est collecté, lien vers le dépôt |
+
+### Mises à jour
+
+Jamais automatiques. Au démarrage, le programme demande à GitHub si une version plus récente existe (une requête anonyme, voir « Confidentialité »; désactivable dans Réglages). S'il y en a une, un point bleu apparaît à côté de « À propos ». Dans cette page, « Mettre à jour et relancer » télécharge `OpenDofusData.exe`, vérifie son empreinte SHA-256 contre `OpenDofusData.exe.sha256`, remplace le programme et le relance. Une version sans ces deux fichiers, ou un programme lancé depuis les sources, propose seulement « Voir la version » (la page de la Release). L'empreinte protège contre un fichier corrompu; comme le programme n'est pas signé, elle ne prouve pas son auteur: ne mets à jour que depuis les Releases de ce dépôt.
+
+### Réglages enregistrés
+
+La fenêtre écrit dans `config.json` (voir « Serveur de jeu »): `server`, `database_path` (priorité: `--db`, puis `database_path`, puis `prices.db`; avec le programme packagé, `%APPDATA%\OpenDofusData\prices.db`), `enabled_categories` (liste, défaut `["hdv"]`) et `check_updates` (booléen, défaut vrai). En ligne de commande, `opendofusdata categories [--enable CLÉ] [--disable CLÉ]` affiche ou modifie les catégories.
+
+## Pour les développeurs: prérequis
 
 - Windows 11
 - Python 3.13
-- [Npcap](https://npcap.com) 1.90, à installer toi-même depuis npcap.com (il n'est pas fourni avec OpenDofusData), au niveau du système. Ne pas cocher « Restrict Npcap driver's access to Administrators only », sinon l'outil doit être lancé dans un terminal administrateur (c'est aussi la solution si la capture échoue faute de droits). Le mode « WinPcap API-compatible » n'est pas nécessaire.
+- [Npcap](https://npcap.com) (voir plus haut)
 - Dofus 3 lancé sur la même machine que l'outil.
 
-## Installation
+## Pour les développeurs: installation
 
 Depuis PowerShell, à la racine du projet:
 
@@ -39,28 +68,13 @@ Depuis PowerShell, à la racine du projet:
 .\dev.ps1 setup
 ```
 
-Cette commande crée le venv `.venv` et installe `requirements.txt` (`scapy` pour la capture, `customtkinter` pour la fenêtre, `pytest` pour les tests; le décodage Protobuf et SQLite utilisent la bibliothèque standard). Si PowerShell refuse d'exécuter le script, lance une fois `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. Npcap étant installé au niveau du système, il fonctionne depuis le venv sans configuration.
+Cette commande crée le venv `.venv` et installe `requirements.txt` (`scapy` pour la capture, `customtkinter` pour la fenêtre, `pytest` pour les tests, `pyinstaller` pour l'exécutable; le décodage Protobuf et SQLite utilisent la bibliothèque standard). Si PowerShell refuse d'exécuter le script, lance une fois `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. Npcap étant installé au niveau du système, il fonctionne depuis le venv sans configuration.
 
-Le projet est aussi un paquet Python (`pyproject.toml`). Dans le venv, `pip install -e .` installe la commande `opendofusdata`, équivalente à `python -m opendofusdata` (ex. `opendofusdata run --server Kourial`). `.\dev.ps1 setup` fait cette installation.
+Le projet est aussi un paquet Python (`pyproject.toml`). Dans le venv, `pip install -e .` installe la commande `opendofusdata`, équivalente à `python -m opendofusdata` (ex. `opendofusdata window`, `opendofusdata run --server Kourial`). `.\dev.ps1 setup` fait cette installation. Au premier lancement de `window` ou `run` dans un terminal, la liste des serveurs de jeu est proposée (le choix est mémorisé, voir « Serveur de jeu »); `--server NOM` et `--choose-server` fonctionnent aussi.
 
-## Fenêtre OpenDofusData (utilisation pour les joueurs)
+### Construire l'exécutable et publier une version
 
-1. Installe Npcap depuis npcap.com (voir « Prérequis »; le mode « WinPcap API-compatible » n'est pas nécessaire).
-2. Lance `opendofusdata window` (ou `python -m opendofusdata window`) AVANT de te connecter au jeu. Au tout premier lancement, la console te propose la liste des serveurs de jeu (le choix est mémorisé, voir « Serveur de jeu »); `--server NOM` et `--choose-server` fonctionnent aussi.
-3. La fenêtre OpenDofusData s'ouvre et lance la capture. Thème sombre, menu à gauche, cinq pages. Elle est redimensionnable (minimum 640×400); la page reste dans une colonne centrée.
-4. « Arrêter » (en bas du menu) stoppe proprement la capture, le bouton devient « Relancer »; fermer la fenêtre l'arrête aussi. La fenêtre peut rester ouverte en arrière-plan pendant que tu joues. Pas de démarrage automatique avec Windows.
-
-| Page | Contenu |
-|---|---|
-| Accueil | État (Capture active, arrêtée ou erreur avec un message clair, par exemple Npcap absent ou droits insuffisants), serveur, enregistrements de la session, heure du dernier relevé, « Voir les prix en ligne » (adresse provisoire tant que le serveur n'existe pas) |
-| Données | Une ligne par catégorie (HDV, recyclage, brisage, pets) avec un interrupteur. Seule l'HDV est décodée aujourd'hui, les autres sont « bientôt ». Désactiver une catégorie arrête de l'enregistrer tout de suite |
-| Logs | Interrupteur « Afficher les logs », désactivé par défaut. Activé, il affiche en colonnes (heure, type, objet, détail, valeur) les 200 dernières données captées. Désactivé, rien n'est affiché ni gardé |
-| Réglages | Serveur de jeu et emplacement de la base de données. S'appliquent au prochain démarrage de la capture (arrête puis relance) |
-| À propos | Version, ce qui est collecté, lien vers le dépôt |
-
-Les réglages de la fenêtre sont écrits dans `config.json` (voir « Serveur de jeu »): `server`, `database_path` (priorité: `--db`, puis `database_path`, puis `prices.db`) et `enabled_categories` (liste, par défaut `["hdv"]`). Les données vont dans `prices.db` (dossier courant) tant que tu n'as pas changé l'emplacement. Rien n'est envoyé nulle part.
-
-Les droits administrateur ne sont nécessaires que si Npcap a été installé avec « Restrict Npcap driver's access to Administrators only »: dans ce cas lance la commande dans un terminal administrateur.
+`.\dev.ps1 build` produit `dist\OpenDofusData.exe` (PyInstaller, sans console) et `dist\OpenDofusData.exe.sha256`. Pour publier: change `__version__`, commite sur `main`, puis crée et pousse le tag `vX.Y.Z`. Le workflow GitHub `.github/workflows/release.yml` lance les tests, vérifie que le tag correspond à la version, construit l'exécutable et le publie sur la Release avec son empreinte: c'est ce que la page À propos des programmes installés va chercher. Le workflow `ci.yml` lance les tests à chaque push sur `main` et chaque pull request.
 
 ## Script de dev
 
@@ -68,7 +82,8 @@ Les droits administrateur ne sont nécessaires que si Npcap a été installé av
 |---|---|
 | `.\dev.ps1 setup` | Crée le venv et installe les dépendances |
 | `.\dev.ps1 test` | Lance `pytest` dans le venv |
-| `.\dev.ps1 clean` | Supprime le venv et les caches |
+| `.\dev.ps1 clean` | Supprime le venv, les caches, `build\` et `dist\` |
+| `.\dev.ps1 build` | Construit `dist\OpenDofusData.exe` et sa somme SHA-256 |
 | `.\dev.ps1 capture [options]` | Lance la capture des prix (commande de base) |
 | `.\dev.ps1 run <sous-commande> [options]` | Lance le programme avec ses arguments |
 | `.\dev.ps1 help` | Affiche l'aide |
@@ -140,7 +155,7 @@ Chaque enregistrement porte le nom du serveur de jeu (Brial, Dakal...). Le trafi
 
 ## Confidentialité
 
-Pour le fonctionnement normal (`capture` / `run` et la base de données), l'outil ne garde que des données de jeu des catégories ci-dessus (aujourd'hui l'HDV): identifiants d'objets, prix, quantités, horodatages et nom du serveur de jeu choisi par le joueur. Le joueur pourra désactiver chaque catégorie (collecte et envoi). Il ne stocke ni n'envoie jamais d'adresses IP, de comptes, de noms de personnages ni de chat (il utilise les adresses en mémoire pour suivre les connexions, sans les écrire). Le mode découverte optionnel avec `--include-text` ou `--hex-types` (désactivé par défaut, voir plus bas) peut écrire du texte issu des messages (éventuellement du chat ou des identifiants) dans un journal LOCAL que le joueur relit avant de le partager. Rien ne quitte ta machine dans cette version; l'envoi prévu vers un serveur distant ne transmettra que ces mêmes données de jeu. L'outil est libre et open source: son comportement peut être vérifié dans le code.
+Pour le fonctionnement normal (`capture` / `run` et la base de données), l'outil ne garde que des données de jeu des catégories ci-dessus (aujourd'hui l'HDV): identifiants d'objets, prix, quantités, horodatages et nom du serveur de jeu choisi par le joueur. Le joueur pourra désactiver chaque catégorie (collecte et envoi). Il ne stocke ni n'envoie jamais d'adresses IP, de comptes, de noms de personnages ni de chat (il utilise les adresses en mémoire pour suivre les connexions, sans les écrire). Le mode découverte optionnel avec `--include-text` ou `--hex-types` (désactivé par défaut, voir plus bas) peut écrire du texte issu des messages (éventuellement du chat ou des identifiants) dans un journal LOCAL que le joueur relit avant de le partager. Aucune donnée de jeu ne quitte ta machine dans cette version; l'envoi prévu vers un serveur distant ne transmettra que ces mêmes données de jeu. Les seules requêtes réseau du programme: la vérification des mises à jour au démarrage (une requête anonyme à api.github.com, sans identifiant; désactivable dans Réglages), et, seulement si tu cliques sur « Télécharger les noms » (ou lances `names-update`), le téléchargement des noms d'objets depuis api.dofusdb.fr. L'outil est libre et open source: son comportement peut être vérifié dans le code.
 
 ## Mode découverte et vie privée
 
@@ -175,7 +190,6 @@ Suite prévue du projet: [docs/roadmap.md](docs/roadmap.md).
 ## Limites connues et maintenance
 
 - Les noms courts des messages (`jzs`, `ire`, `kcy`, `iqp`) changent à chaque mise à jour du jeu. Ils sont isolés dans `src/opendofusdata/messages.py`. Si l'outil ne décode plus rien après une mise à jour: lance `discover` avec `--hex-types` sur la nouvelle version, compare avec `docs/protocol-notes.md`, puis mets à jour `messages.py`.
-- Le pipeline `run` n'a pas encore été validé de bout en bout sur le jeu réel (validation de la v1 en attente). Les décodeurs ont été vérifiés sur deux captures du mode découverte.
 - Seule la catégorie HDV est décodée (prix de lots et cours du marché): pas d'achats, de ventes ni de changements de prix, et pas d'affichage en direct. Recyclage, brisage et expérience des familiers sont prévus mais pas encore décodés.
 - Fenêtre de 7 jours: la règle (minuit UTC sept jours avant la date de capture) est vérifiée à l'écran sur cinq objets.
 - Un objet sans aucune offre (« Cet objet n'est pas en vente actuellement ») ne produit aucun enregistrement, par décision: l'absence de relevé ne signifie pas prix 0, le dernier prix connu garde son horodatage d'origine.

@@ -1,0 +1,43 @@
+name: Release
+
+# Publishes OpenDofusData.exe and its SHA-256 on the GitHub Release of a version tag (vX.Y.Z).
+# The program's "À propos" page looks for exactly these two files.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Setup
+        shell: pwsh
+        run: .\dev.ps1 setup
+      - name: Tests
+        shell: pwsh
+        run: .\dev.ps1 test
+      - name: The tag must match the product version
+        shell: pwsh
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          $Version = & .\.venv\Scripts\python.exe -c "import opendofusdata; print(opendofusdata.__version__)"
+          if ("v$Version" -ne $env:TAG) { throw "Le tag $env:TAG ne correspond pas à la version $Version." }
+      - name: Build
+        shell: pwsh
+        run: .\dev.ps1 build
+      - name: Publish the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/OpenDofusData.exe
+            dist/OpenDofusData.exe.sha256
+          generate_release_notes: true

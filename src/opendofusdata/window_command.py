@@ -4,16 +4,23 @@ import argparse
 import webbrowser
 from collections.abc import Callable
 
+from opendofusdata import __version__
 from opendofusdata.app_config import default_config_path, load_config
 from opendofusdata.app_links import SAAS_URL
 from opendofusdata.capture_errors import EXIT_OK, fail
 from opendofusdata.capture_session import CaptureSession
 from opendofusdata.capture_stoppable import StoppableCapture, run_stoppable_capture
 from opendofusdata.categories import categories_from_config
-from opendofusdata.client_settings import choose_database_path, server_names
+from opendofusdata.client_settings import (
+    choose_database_path, default_database_path, server_names, update_check_enabled,
+)
 from opendofusdata.item_labels import item_labeler_for_database
+from opendofusdata.names_fetch import http_get_json
 from opendofusdata.run_pipeline import Clock, utc_now
 from opendofusdata.server_choice_commands import resolve_run_server
+from opendofusdata.update_apply import can_self_update
+from opendofusdata.update_controller import UpdateController, check_for_update
+from opendofusdata.update_install import install_update
 from opendofusdata.window_context import WindowContext
 
 NO_DISPLAY_MESSAGE = "Impossible d'ouvrir la fenêtre ({error})."
@@ -58,6 +65,13 @@ def show_window(context: WindowContext) -> int:
     return EXIT_OK
 
 
+def build_update_controller(config: dict[str, object]) -> UpdateController:
+    """The update controller: checks GitHub at startup unless the player turned it off."""
+    return UpdateController(__version__, update_check_enabled(config),
+                            lambda: check_for_update(__version__, http_get_json),
+                            install_update, can_self_update())
+
+
 def window_command(
     arguments: argparse.Namespace, capture: StoppableCapture = run_stoppable_capture,
     now: Clock = utc_now,
@@ -66,11 +80,12 @@ def window_command(
     resolve_run_server(arguments)
     config_path = default_config_path()
     config = load_config(config_path)
-    database = choose_database_path(arguments.db, config)
+    database = choose_database_path(arguments.db, config, default_database_path())
     session = CaptureSession(database, arguments.server, arguments.interface, capture, now,
                              categories=categories_from_config(config))
     return show_window(WindowContext(session, open_online_prices, config_path, server_names(),
-                                     item_labeler_for_database(database)))
+                                     item_labeler_for_database(database),
+                                     build_update_controller(config)))
 
 
 WINDOW_COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {"window": window_command}

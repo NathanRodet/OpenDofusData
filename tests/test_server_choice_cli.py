@@ -250,3 +250,9 @@ def test_server_set_write_failure_reports_error(capsys, monkeypatch) -> None:
     monkeypatch.setattr(server_choice_commands, "save_config", failing_save)
     assert run_cli(["server", "--set", "Brial"]) != 0
     assert "read-only" in capsys.readouterr().err
+
+
+def test_a_missing_console_is_not_interactive(monkeypatch) -> None:
+    monkeypatch.setattr(server_choice_commands.sys, "stdin", None)
+    monkeypatch.setattr(server_choice_commands.sys, "stdout", None)
+    assert server_choice_commands.is_interactive() is False

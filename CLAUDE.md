@@ -13,4 +13,4 @@ Outil local (Python 3.13, Windows) qui capture le trafic réseau de Dofus (TCP 5
 - Pas d'`except:` nu ni d'erreurs avalées silencieusement; logs via `logging`.
 - Tests `pytest` sur des données synthétiques pour chaque module de logique.
 - Dépendances listées dans `requirements.txt`, installées dans le venv `.venv` (jamais en global).
-- Commandes de dev via `.\dev.ps1` (`setup`, `test`, `clean`); `.venv/` est à exclure du versionnement.
+- Commandes de dev via `.\dev.ps1` (`setup`, `test`, `clean`, `build`); `.venv/`, `build/` et `dist/` sont à exclure du versionnement.

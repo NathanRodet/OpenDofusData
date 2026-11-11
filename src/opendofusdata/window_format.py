@@ -1,9 +1,11 @@
 """French texts of the capture window (pure functions, no tkinter)."""
 
 from opendofusdata.capture_session import CaptureStatus, SessionSnapshot
+from opendofusdata.game_servers import UNKNOWN_SERVER
 from opendofusdata.log_feed import TIME_FORMAT
 
 NO_RECORD_TEXT = "aucun pour l'instant"
+UNCHOSEN_SERVER_TEXT = "Serveur : non choisi (à régler dans Réglages)"
 STATUS_TEXTS = {
     CaptureStatus.RUNNING: "Capture active",
     CaptureStatus.STOPPING: "Arrêt en cours...",
@@ -41,7 +43,9 @@ def total_records(snapshot: SessionSnapshot) -> int:
 
 
 def server_text(snapshot: SessionSnapshot) -> str:
-    """Server line."""
+    """Server line; asks the player to choose one while it is still 'unknown'."""
+    if snapshot.server == UNKNOWN_SERVER:
+        return UNCHOSEN_SERVER_TEXT
     return f"Serveur : {snapshot.server}"
 
 

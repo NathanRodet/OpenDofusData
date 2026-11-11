@@ -19,7 +19,7 @@ Les joueurs installent le client pour contribuer aux données du jeu sans y pens
 - Pas de zone de notification, pas de démarrage automatique avec Windows (inchangé).
 - Pas d'envoi vers un serveur: la v1 n'envoie rien. L'onglet Logs montre ce qui est capté et enregistré; il montrera l'envoi quand il existera.
 - Pas de nouveau décodeur: recyclage, brisage et pets restent « bientôt ».
-- Pas de mise à jour automatique, jamais. Demande ajoutée après la conception, non construite dans cette livraison: quand une nouvelle version existe, la page À propos affiche un signe de notification et un clic récupère la version puis relance l'application. La source des versions (par exemple les Releases de https://github.com/NathanRodet/OpenDofusData), le format d'installation et la vérification d'intégrité restent à décider (voir [roadmap.md](../../roadmap.md)).
+- Pas de mise à jour automatique, jamais. Demande ajoutée après la conception puis construite (voir la section « Mises à jour » du README): la vérification des Releases de https://github.com/NathanRodet/OpenDofusData se fait au démarrage (désactivable), un signe de notification apparaît à côté de « À propos », et un clic télécharge, vérifie le SHA-256 et relance.
 
 ## Anti-objectifs (échec même si ça marche)
 
