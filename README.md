@@ -1,8 +1,21 @@
 # OpenDofusData
 
-Outil local pour Windows qui capture passivement le trafic réseau de Dofus 3 (TCP 5555) avec Npcap et Scapy, décode les messages de l'HDV et stocke les prix dans une base SQLite locale. Objectif global: ce client récolte les prix, les stocke en SQLite, puis alimentera à terme un serveur distant (synchronisation et serveur hors périmètre de la v1). La v1 n'envoie rien à l'extérieur.
+Outil local pour Windows qui capture passivement le trafic réseau de Dofus 3 (TCP 5555) avec Npcap et Scapy, décode les messages utiles et les stocke dans une base SQLite locale. Objectif global: ce client récolte les données, les stocke en SQLite, puis alimentera à terme un serveur distant (synchronisation et serveur hors périmètre de la v1). La v1 n'envoie rien à l'extérieur.
 
-## Ce que fait l'outil (v1)
+## Données collectées
+
+L'outil est conçu pour collecter quatre catégories de données. Chacune pourra être désactivée séparément par le joueur (voir [docs/roadmap.md](docs/roadmap.md)).
+
+| Catégorie | Contenu | État |
+|---|---|---|
+| Données HDV | Prix des lots et cours du marché | Disponible (v1) |
+| Données de recyclage des ressources | Ressources obtenues en recyclant | Prévu, pas encore décodé |
+| Données de brisage | Résultats de brisage | Prévu, pas encore décodé |
+| Données d'expérience des familiers (pets) | Expérience et ressources des familiers | Prévu, pas encore décodé |
+
+Tant que les autres décodeurs n'existent pas, seule la catégorie HDV est enregistrée.
+
+## Ce que fait l'outil (v1, catégorie HDV)
 
 - Prix des lots de 1, 10, 100 et 1000 (prix total du lot).
 - Statistiques du marché sur 24 h, 7 jours et 30 jours: médiane, moyenne, objets vendus, dernier achat, et heure de mise à jour des données.
@@ -24,7 +37,7 @@ Depuis PowerShell, à la racine du projet:
 .\dev.ps1 setup
 ```
 
-Cette commande crée le venv `.venv` et installe `requirements.txt` (`scapy` pour la capture, `pytest` pour les tests; le décodage Protobuf et SQLite utilisent la bibliothèque standard). Si PowerShell refuse d'exécuter le script, lance une fois `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. Npcap étant installé au niveau du système, il fonctionne depuis le venv sans configuration.
+Cette commande crée le venv `.venv` et installe `requirements.txt` (`scapy` pour la capture, `customtkinter` pour la fenêtre, `pytest` pour les tests; le décodage Protobuf et SQLite utilisent la bibliothèque standard). Si PowerShell refuse d'exécuter le script, lance une fois `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. Npcap étant installé au niveau du système, il fonctionne depuis le venv sans configuration.
 
 Le projet est aussi un paquet Python (`pyproject.toml`). Dans le venv, `pip install -e .` installe la commande `opendofusdata`, équivalente à `python -m opendofusdata` (ex. `opendofusdata run --server Kourial`). `.\dev.ps1 setup` fait cette installation.
 
@@ -32,9 +45,18 @@ Le projet est aussi un paquet Python (`pyproject.toml`). Dans le venv, `pip inst
 
 1. Installe Npcap depuis npcap.com (voir « Prérequis »; le mode « WinPcap API-compatible » n'est pas nécessaire).
 2. Lance `opendofusdata window` (ou `python -m opendofusdata window`) AVANT de te connecter au jeu. Au tout premier lancement, la console te propose la liste des serveurs de jeu (le choix est mémorisé, voir « Serveur de jeu »); `--server NOM` et `--choose-server` fonctionnent aussi.
-3. Une petite fenêtre OpenDofusData s'ouvre et lance la capture: état (Capture active, arrêtée ou erreur avec un message clair, par exemple Npcap absent ou droits insuffisants), serveur choisi, nombre de prix et de statistiques enregistrés pendant cette session, heure du dernier enregistrement. Les données vont dans `prices.db` (dossier courant), comme avec `run`.
-4. « Arrêter » stoppe proprement la capture (le bouton devient « Relancer »); fermer la fenêtre l'arrête aussi. La fenêtre peut rester ouverte en arrière-plan pendant que tu joues.
-5. « Voir les prix en ligne » ouvre le site dans ton navigateur (adresse provisoire tant que le serveur n'existe pas). Rien n'est envoyé nulle part. Pas de démarrage automatique avec Windows.
+3. La fenêtre OpenDofusData s'ouvre et lance la capture. Thème sombre, menu à gauche, cinq pages. Elle est redimensionnable (minimum 640×400); la page reste dans une colonne centrée.
+4. « Arrêter » (en bas du menu) stoppe proprement la capture, le bouton devient « Relancer »; fermer la fenêtre l'arrête aussi. La fenêtre peut rester ouverte en arrière-plan pendant que tu joues. Pas de démarrage automatique avec Windows.
+
+| Page | Contenu |
+|---|---|
+| Accueil | État (Capture active, arrêtée ou erreur avec un message clair, par exemple Npcap absent ou droits insuffisants), serveur, enregistrements de la session, heure du dernier relevé, « Voir les prix en ligne » (adresse provisoire tant que le serveur n'existe pas) |
+| Données | Une ligne par catégorie (HDV, recyclage, brisage, pets) avec un interrupteur. Seule l'HDV est décodée aujourd'hui, les autres sont « bientôt ». Désactiver une catégorie arrête de l'enregistrer tout de suite |
+| Logs | Interrupteur « Afficher les logs », désactivé par défaut. Activé, il affiche en colonnes (heure, type, objet, détail, valeur) les 200 dernières données captées. Désactivé, rien n'est affiché ni gardé |
+| Réglages | Serveur de jeu et emplacement de la base de données. S'appliquent au prochain démarrage de la capture (arrête puis relance) |
+| À propos | Version, ce qui est collecté, lien vers le dépôt |
+
+Les réglages de la fenêtre sont écrits dans `config.json` (voir « Serveur de jeu »): `server`, `database_path` (priorité: `--db`, puis `database_path`, puis `prices.db`) et `enabled_categories` (liste, par défaut `["hdv"]`). Les données vont dans `prices.db` (dossier courant) tant que tu n'as pas changé l'emplacement. Rien n'est envoyé nulle part.
 
 Les droits administrateur ne sont nécessaires que si Npcap a été installé avec « Restrict Npcap driver's access to Administrators only »: dans ce cas lance la commande dans un terminal administrateur.
 
@@ -116,7 +138,7 @@ Chaque enregistrement porte le nom du serveur de jeu (Brial, Dakal...). Le trafi
 
 ## Confidentialité
 
-Pour le fonctionnement normal (`capture` / `run` et la base de données), l'outil ne garde que des données de jeu: identifiants d'objets, prix, quantités, horodatages et nom du serveur de jeu choisi par le joueur. Il ne stocke ni n'envoie jamais d'adresses IP, de comptes, de noms de personnages ni de chat (il utilise les adresses en mémoire pour suivre les connexions, sans les écrire). Le mode découverte optionnel avec `--include-text` ou `--hex-types` (désactivé par défaut, voir plus bas) peut écrire du texte issu des messages (éventuellement du chat ou des identifiants) dans un journal LOCAL que le joueur relit avant de le partager. Rien ne quitte ta machine dans cette version; l'envoi prévu vers un serveur distant ne transmettra que ces mêmes données de jeu. L'outil est libre et open source: son comportement peut être vérifié dans le code.
+Pour le fonctionnement normal (`capture` / `run` et la base de données), l'outil ne garde que des données de jeu des catégories ci-dessus (aujourd'hui l'HDV): identifiants d'objets, prix, quantités, horodatages et nom du serveur de jeu choisi par le joueur. Le joueur pourra désactiver chaque catégorie (collecte et envoi). Il ne stocke ni n'envoie jamais d'adresses IP, de comptes, de noms de personnages ni de chat (il utilise les adresses en mémoire pour suivre les connexions, sans les écrire). Le mode découverte optionnel avec `--include-text` ou `--hex-types` (désactivé par défaut, voir plus bas) peut écrire du texte issu des messages (éventuellement du chat ou des identifiants) dans un journal LOCAL que le joueur relit avant de le partager. Rien ne quitte ta machine dans cette version; l'envoi prévu vers un serveur distant ne transmettra que ces mêmes données de jeu. L'outil est libre et open source: son comportement peut être vérifié dans le code.
 
 ## Mode découverte et vie privée
 
@@ -152,8 +174,8 @@ Suite prévue du projet: [docs/roadmap.md](docs/roadmap.md).
 
 - Les noms courts des messages (`jzs`, `ire`, `kcy`, `iqp`) changent à chaque mise à jour du jeu. Ils sont isolés dans `src/opendofusdata/messages.py`. Si l'outil ne décode plus rien après une mise à jour: lance `discover` avec `--hex-types` sur la nouvelle version, compare avec `docs/protocol-notes.md`, puis mets à jour `messages.py`.
 - Le pipeline `run` n'a pas encore été validé de bout en bout sur le jeu réel (validation de la v1 en attente). Les décodeurs ont été vérifiés sur deux captures du mode découverte.
-- Seuls les prix de lots et les cours du marché sont décodés: pas d'achats, de ventes ni de changements de prix, et pas d'affichage en direct.
-- Fenêtre de 7 jours: la règle (minuit UTC sept jours avant la date de capture) est vérifiée à l'écran sur quatre objets; une confirmation reste en attente (Filet multiplicateur de Dragodinde, id 32525).
+- Seule la catégorie HDV est décodée (prix de lots et cours du marché): pas d'achats, de ventes ni de changements de prix, et pas d'affichage en direct. Recyclage, brisage et expérience des familiers sont prévus mais pas encore décodés.
+- Fenêtre de 7 jours: la règle (minuit UTC sept jours avant la date de capture) est vérifiée à l'écran sur cinq objets.
 - Un objet sans aucune offre (« Cet objet n'est pas en vente actuellement ») ne produit aucun enregistrement, par décision: l'absence de relevé ne signifie pas prix 0, le dernier prix connu garde son horodatage d'origine.
 - Le serveur de jeu n'apparaît pas dans les messages: c'est le joueur qui le choisit (voir « Serveur de jeu »).
 - Dans Windows PowerShell 5.1, l'aide française de `dev.ps1` peut afficher des accents cassés (encodage du script).
