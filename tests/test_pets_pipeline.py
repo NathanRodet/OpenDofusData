@@ -18,7 +18,7 @@ CLIENT_KEY = (FLOW_KEY[2], FLOW_KEY[3], FLOW_KEY[0], FLOW_KEY[1])
 FEEDING = PetFeeding("Brial", NOMOON, ((BONE, 100),), PetState(32, 257, 286, 46), PetState(32, 262, 286, 46),
                      "2026-11-11T19:25:06Z")
 LEVEL_UP = PetFeeding("Brial", NOMOON, ((BONE, 125), (EYE, 2)), PetState(31, 240, 286, 45),
-                      PetState(32, 5, 300, 46), "2026-11-11T19:17:06Z")
+                      PetState(32, 290, 320, 46), "2026-11-11T19:17:06Z")
 
 
 class ListSink:
@@ -132,9 +132,15 @@ def test_the_log_row_shows_the_resources_the_level_and_the_experience_gain() -> 
     assert row[1:] == ("Familier", "Os de Chafer ×100", "niv 32", "+5 XP")
 
 
-def test_a_level_up_is_shown_as_levels_gained() -> None:
+def test_a_level_up_still_shows_the_experience_gained_not_the_levels() -> None:
     entry = entry_from_record(LEVEL_UP, MOMENT)
-    assert (entry.detail, entry.value) == ("niv 32", "+1 niv")
+    assert (entry.detail, entry.value) == ("niv 32", "+50 XP")
+
+
+def test_the_real_800_bones_upgrade_shows_plus_43_xp() -> None:
+    real = PetFeeding("Brial", NOMOON, ((BONE, 800),), PetState(33, 286, 319, 47), PetState(34, 329, 356, 48), "t")
+    entry = entry_from_record(real, MOMENT)
+    assert (entry.detail, entry.value) == ("niv 34", "+43 XP")
 
 
 def test_an_unknown_state_shows_a_dash() -> None:

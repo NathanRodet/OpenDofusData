@@ -69,9 +69,7 @@ def _plural(count: int, word: str) -> str:
 
 
 def _pet_gain(before: PetState, after: PetState) -> str:
-    """The experience gained, or the levels gained when the pet went up."""
-    if before.level is not None and after.level is not None and after.level > before.level:
-        return f"+{after.level - before.level} niv"
+    """The experience gained (it is cumulative: a level up does not reset it)."""
     if before.experience is None or after.experience is None:
         return f"+{UNKNOWN} XP"
     return f"+{after.experience - before.experience} XP"
