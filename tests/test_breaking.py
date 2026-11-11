@@ -124,3 +124,22 @@ def test_the_real_concassage_of_three_identical_sandals_keeps_each_object_and_it
     assert [item.runes for item in event.items] == [((AGE, 2),), ((AGE, 2),), ((AGE, 1),)]
     assert [round(item.coefficient * 100) for item in event.items] == [36, 36, 36]
     assert event.items[0].coefficient > event.items[1].coefficient > event.items[2].coefficient
+
+
+MIXED_SHOWN_PERCENT = (44, 26, 98, 16, 16, 35)
+MIXED_COEFFICIENTS = (0.43649, 0.26309, 0.97543, 0.15774, 0.15771, 0.35488)  # seen in game
+
+
+def float_bits(value: float) -> int:
+    return struct.unpack("<I", struct.pack("<f", value))[0]
+
+
+def test_six_objects_of_the_real_capture_round_to_the_percentages_the_game_showed() -> None:
+    stacks = tuple(range(1000, 1006))
+    steps = [(added(1, 900 + index, stack), True) for index, stack in enumerate(stacks)]
+    steps.append((updated(2, 905, stacks[5]), True))  # the last object is a stack of two
+    steps.append((broken(*(outcome(stack, ((1, AGE),), float_bits(coefficient))
+                           for stack, coefficient in zip(stacks, MIXED_COEFFICIENTS))), True))
+    event = play(tracker(), *steps)[-1]
+    assert [round(item.coefficient * 100) for item in event.items] == list(MIXED_SHOWN_PERCENT)
+    assert [item.quantity for item in event.items] == [1, 1, 1, 1, 1, 2]

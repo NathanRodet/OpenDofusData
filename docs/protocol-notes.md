@@ -87,7 +87,8 @@ Capture `captures/brisage-1.jsonl`: trois concassages (1 Lisseur; 4 Volkornes; 2
 - **Non présents sur le réseau:** les valeurs estimées des objets détruits et des runes (162, 62949, 87606...).
 - **Partage avec le recyclage:** les ajouts d'objets sont les mêmes messages; les deux suiveurs se vident mutuellement au résultat de l'autre (`kdd` / `kag`) pour qu'un objet du Concasseur ne se retrouve pas dans un recyclage.
 - **Trois exemplaires identiques** (capture `brisage-2`, 3 Sandales du Piou Jaune, objet 8228): le jeu les liste comme trois objets distincts (trois instances, quantité 1 chacun, « 3/50 objets distincts »); résultat: coefficients 0,35525 / 0,35515 / 0,35505 (affichés « 36 % » pour les trois, arrondi au plus proche) et 2, 2, 1 Rune Age (1524), conformes à l'écran. Le coefficient baisse d'environ 0,0001 d'un objet au suivant dans le même concassage.
-- **À valider:** les concassages d'un vrai lot empilé (quantité saisie > 1 pour un équipement identique empilé dans l'inventaire), et si le champ 2 diffère de plus d'un millionième du champ 1 dans d'autres cas.
+- **Six objets mélangés** (capture `brisage-3`, dont un lot empilé de 2 Sandales du Piou Jaune): coefficients 0,43649 / 0,26309 / 0,97543 / 0,15774 / 0,15771 / 0,35488, affichés 44 / 26 / 98 / 16 / 16 / 35 %: **l'affichage est l'arrondi à l'entier de 100 × le champ 1**. Le lot empilé arrive en `kch` (quantité 1) puis `kdr` (quantité 2) et n'a qu'UN coefficient et UN résultat pour les deux exemplaires (2 Rune Age). Le champ 2 est identique au champ 1 sauf pour le lot (0,35498 contre 0,35488). Runes vérifiées: Pod ×18, Ine ×4, Fo ×6, Vi ×2, Pui ×2...
+- **À valider:** un lot empilé de plus de 2 exemplaires, et la raison de l'écart entre les champs 1 et 2, et si le champ 2 diffère de plus d'un millionième du champ 1 dans d'autres cas.
 
 ## Autres messages vus (hors périmètre)
 
