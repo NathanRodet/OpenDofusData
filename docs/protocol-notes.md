@@ -51,6 +51,17 @@ Flux de messages Protobuf précédés de leur longueur, avec des enveloppes `typ
 - Le serveur de jeu (Dofus a plusieurs serveurs) n'est pas identifié dans ces messages: le nom du serveur est choisi par le joueur (voir le README, « Serveur de jeu »).
 - Aucun identifiant de serveur n'existe dans les messages de connexion / handshake (vérifié sur une capture d'une connexion à Kourial): le serveur de jeu est choisi par le joueur, aucune détection à partir du trafic n'est possible. Le champ 5 de `itv` (valeurs 355 / 457) ressemble à une latence et n'est PAS un identifiant de serveur; les autres correspondances avec des identifiants de serveur dans les captures précédentes étaient des coïncidences dans des listes d'objets.
 
+## Recyclage (hypothèses, une seule capture du 2026-11-11, à confirmer)
+
+Capture `captures/recyclage-*.jsonl` (structure seule): deux essais de recyclage de quatre objets, le second terminé par un clic sur « Recycler » qui a donné 2 Pépites. Les noms courts changent à chaque version du jeu.
+
+- Ouvrir la fenêtre: client `itz` {1, 3} puis serveur `itv` et `kbq`.
+- Ajouter un objet à la fenêtre: client `jys` {1 = identifiant d'instance, 3 = quantité}; le serveur répond `kch` {3.1.3 = quantité, 3.1.4 = **identifiant d'objet DofusDB**, 3.1.5 = identifiant d'instance, 3.4 = 63 constant}. Vérifié sur 8 ajouts: 417 (Boue du Boo), 15073 (Œil de Truchtine), 310 (Os de Chafer), 2278 (Tissu Invisible), avec les quantités 100 / 10 / 10 / 10 de l'écran.
+- Vider la fenêtre (hypothèse): client `kiq` (vide) puis serveur `kbr`, entre les deux essais.
+- Recycler: client `kba` {1 = 4 (nombre d'objets ?), 2 = 1}, puis serveur `kec`, **`kdd` {3 = 2}** (candidat pour le nombre de Pépites obtenues: un seul échantillon, donc non confirmé), et cinq `irx` {3.1 = nouvelle quantité, 3.3 = identifiant d'instance}: les quatre piles consommées et une cinquième (instance 4300333, probablement la pile de Pépites, 19489 au total).
+- Non présents sur le réseau (donc calculés par le client): les rendements par objet (0,33 / 1,47 / 0,07 / 0,41), la valeur estimée (529790 = somme des prix moyens × quantités, vérifié à la main: 47130 + 252180 + 45400 + 185080) et la capacité 4/800.
+- À confirmer avec d'autres recyclages: que `kdd` est bien le nombre de Pépites (y compris pour un résultat de 0 ou de 1), le message de retrait d'un seul objet ou de changement de quantité, et si l'identifiant d'objet de la Pépite (14635) n'apparaît jamais (il n'est pas dans cette capture).
+
 ## Autres messages vus (hors périmètre)
 
 `jnz`, `kne`, `knb`, `kpy`, `kjz`, `jns`, `irl` (grosse liste d'objets) sont très fréquents; non analysés.
