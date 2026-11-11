@@ -7,13 +7,15 @@ from pathlib import Path
 
 from opendofusdata.capture_errors import EXIT_OK, fail
 from opendofusdata.export import write_lot_prices_csv
+from opendofusdata.item_labels import ItemLabeler, load_item_labeler
 from opendofusdata.storage import MARKET_PERIODS, LotPrice, MarketStats, PriceStore
 
 COLUMN_SEPARATOR = "  "
-PRICE_HEADERS = ("item", "server", "lot", "price", "captured_at (UTC)")
+PRICE_HEADERS = ("item", "name", "server", "lot", "price", "captured_at (UTC)")
 STATS_HEADERS = ("period", "median", "mean", "sold", "points", "last purchase (UTC)",
                  "data updated (UTC)")
 NO_PRICES_MESSAGE = "Aucun prix enregistré pour cette sélection."
+STATS_TITLE = "Objet {item_id} : {name}"
 NO_STATS_MESSAGE = "Aucune statistique enregistrée pour l'objet {item_id}."
 
 
@@ -26,8 +28,8 @@ def format_table(headers: Sequence[str], rows: Sequence[Sequence[object]]) -> st
     return "\n".join(lines)
 
 
-def _price_row(lot: LotPrice) -> tuple[object, ...]:
-    return (lot.item_id, lot.server, lot.lot_size, lot.price, lot.captured_at)
+def _price_row(lot: LotPrice, label: ItemLabeler) -> tuple[object, ...]:
+    return (lot.item_id, label(lot.item_id), lot.server, lot.lot_size, lot.price, lot.captured_at)
 
 
 def _stats_row(stats: MarketStats) -> tuple[object, ...]:
@@ -61,24 +63,25 @@ def with_store(arguments: argparse.Namespace, action: Callable[[PriceStore], int
         return fail(f"Base de données illisible : {arguments.db} ({error})")
 
 
-def _print_prices(prices: list[LotPrice]) -> int:
+def _print_prices(store: PriceStore, prices: list[LotPrice]) -> int:
     if not prices:
         print(NO_PRICES_MESSAGE)
         return EXIT_OK
-    print(format_table(PRICE_HEADERS, [_price_row(lot) for lot in prices]))
+    label = load_item_labeler(store.connection)
+    print(format_table(PRICE_HEADERS, [_price_row(lot, label) for lot in prices]))
     return EXIT_OK
 
 
 def prices_command(arguments: argparse.Namespace) -> int:
     """Print the latest price per item, server and lot size."""
-    return with_store(arguments, lambda store: _print_prices(store.latest_prices(arguments.item)))
+    return with_store(arguments, lambda store: _print_prices(store, store.latest_prices(arguments.item)))
 
 
 def history_command(arguments: argparse.Namespace) -> int:
     """Print every captured price of an item at one lot size."""
     return with_store(
         arguments,
-        lambda store: _print_prices(store.price_history(arguments.item_id, arguments.lot)),
+        lambda store: _print_prices(store, store.price_history(arguments.item_id, arguments.lot)),
     )
 
 
@@ -87,10 +90,11 @@ def _latest_stats(store: PriceStore, item_id: int, periods: Sequence[str]) -> li
     return [history[-1] for history in histories if history]
 
 
-def _print_stats(item_id: int, stats: list[MarketStats]) -> int:
+def _print_stats(store: PriceStore, item_id: int, stats: list[MarketStats]) -> int:
     if not stats:
         print(NO_STATS_MESSAGE.format(item_id=item_id))
         return EXIT_OK
+    print(STATS_TITLE.format(item_id=item_id, name=load_item_labeler(store.connection)(item_id)))
     print(format_table(STATS_HEADERS, [_stats_row(entry) for entry in stats]))
     return EXIT_OK
 
@@ -100,14 +104,15 @@ def stats_command(arguments: argparse.Namespace) -> int:
     periods = (arguments.period,) if arguments.period else MARKET_PERIODS
     return with_store(
         arguments,
-        lambda store: _print_stats(arguments.item_id, _latest_stats(store, arguments.item_id, periods)),
+        lambda store: _print_stats(store, arguments.item_id,
+                                   _latest_stats(store, arguments.item_id, periods)),
     )
 
 
 def _export(store: PriceStore, output: Path) -> int:
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("w", encoding="utf-8", newline="") as file:
-        write_lot_prices_csv(store.iter_lot_prices(), file)
+        write_lot_prices_csv(store.iter_lot_prices(), file, load_item_labeler(store.connection))
     print(f"Prix exportés dans {output}.")
     return EXIT_OK
 

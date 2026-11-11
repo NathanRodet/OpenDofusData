@@ -1,17 +1,18 @@
 """CSV export of stored lot prices."""
 
 import csv
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from typing import TextIO
 
 from opendofusdata.records import LotPrice
 
-CSV_COLUMNS = ("item_id", "server", "lot_size", "price", "captured_at")
+ItemLabeler = Callable[[int], str]
+CSV_COLUMNS = ("item_id", "item_name", "server", "lot_size", "price", "captured_at")
 
 
-def write_lot_prices_csv(prices: Iterable[LotPrice], output: TextIO) -> None:
+def write_lot_prices_csv(prices: Iterable[LotPrice], output: TextIO, label: ItemLabeler) -> None:
     """Write lot prices as CSV with a header row (open the file with newline='')."""
     writer = csv.writer(output)
     writer.writerow(CSV_COLUMNS)
     for lot in prices:
-        writer.writerow((lot.item_id, lot.server, lot.lot_size, lot.price, lot.captured_at))
+        writer.writerow((lot.item_id, label(lot.item_id), lot.server, lot.lot_size, lot.price, lot.captured_at))
