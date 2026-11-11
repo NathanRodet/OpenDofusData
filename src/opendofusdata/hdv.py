@@ -16,6 +16,7 @@ from opendofusdata.protobuf import (
     DecodeError,
     Field,
     decode_fields,
+    first_field,
     read_varint,
 )
 from opendofusdata.records import LOT_SIZES, LotPrice
@@ -35,19 +36,11 @@ def unpack_varints(data: bytes) -> list[int]:
     return values
 
 
-def _first_field(fields: list[Field], number: int, wire_type: int) -> int | bytes | None:
-    """Value of the first occurrence of a field with the expected wire type."""
-    for field_number, field_wire_type, value in fields:
-        if field_number == number and field_wire_type == wire_type:
-            return value
-    return None
-
-
 def _find_item_id(detail: list[Field], outer: list[Field]) -> int | None:
     """Item id from the detail message, else from the outer message."""
-    item_id = _first_field(detail, LOT_ITEM_FIELD, WIRE_TYPE_VARINT)
+    item_id = first_field(detail, LOT_ITEM_FIELD, WIRE_TYPE_VARINT)
     if item_id is None:
-        item_id = _first_field(outer, LOT_FALLBACK_ITEM_FIELD, WIRE_TYPE_VARINT)
+        item_id = first_field(outer, LOT_FALLBACK_ITEM_FIELD, WIRE_TYPE_VARINT)
     return item_id if isinstance(item_id, int) else None
 
 
@@ -60,9 +53,9 @@ def _pair_with_sizes(item_id: int, prices: list[int], server: str, captured_at: 
 def _read_lot_message(payload: bytes) -> tuple[int | None, list[int]]:
     """Return (item id, packed prices); prices are empty when the field is absent."""
     outer = decode_fields(payload)
-    detail_bytes = _first_field(outer, LOT_DETAIL_FIELD, WIRE_TYPE_LENGTH_DELIMITED)
+    detail_bytes = first_field(outer, LOT_DETAIL_FIELD, WIRE_TYPE_LENGTH_DELIMITED)
     detail = decode_fields(detail_bytes) if isinstance(detail_bytes, bytes) else []
-    packed = _first_field(detail, LOT_PRICES_FIELD, WIRE_TYPE_LENGTH_DELIMITED)
+    packed = first_field(detail, LOT_PRICES_FIELD, WIRE_TYPE_LENGTH_DELIMITED)
     prices = unpack_varints(packed) if isinstance(packed, bytes) else []
     return _find_item_id(detail, outer), prices
 

@@ -100,3 +100,11 @@ def to_signed(value: int) -> int:
 def zigzag_decode(value: int) -> int:
     """Decode a ZigZag-encoded integer (sint32/sint64)."""
     return (value >> 1) ^ -(value & 1)
+
+
+def first_field(fields: list[Field], number: int, wire_type: int) -> int | bytes | None:
+    """Value of the first occurrence of a field with the expected wire type."""
+    for field_number, field_wire_type, value in fields:
+        if field_number == number and field_wire_type == wire_type:
+            return value
+    return None

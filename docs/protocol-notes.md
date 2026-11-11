@@ -51,16 +51,26 @@ Flux de messages Protobuf précédés de leur longueur, avec des enveloppes `typ
 - Le serveur de jeu (Dofus a plusieurs serveurs) n'est pas identifié dans ces messages: le nom du serveur est choisi par le joueur (voir le README, « Serveur de jeu »).
 - Aucun identifiant de serveur n'existe dans les messages de connexion / handshake (vérifié sur une capture d'une connexion à Kourial): le serveur de jeu est choisi par le joueur, aucune détection à partir du trafic n'est possible. Le champ 5 de `itv` (valeurs 355 / 457) ressemble à une latence et n'est PAS un identifiant de serveur; les autres correspondances avec des identifiants de serveur dans les captures précédentes étaient des coïncidences dans des listes d'objets.
 
-## Recyclage (hypothèses, une seule capture du 2026-11-11, à confirmer)
+## Recyclage (décodé, trois captures du 2026-11-11)
 
-Capture `captures/recyclage-*.jsonl` (structure seule): deux essais de recyclage de quatre objets, le second terminé par un clic sur « Recycler » qui a donné 2 Pépites. Les noms courts changent à chaque version du jeu.
+Captures `captures/recyclage-*.jsonl` (structure seule), vérifiées contre l'écran: sept recyclages dont 0, 0, 1, 2 et 3 Pépites. Les noms courts des messages changent à chaque version du jeu (constantes dans `messages.py`, suiveur dans `recycling.py`).
 
-- Ouvrir la fenêtre: client `itz` {1, 3} puis serveur `itv` et `kbq`.
-- Ajouter un objet à la fenêtre: client `jys` {1 = identifiant d'instance, 3 = quantité}; le serveur répond `kch` {3.1.3 = quantité, 3.1.4 = **identifiant d'objet DofusDB**, 3.1.5 = identifiant d'instance, 3.4 = 63 constant}. Vérifié sur 8 ajouts: 417 (Boue du Boo), 15073 (Œil de Truchtine), 310 (Os de Chafer), 2278 (Tissu Invisible), avec les quantités 100 / 10 / 10 / 10 de l'écran.
-- Vider la fenêtre (hypothèse): client `kiq` (vide) puis serveur `kbr`, entre les deux essais.
-- Recycler: client `kba` {1 = 4 (nombre d'objets ?), 2 = 1}, puis serveur `kec`, **`kdd` {3 = 2}** (candidat pour le nombre de Pépites obtenues: un seul échantillon, donc non confirmé), et cinq `irx` {3.1 = nouvelle quantité, 3.3 = identifiant d'instance}: les quatre piles consommées et une cinquième (instance 4300333, probablement la pile de Pépites, 19489 au total).
-- Non présents sur le réseau (donc calculés par le client): les rendements par objet (0,33 / 1,47 / 0,07 / 0,41), la valeur estimée (529790 = somme des prix moyens × quantités, vérifié à la main: 47130 + 252180 + 45400 + 185080) et la capacité 4/800.
-- À confirmer avec d'autres recyclages: que `kdd` est bien le nombre de Pépites (y compris pour un résultat de 0 ou de 1), le message de retrait d'un seul objet ou de changement de quantité, et si l'identifiant d'objet de la Pépite (14635) n'apparaît jamais (il n'est pas dans cette capture).
+- Ouvrir la fenêtre: client `itz` {1, 3}, serveur `itv` et `kbq`.
+- Ajouter un objet: client `jys` {1 = identifiant d'instance (pile), 3 = quantité à ajouter}; le serveur répond `kch` {3.1.3 = quantité, 3.1.4 = **identifiant d'objet DofusDB**, 3.1.5 = identifiant d'instance, 3.4 = 63 constant}. Vérifié avec 417 (Boue du Boo), 15073 (Œil de Truchtine), 310 (Os de Chafer), 2278 (Tissu Invisible).
+- Changer une quantité: le client envoie `jys` avec une quantité relative (18446744073709551615 = −1 en 64 bits, ou +95); le serveur répond `kdr`, **de même forme que `kch`, avec le NOUVEAU TOTAL** (100 → 99 → 98 → 97 → … puis +95 → 190).
+- Retirer un objet: il n'y a pas de message dédié, il faut fermer la fenêtre: le client envoie `kiq` (vide, plusieurs fois) et le serveur `kbr`; la fenêtre oublie tous ses objets.
+- Recycler: client `kba` {1 = compteur croissant (1, 2, 3, 4, 7 selon les captures; sens inconnu, non utilisé), 2 = 1}, puis serveur `kec`, **`kdd`** et des `irx`.
+- Résultat: **`kdd` {3 = nombre de Pépites}**, le champ est ABSENT quand le résultat est 0 (vérifié: 0, 0, 1, 2, 3). Confirmé par `irx` {3.1 = nouvelle quantité, 3.3 = instance 4300333}: la pile de Pépites passe de 19489 à 19492 (+3) puis 19493 (+1). Les `irx` des piles recyclées donnent leur quantité restante (5987 = 5988 − 1...).
+- Non présents sur le réseau (donc calculés par le client): les rendements par objet (0,33 / 1,47 / 0,07 / 0,41, 3,30 pour 1000 Os de Chafer...), la valeur estimée (somme des prix moyens × quantités: 47130 + 252180 + 45400 + 185080 = 529790) et la capacité 4/800. Le jeu n'envoie donc jamais le taux: il se déduit en cumulant de nombreux recyclages (objets recyclés → Pépites obtenues), ce que fait la catégorie.
+- Ce qui reste à valider: l'identifiant d'objet de la Pépite (14635) n'apparaît pas dans ces messages (le résultat n'est qu'une quantité), ce qui suffit puisque le recyclage ne donne que des Pépites.
+
+## Familiers, amélioration (une capture, hypothèses)
+
+Capture `captures/familier-temoin.jsonl`: une amélioration validée (125 Os de Chafer et 2 Œil de Truchtine). L'aperçu des gains du jeu (+5 expérience, +8 niveaux...) n'est jamais envoyé: il est calculé par le client.
+
+- Valider: client `irb` {2 = instance du familier, 3 = liste de {1 = quantité, 3 = instance de la pile}}; les objets ne sont désignés que par leur instance, jamais par leur identifiant d'objet.
+- Réponse: `irx` des piles consommées (nouvelle quantité) et `iqy` (le familier mis à jour: 1.1.4 = 6716, 1.1.5 = instance du familier, effets dans 1.1.7).
+- Manque: la correspondance instance → identifiant d'objet (l'inventaire envoyé à la connexion) et l'état du familier avant et après pour en déduire les gains. Voir [docs/new-categories.md](new-categories.md).
 
 ## Autres messages vus (hors périmètre)
 

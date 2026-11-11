@@ -4,7 +4,7 @@ import threading
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
-from opendofusdata.records import LotPrice, MarketStats
+from opendofusdata.records import Record, RecyclingEvent
 from opendofusdata.session_counters import RecordSink
 
 CATEGORY_HDV = "hdv"
@@ -25,7 +25,7 @@ class DataCategory:
 
 CATEGORIES = (
     DataCategory(CATEGORY_HDV, "HDV", True),
-    DataCategory(CATEGORY_RECYCLING, "Recyclage des ressources", False),
+    DataCategory(CATEGORY_RECYCLING, "Recyclage des ressources (bêta)", True),
     DataCategory(CATEGORY_BREAKING, "Brisage", False),
     DataCategory(CATEGORY_PETS, "Expérience des pets", False),
 )
@@ -72,14 +72,19 @@ def config_with_categories(config: Mapping[str, object], settings: CategorySetti
     return {**config, ENABLED_KEY: settings.enabled_keys()}
 
 
+def category_of(record: Record) -> str:
+    """The data category a record belongs to."""
+    return CATEGORY_RECYCLING if isinstance(record, RecyclingEvent) else CATEGORY_HDV
+
+
 class FilteringWriter:
-    """Forwards records to a sink only while their category is enabled (all records are HDV today)."""
+    """Forwards records to a sink only while their category is enabled."""
 
     def __init__(self, sink: RecordSink, settings: CategorySettings) -> None:
         self._sink = sink
         self._settings = settings
 
-    def submit(self, record: LotPrice | MarketStats) -> None:
-        """Forward the record when the HDV category is enabled; drop it otherwise."""
-        if self._settings.is_enabled(CATEGORY_HDV):
+    def submit(self, record: Record) -> None:
+        """Forward the record when its category is enabled; drop it otherwise."""
+        if self._settings.is_enabled(category_of(record)):
             self._sink.submit(record)

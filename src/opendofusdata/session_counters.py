@@ -5,13 +5,13 @@ from collections.abc import Callable
 from datetime import datetime
 from typing import Protocol
 
-from opendofusdata.records import LotPrice, MarketStats
+from opendofusdata.records import LotPrice, Record, RecyclingEvent
 
 
 class RecordSink(Protocol):
     """Anything that accepts decoded records (the StoreWriter)."""
 
-    def submit(self, record: LotPrice | MarketStats) -> None: ...
+    def submit(self, record: Record) -> None: ...
 
 
 class SessionCounters:
@@ -21,16 +21,24 @@ class SessionCounters:
         self._lock = threading.Lock()
         self._price_count = 0
         self._stats_count = 0
+        self._recycling_count = 0
         self._last_record_at: datetime | None = None
 
-    def record(self, record: LotPrice | MarketStats, moment: datetime) -> None:
+    def record(self, record: Record, moment: datetime) -> None:
         """Count one record received at the given moment."""
         with self._lock:
             if isinstance(record, LotPrice):
                 self._price_count += 1
+            elif isinstance(record, RecyclingEvent):
+                self._recycling_count += 1
             else:
                 self._stats_count += 1
             self._last_record_at = moment
+
+    def recycling_count(self) -> int:
+        """Number of recyclings recorded in this session."""
+        with self._lock:
+            return self._recycling_count
 
     def read(self) -> tuple[int, int, datetime | None]:
         """Return (price records, stats records, time of the last record)."""
@@ -46,7 +54,7 @@ class CountingWriter:
         self._counters = counters
         self._now = now
 
-    def submit(self, record: LotPrice | MarketStats) -> None:
+    def submit(self, record: Record) -> None:
         """Queue the record in the sink, then count it."""
         self._sink.submit(record)
         self._counters.record(record, self._now())

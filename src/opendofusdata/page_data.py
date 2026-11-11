@@ -7,7 +7,9 @@ import customtkinter
 
 from opendofusdata.app_config import load_config, save_config
 from opendofusdata.capture_session import SessionSnapshot
-from opendofusdata.categories import CATEGORIES, CATEGORY_HDV, DataCategory, config_with_categories
+from opendofusdata.categories import (
+    CATEGORIES, CATEGORY_HDV, CATEGORY_RECYCLING, DataCategory, config_with_categories,
+)
 from opendofusdata.ui_theme import (
     ACCENT_COLOR, ERROR_COLOR, MUTED_COLOR, PADDING, SMALL_PADDING, SWITCH_WIDTH, WRAP_LENGTH,
 )
@@ -73,5 +75,6 @@ class DataPage:
         self.message_label.configure(text="")
 
     def render(self, snapshot: SessionSnapshot) -> None:
-        """Refresh the HDV counter (the other categories have no decoder yet)."""
+        """Refresh the counters of the categories that have a decoder."""
         self.rows[CATEGORY_HDV].count_label.configure(text=records_text(total_records(snapshot)))
+        self.rows[CATEGORY_RECYCLING].count_label.configure(text=records_text(snapshot.recycling_count))

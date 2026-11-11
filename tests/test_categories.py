@@ -45,8 +45,8 @@ def test_set_enabled_round_trips_through_config() -> None:
     assert categories_from_config(config).is_enabled(CATEGORY_HDV) is False
 
 
-def test_only_hdv_is_available_today() -> None:
-    assert [category.key for category in CATEGORIES if category.available] == [CATEGORY_HDV]
+def test_only_hdv_and_recycling_are_available_today() -> None:
+    assert [category.key for category in CATEGORIES if category.available] == [CATEGORY_HDV, "recycling"]
     assert [category.key for category in CATEGORIES] == ["hdv", "recycling", "breaking", "pets"]
 
 

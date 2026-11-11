@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from opendofusdata.categories import CATEGORY_HDV, CATEGORY_LABELS
-from opendofusdata.records import MARKET_PERIODS, LotPrice, MarketStats
+from opendofusdata.records import MARKET_PERIODS, LotPrice, Record, RecyclingEvent
 from opendofusdata.session_counters import RecordSink
 
 MAX_LOG_LINES = 200
@@ -15,12 +15,14 @@ TIME_FORMAT = "%H:%M:%S"
 NameLookup = Callable[[int], str]
 LOG_COLUMNS = ("Heure", "Type", "Objet", "Détail", "Valeur")
 HDV_LABEL = CATEGORY_LABELS[CATEGORY_HDV]
+RECYCLING_LABEL = "Recyclage"
+ITEM_SEPARATOR = ", "
 PERIOD_UNITS = {"h": "h", "d": "j"}  # hours stay h, days become j (jours)
 PERIOD_LABELS = {period: f"stats {period[:-1]} {PERIOD_UNITS[period[-1]]}" for period in MARKET_PERIODS}
 LOT_DETAIL = "lot ×{size}"
 
 
-LOG_COLUMN_WIDTHS = (8, 4, 44, 10, 8)
+LOG_COLUMN_WIDTHS = (8, 9, 40, 10, 10)
 COLUMN_SEPARATOR = "  "
 ELLIPSIS = "…"
 
@@ -47,6 +49,7 @@ class LogEntry:
     item_id: int
     detail: str
     value: str
+    items: tuple[tuple[int, int], ...] = ()
 
 
 def format_number(value: int) -> str:
@@ -54,8 +57,16 @@ def format_number(value: int) -> str:
     return f"{value:,}".replace(",", " ")
 
 
-def entry_from_record(record: LotPrice | MarketStats, moment: datetime) -> LogEntry:
-    """Summarise a lot price (price of the lot) or market stats (median)."""
+def _plural(count: int, word: str) -> str:
+    return f"{count} {word}" + ("s" if count > 1 else "")
+
+
+def entry_from_record(record: Record, moment: datetime) -> LogEntry:
+    """Summarise a lot price (price of the lot), market stats (median) or a recycling."""
+    if isinstance(record, RecyclingEvent):
+        first_item = record.items[0][0] if record.items else 0
+        return LogEntry(moment, RECYCLING_LABEL, first_item, _plural(len(record.items), "objet"),
+                        _plural(record.nuggets, "Pépite"), record.items)
     if isinstance(record, LotPrice):
         return LogEntry(moment, HDV_LABEL, record.item_id,
                         LOT_DETAIL.format(size=record.lot_size), format_number(record.price))
@@ -66,7 +77,11 @@ def entry_from_record(record: LotPrice | MarketStats, moment: datetime) -> LogEn
 def format_log_row(entry: LogEntry, name_of: NameLookup) -> tuple[str, str, str, str, str]:
     """The five displayed cells: time (local), type, item name, detail, value."""
     shown_time = entry.moment.astimezone().strftime(TIME_FORMAT)
-    return shown_time, entry.category, name_of(entry.item_id), entry.detail, entry.value
+    if entry.items:
+        name = ITEM_SEPARATOR.join(f"{name_of(item_id)} ×{quantity}" for item_id, quantity in entry.items)
+    else:
+        name = name_of(entry.item_id)
+    return shown_time, entry.category, name, entry.detail, entry.value
 
 
 class LogFeed:
@@ -89,7 +104,7 @@ class LogFeed:
         with self._lock:
             return self._visible
 
-    def add(self, record: LotPrice | MarketStats, moment: datetime) -> None:
+    def add(self, record: Record, moment: datetime) -> None:
         """Remember a record when the feed is visible; ignore it otherwise."""
         with self._lock:
             if self._visible:
@@ -109,7 +124,7 @@ class FeedWriter:
         self._feed = feed
         self._now = now
 
-    def submit(self, record: LotPrice | MarketStats) -> None:
+    def submit(self, record: Record) -> None:
         """Queue the record in the sink, then feed the log."""
         self._sink.submit(record)
         self._feed.add(record, self._now())

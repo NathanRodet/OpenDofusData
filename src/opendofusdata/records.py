@@ -17,6 +17,16 @@ class LotPrice:
     captured_at: str
 
 
+@dataclass(frozen=True)
+class RecyclingEvent:
+    """One recycling: what was in the window (item id, quantity) and the nuggets obtained."""
+
+    server: str
+    items: tuple[tuple[int, int], ...]
+    nuggets: int
+    captured_at: str
+
+
 @dataclass
 class MarketStats:
     """Market statistics of an item over a period, with its price curve."""
@@ -31,3 +41,5 @@ class MarketStats:
     server_updated_at: str
     last_purchase_at: str
     captured_at: str
+
+Record = LotPrice | MarketStats | RecyclingEvent

@@ -8,7 +8,11 @@ import threading
 from collections.abc import Iterator
 
 from opendofusdata.names_schema import NAMES_SCHEMA_STATEMENTS
-from opendofusdata.records import LOT_SIZES, MARKET_PERIODS, LotPrice, MarketStats
+from opendofusdata.recycling_store import (
+    INSERT_RECYCLING_SQL, RECYCLING_SCHEMA_STATEMENTS, SELECT_RECYCLING_SQL, recycling_from_row,
+    recycling_values,
+)
+from opendofusdata.records import LOT_SIZES, MARKET_PERIODS, LotPrice, MarketStats, Record, RecyclingEvent
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +52,7 @@ class PriceStore:
     def __init__(self, path: str) -> None:
         connection = sqlite3.connect(path, timeout=BUSY_TIMEOUT_SECONDS)
         try:
-            for statement in (*SCHEMA_STATEMENTS, *NAMES_SCHEMA_STATEMENTS):
+            for statement in (*SCHEMA_STATEMENTS, *NAMES_SCHEMA_STATEMENTS, *RECYCLING_SCHEMA_STATEMENTS):
                 connection.execute(statement)
             connection.commit()
         except sqlite3.Error:
@@ -71,6 +75,14 @@ class PriceStore:
                stats.mean, stats.sold_count, stats.server_updated_at, stats.last_purchase_at,
                stats.captured_at)
         self._insert(f"INSERT INTO market_stats ({STATS_COLUMNS}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", row)
+
+    def save_recycling_event(self, event: RecyclingEvent) -> None:
+        """Append one recycling (the items of the window and the nuggets obtained)."""
+        self._insert(INSERT_RECYCLING_SQL, recycling_values(event))
+
+    def recycling_events(self) -> list[RecyclingEvent]:
+        """Every stored recycling, oldest first."""
+        return [recycling_from_row(row) for row in self._open().execute(SELECT_RECYCLING_SQL)]
 
     def latest_prices(self, item_id: int | None = None) -> list[LotPrice]:
         """Return the most recent price per (item, server, lot size)."""
@@ -130,7 +142,7 @@ class StoreWriter:
 
     def __init__(self, store_path: str) -> None:
         self._store_path = store_path
-        self._queue: queue.Queue[LotPrice | MarketStats | None] = queue.Queue()
+        self._queue: queue.Queue[Record | None] = queue.Queue()
         self._stopped, self._open_error = False, None
         self._opened = threading.Event()
         self._thread = threading.Thread(target=self._run, name="store-writer", daemon=True)
@@ -140,7 +152,7 @@ class StoreWriter:
             self._thread.join()
             raise self._open_error
 
-    def submit(self, record: LotPrice | MarketStats) -> None:
+    def submit(self, record: Record) -> None:
         """Queue a record for saving without blocking; raise RuntimeError after stop()."""
         if self._stopped:
             raise RuntimeError("StoreWriter is stopped")
@@ -171,12 +183,14 @@ class StoreWriter:
             store.close()
 
     @staticmethod
-    def _save(store: PriceStore, record: LotPrice | MarketStats) -> None:
+    def _save(store: PriceStore, record: Record) -> None:
         # Broad catch on purpose: this is the thread boundary, the error is logged
         # and the thread must survive to keep saving later records.
         try:
             if isinstance(record, LotPrice):
                 store.save_lot_price(record)
+            elif isinstance(record, RecyclingEvent):
+                store.save_recycling_event(record)
             else:
                 store.save_market_stats(record)
         except Exception:

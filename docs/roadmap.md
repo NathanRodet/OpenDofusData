@@ -36,7 +36,7 @@ L'outil collectera quatre catégories: données HDV (fait), données de recyclag
 ## Pistes facultatives
 
 - Caractéristiques (effets) des équipements dans l'HDV: non décodées.
-- Recyclage: un ancien constat indiquait que le taux de recyclage est calculé côté client et absent du réseau; la collecte vise donc ce que le trafic expose réellement (à vérifier avec la capture).
+- Recyclage: confirmé, le taux est calculé côté client et absent du réseau; la catégorie enregistre donc les objets recyclés et les Pépites obtenues (voir docs/protocol-notes.md), le taux se déduira de nombreux recyclages.
 - Avertir quand le décodage ne voit plus rien après une mise à jour du jeu: pas de signal fiable aujourd'hui (rien n'est décodé tant que le joueur n'ouvre pas l'HDV), donc pas d'alerte pour éviter les fausses alarmes.
 - `names-import` réduirait la table `servers` de la base locale de 27 à 15 lignes (CSV filtré aux serveurs classiques): non exécuté.
 - Les noms de messages obfusqués (`jzs`, `ire`, `kcy`, `iqp`) changent à chaque version du jeu: `messages.py` est à remettre à jour avec le mode `discover`.
