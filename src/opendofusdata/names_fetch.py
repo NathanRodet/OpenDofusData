@@ -32,6 +32,7 @@ RETRY_BACKOFF_SECONDS = 1.0
 MAX_RESPONSE_BYTES = 8 * 1024 * 1024
 PROGRESS_EVERY_PAGES = 20
 HTTP_TOO_MANY_REQUESTS = 429
+HTTP_NOT_FOUND = 404
 HTTP_SERVER_ERROR_FIRST = 500
 HTTP_REDIRECT_FIRST = 300
 HTTP_REDIRECT_END = 400
@@ -45,6 +46,10 @@ Progress = Callable[[str], None]
 
 class TransientFetchError(Exception):
     """A temporary failure (network, HTTP 429 or 5xx) worth retrying."""
+
+
+class NotFoundFetchError(NamesFetchError):
+    """The server answered HTTP 404: the resource does not exist (yet)."""
 
 
 @dataclass(frozen=True)
@@ -72,6 +77,8 @@ def _classify_http_error(error: urllib.error.HTTPError) -> Exception:
     if HTTP_REDIRECT_FIRST <= error.code < HTTP_REDIRECT_END:
         return NamesFetchError(
             f"Téléchargement impossible : l'API a demandé une redirection (HTTP {error.code}), refusée.")
+    if error.code == HTTP_NOT_FOUND:
+        return NotFoundFetchError(f"Téléchargement impossible : l'API a répondu HTTP {error.code}.")
     if error.code == HTTP_TOO_MANY_REQUESTS or error.code >= HTTP_SERVER_ERROR_FIRST:
         return TransientFetchError(f"HTTP {error.code}")
     return NamesFetchError(f"Téléchargement impossible : l'API a répondu HTTP {error.code}.")

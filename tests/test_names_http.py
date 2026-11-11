@@ -10,7 +10,9 @@ from collections.abc import Iterator
 import pytest
 
 from opendofusdata import names_fetch
-from opendofusdata.names_fetch import NamesFetchError, TransientFetchError, http_get_json
+from opendofusdata.names_fetch import (
+    NamesFetchError, NotFoundFetchError, TransientFetchError, http_get_json,
+)
 
 LOCAL_HOST = "127.0.0.1"
 
@@ -42,7 +44,7 @@ def test_http_get_json_sends_user_agent_and_parses(monkeypatch) -> None:
 
 
 @pytest.mark.parametrize("code, expected", [(429, TransientFetchError), (503, TransientFetchError),
-                                            (404, NamesFetchError)])
+                                            (404, NotFoundFetchError)])
 def test_http_status_classification(monkeypatch, code, expected) -> None:
     def behaviour():
         raise urllib.error.HTTPError("u", code, "m", None, None)

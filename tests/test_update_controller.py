@@ -1,8 +1,10 @@
 """Tests of the update controller: background check, availability and one-click install."""
 
+import pytest
+
 from opendofusdata.app_links import RELEASES_API_URL
 from opendofusdata.background import TaskState
-from opendofusdata.names_fetch import NamesFetchError
+from opendofusdata.names_fetch import NamesFetchError, NotFoundFetchError
 from opendofusdata.update_controller import UpdateController, check_for_update
 from opendofusdata.update_download import UpdateError
 from opendofusdata.updates import UpdateInfo
@@ -144,3 +146,30 @@ def test_install_uses_the_update_that_was_available_when_it_started() -> None:
     assert updates.wait_for_install(WAIT_SECONDS)
     finish_check(updates)
     assert installed == [NEW_VERSION]
+
+
+def test_no_published_release_is_not_an_error() -> None:
+    def fetch(url: str) -> object:
+        raise NotFoundFetchError("HTTP 404")
+
+    assert check_for_update("1.0.0", fetch) is None
+
+
+def test_other_check_failures_become_a_clear_update_error_and_are_logged(caplog) -> None:
+    def fetch(url: str) -> object:
+        raise NamesFetchError("HTTP 500")
+
+    with pytest.raises(UpdateError, match="GitHub"):
+        check_for_update("1.0.0", fetch)
+    assert "HTTP 500" in caplog.text
+
+
+def test_a_check_without_release_tells_the_player_it_is_up_to_date() -> None:
+    def check() -> None:
+        return check_for_update("1.0.0", lambda url: (_ for _ in ()).throw(NotFoundFetchError("HTTP 404")))
+
+    updates = controller(check=check)
+    updates.start_check()
+    finish_check(updates)
+    assert updates.check_snapshot().state is TaskState.DONE
+    assert "dernière version" in updates.check_snapshot().message

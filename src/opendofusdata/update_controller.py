@@ -1,14 +1,20 @@
 """Update controller: background check, availability and one-click install (no GUI dependency)."""
 
+import logging
 import threading
 from collections.abc import Callable
 
 from opendofusdata.app_links import RELEASES_API_URL
 from opendofusdata.background import BackgroundTask, TaskSnapshot
-from opendofusdata.names_fetch import FetchJson, NamesFetchError, TransientFetchError
+from opendofusdata.names_fetch import (
+    FetchJson, NamesFetchError, NotFoundFetchError, TransientFetchError,
+)
 from opendofusdata.update_download import UpdateError
 from opendofusdata.updates import UpdateInfo, find_update
 
+logger = logging.getLogger(__name__)
+
+CHECK_FAILED_DETAIL = "GitHub est injoignable ou a répondu une erreur (voir le journal)."
 AVAILABLE_MESSAGE = "Version {version} disponible."
 UP_TO_DATE_MESSAGE = "Tu as la dernière version ({version})."
 RESTARTING_MESSAGE = "Redémarrage..."
@@ -18,8 +24,17 @@ Install = Callable[[UpdateInfo], None]
 
 
 def check_for_update(current_version: str, fetch: FetchJson) -> UpdateInfo | None:
-    """Ask GitHub for the latest release (one anonymous GET); None when up to date."""
-    return find_update(fetch(RELEASES_API_URL), current_version)
+    """Ask GitHub for the latest release (one anonymous GET); None when up to date.
+
+    HTTP 404 means no release is published yet: nothing newer, not an error.
+    """
+    try:
+        return find_update(fetch(RELEASES_API_URL), current_version)
+    except NotFoundFetchError:
+        return None
+    except (NamesFetchError, TransientFetchError) as error:
+        logger.warning("update check failed: %s", error)
+        raise UpdateError(CHECK_FAILED_DETAIL) from error
 
 
 class UpdateController:
