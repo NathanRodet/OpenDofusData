@@ -47,10 +47,12 @@ def make_card(parent: customtkinter.CTkBaseClass) -> customtkinter.CTkFrame:
     return card
 
 
-def make_page(parent: customtkinter.CTkBaseClass) -> tuple[customtkinter.CTkFrame, customtkinter.CTkFrame]:
-    """Return (page frame, centred body column of at most PAGE_MAX_WIDTH)."""
+def make_page(
+    parent: customtkinter.CTkBaseClass, max_width: int = PAGE_MAX_WIDTH,
+) -> tuple[customtkinter.CTkFrame, customtkinter.CTkFrame]:
+    """Return (page frame, centred body column of at most `max_width`)."""
     frame = customtkinter.CTkFrame(parent, fg_color=TRANSPARENT, corner_radius=0)
-    body = customtkinter.CTkFrame(frame, width=PAGE_MAX_WIDTH, fg_color=TRANSPARENT)
+    body = customtkinter.CTkFrame(frame, width=max_width, fg_color=TRANSPARENT)
     body.pack_propagate(False)
     body.pack(fill="y", expand=True, padx=PADDING, pady=PADDING)
     return frame, body

@@ -114,3 +114,16 @@ def test_header_line_uses_the_same_widths() -> None:
 
 def test_every_log_column_has_a_width() -> None:
     assert len(LOG_COLUMNS) == len(LOG_COLUMN_WIDTHS)
+
+
+def test_long_item_names_are_shown_in_full_up_to_the_column_width() -> None:
+    name_width = LOG_COLUMN_WIDTHS[2]
+    fitting = "x" * name_width
+    assert fitting in format_log_line(("14:32:05", "HDV", fitting, "lot ×1", "1"))
+    cut = format_log_line(("14:32:05", "HDV", fitting + "y", "lot ×1", "1"))
+    assert fitting not in cut and "…" in cut
+
+
+def test_the_name_column_fits_the_longest_known_item_names() -> None:
+    longest_known = "Âme capturée : Vétaurine des profondeurs"
+    assert len(longest_known) <= LOG_COLUMN_WIDTHS[2]

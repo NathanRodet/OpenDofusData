@@ -5,7 +5,7 @@ import customtkinter
 from opendofusdata.capture_session import SessionSnapshot
 from opendofusdata.log_feed import LOG_COLUMNS, MAX_LOG_LINES, LogEntry, format_log_line, format_log_row
 from opendofusdata.ui_theme import (
-    ACCENT_COLOR, LOG_COLOR, MONOSPACE_FONT, MONOSPACE_SIZE, MUTED_COLOR, PADDING, SMALL_PADDING,
+    ACCENT_COLOR, LOG_COLOR, LOGS_PAGE_MAX_WIDTH, MONOSPACE_FONT, MONOSPACE_SIZE, MUTED_COLOR, PADDING, SMALL_PADDING,
     SWITCH_WIDTH, WRAP_LENGTH,
 )
 from opendofusdata.ui_widgets import add_title, make_card, make_label, make_page
@@ -25,7 +25,7 @@ class LogsPage:
         self._context = context
         self._shown: list[LogEntry] = []
         self._names_used = context.name_of
-        self.frame, body = make_page(parent)
+        self.frame, body = make_page(parent, LOGS_PAGE_MAX_WIDTH)
         add_title(body, TITLE, SUBTITLE)
         self.switch = self._add_switch_row(body)
         font = customtkinter.CTkFont(family=MONOSPACE_FONT, size=MONOSPACE_SIZE)

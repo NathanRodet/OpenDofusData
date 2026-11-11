@@ -20,7 +20,7 @@ PERIOD_LABELS = {period: f"stats {period[:-1]} {PERIOD_UNITS[period[-1]]}" for p
 LOT_DETAIL = "lot ×{size}"
 
 
-LOG_COLUMN_WIDTHS = (8, 4, 26, 10, 8)
+LOG_COLUMN_WIDTHS = (8, 4, 44, 10, 8)
 COLUMN_SEPARATOR = "  "
 ELLIPSIS = "…"
 

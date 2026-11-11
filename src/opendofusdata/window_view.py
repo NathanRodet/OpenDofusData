@@ -7,8 +7,9 @@ import customtkinter
 from opendofusdata.app_links import APP_NAME
 from opendofusdata.capture_session import CaptureStatus
 from opendofusdata.ui_theme import (
-    APPEARANCE_MODE, BUTTON_HEIGHT, COLOR_THEME, CORNER_RADIUS, MENU_BUTTON_WIDTH, MENU_TITLE_SIZE,
-    MIN_HEIGHT, MIN_WIDTH, PADDING, SELECTED_COLOR, SIDEBAR_COLOR, SIDEBAR_WIDTH, SMALL_PADDING,
+    APPEARANCE_MODE, BUTTON_HEIGHT, COLOR_THEME, CORNER_RADIUS, DEFAULT_HEIGHT, DEFAULT_WIDTH,
+    MENU_BUTTON_WIDTH, MENU_TITLE_SIZE, MIN_HEIGHT, MIN_WIDTH, PADDING, SELECTED_COLOR, SIDEBAR_COLOR,
+    SIDEBAR_WIDTH, SMALL_PADDING,
     TEXT_COLOR, TRANSPARENT, WINDOW_COLOR,
 )
 from opendofusdata.ui_widgets import Page, make_button, make_label
@@ -42,7 +43,7 @@ class CaptureWindow:
         customtkinter.set_default_color_theme(COLOR_THEME)
         self._root.title(APP_NAME)
         self._root.minsize(MIN_WIDTH, MIN_HEIGHT)
-        self._root.geometry(f"{MIN_WIDTH}x{MIN_HEIGHT}")
+        self._root.geometry(f"{DEFAULT_WIDTH}x{DEFAULT_HEIGHT}")
         self._root.protocol("WM_DELETE_WINDOW", self.close)
         self._root.grid_columnconfigure(1, weight=1)
         self._root.grid_rowconfigure(0, weight=1)
