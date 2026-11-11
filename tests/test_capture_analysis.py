@@ -115,3 +115,35 @@ def test_the_known_hdv_message_is_found_from_the_item_and_a_price(tmp_path) -> N
 def test_a_value_that_appears_nowhere_is_reported_missing_not_invented() -> None:
     candidates = find_candidates([message("abc", [int_field(1, 1)])], [], {424242})
     assert candidates[0].hits == ()
+
+
+HOSTILE_TYPE = 'abc"\n__import__("os").system("x")\x1b[31m'
+
+
+def test_hostile_message_and_direction_names_are_made_safe() -> None:
+    records = [message(HOSTILE_TYPE, [int_field(1, 5)], direction="to\nclient\x1b[0m")]
+    candidate = find_candidates(records, [], {5})[0]
+    for text in (candidate.type_name, candidate.direction):
+        assert text.isprintable()
+        assert '"' not in text
+        assert "\n" not in text
+    assert candidate.type_name.startswith("abc")
+
+
+def test_a_hostile_name_cannot_break_out_of_the_skeleton() -> None:
+    candidate = find_candidates([message(HOSTILE_TYPE, [int_field(1, 5)])], [], {5})[0]
+    lines = skeleton(candidate).splitlines()
+    assert len(lines) == 2
+    assert lines[0].startswith('NEW_MESSAGE_TYPE = "')
+    assert lines[0].count('"') == 2
+    assert lines[1].startswith("# 5 ")
+
+
+def test_very_long_names_are_cut() -> None:
+    candidate = find_candidates([message("x" * 500, [])], [], set())[0]
+    assert len(candidate.type_name) <= 80
+
+
+def test_normal_names_are_unchanged() -> None:
+    candidate = find_candidates([message("jzs", [])], [], set())[0]
+    assert (candidate.type_name, candidate.direction) == ("jzs", TO_CLIENT)

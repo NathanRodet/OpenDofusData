@@ -11,6 +11,9 @@ logger = logging.getLogger(__name__)
 PATH_SEPARATOR = "."
 PACKED_MARKER = "#"
 SKELETON_NAME = "NEW_MESSAGE_TYPE"
+MAX_LABEL_LENGTH = 80
+SAFE_LABEL_SYMBOLS = "_.:->/ "
+UNSAFE_REPLACEMENT = "?"
 SKELETON_HEADER = '{name} = "{type}"  # {direction}, {count} occurrence(s)'
 SKELETON_HIT = "# {value} trouvé au champ {paths}"
 SKIPPED_LINE_MESSAGE = "ligne %d ignorée (pas un message du journal)"
@@ -87,10 +90,18 @@ def integer_paths(record: dict) -> IntegerPaths:
     return dict(found)
 
 
+def clean_label(text: str) -> str:
+    """A message or direction name made safe to print and to paste (network-derived, so untrusted)."""
+    kept = (char if char.isascii() and (char.isalnum() or char in SAFE_LABEL_SYMBOLS) else UNSAFE_REPLACEMENT
+            for char in text)
+    return "".join(kept)[:MAX_LABEL_LENGTH]
+
+
 def _group(records: Iterable[dict]) -> dict[GroupKey, list[dict]]:
     groups: dict[GroupKey, list[dict]] = defaultdict(list)
     for record in records:
-        groups[(str(record.get("type")), str(record.get("direction")))].append(record)
+        key = (clean_label(str(record.get("type"))), clean_label(str(record.get("direction"))))
+        groups[key].append(record)
     return groups
 
 
