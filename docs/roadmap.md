@@ -8,14 +8,14 @@
 
 ## Fenêtre du client (fait)
 
-- `opendofusdata window`: fenêtre CustomTkinter à menu latéral (Accueil, Données, Logs, Réglages, À propos), thème sombre, redimensionnable. Conception: [docs/superpowers/specs/2026-11-11-player-client-ui-design.md](superpowers/specs/2026-11-11-player-client-ui-design.md). Choisie à la place d'une icône de zone de notification; pas de démarrage automatique avec Windows. L'adresse du site (`SAAS_URL` dans `app_links.py`) est un espace réservé tant que le serveur n'existe pas; le dépôt (`REPOSITORY_URL`) pointe vers https://github.com/weac0/OpenDofusData.
+- `opendofusdata window`: fenêtre CustomTkinter à menu latéral (Accueil, Données, Logs, Réglages, À propos), thème sombre, redimensionnable. Conception: [docs/superpowers/specs/2026-11-11-player-client-ui-design.md](superpowers/specs/2026-11-11-player-client-ui-design.md). Choisie à la place d'une icône de zone de notification; pas de démarrage automatique avec Windows. L'adresse du site (`SAAS_URL` dans `app_links.py`) est un espace réservé tant que le serveur n'existe pas; le dépôt (`REPOSITORY_URL`) pointe vers https://github.com/NathanRodet/OpenDofusData.
 
 ## Packaging et distribution (en cours)
 
 - Fait: `pyproject.toml` et commande `opendofusdata` (sans `.\dev.ps1`).
 - Installateur Windows, démarrage automatique (volontairement absent pour l'instant); sans signature de code (projet open source).
 - Mises à jour, jamais automatiques: quand une nouvelle version existe, un signe de notification apparaît dans la page À propos; un clic récupère la nouvelle version puis relance l'application. À décider avant de construire: où sont publiées les versions (par exemple les Releases du dépôt GitHub), le format d'installation, la vérification d'intégrité du téléchargement, et le fait que la vérification contacte un serveur (la v1 n'envoie rien).
-- Choisir une licence (MIT, GPL, autre). Le dépôt https://github.com/weac0/OpenDofusData est créé; aucun remote n'est encore configuré dans ce dossier.
+- Choisir une licence (MIT, GPL, autre). Le dépôt https://github.com/NathanRodet/OpenDofusData est créé et sert de remote (`origin`).
 
 ## Catégories de données
 
