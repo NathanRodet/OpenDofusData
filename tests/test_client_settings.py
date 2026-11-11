@@ -1,9 +1,11 @@
 """Tests of the persistent client settings helpers."""
 
+import sys
+
 from opendofusdata.client_settings import (
     DATABASE_KEY, DEFAULT_DATABASE, UPDATE_CHECK_KEY, choose_database_path, config_with_database,
-    config_with_server, config_with_update_check, database_from_config, server_names,
-    update_check_enabled,
+    config_with_server, config_with_update_check, database_from_config, default_database_path,
+    server_names, update_check_enabled,
 )
 from opendofusdata.server_choice import SERVER_KEY
 
@@ -48,3 +50,20 @@ def test_config_with_update_check_keeps_other_keys() -> None:
 def test_server_names_are_sorted_and_not_empty() -> None:
     names = server_names()
     assert names and names == sorted(names, key=str.casefold)
+
+
+def test_the_packaged_program_keeps_its_database_in_the_user_folder(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("OPENDOFUSDATA_CONFIG", str(tmp_path / "cfg" / "config.json"))
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    assert default_database_path() == str(tmp_path / "cfg" / "prices.db")
+
+
+def test_a_source_checkout_keeps_the_relative_default(monkeypatch) -> None:
+    monkeypatch.setattr(sys, "frozen", False, raising=False)
+    assert default_database_path() == DEFAULT_DATABASE
+
+
+def test_the_default_database_is_used_when_nothing_else_is_set() -> None:
+    assert choose_database_path(None, {}, "C:/data/prices.db") == "C:/data/prices.db"
+    assert choose_database_path("cli.db", {}, "C:/data/prices.db") == "cli.db"
+    assert choose_database_path(None, {DATABASE_KEY: "saved.db"}, "C:/data/prices.db") == "saved.db"

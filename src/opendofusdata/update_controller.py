@@ -31,6 +31,7 @@ class UpdateController:
         self._check, self._install = check, install
         self._lock = threading.Lock()
         self._info: UpdateInfo | None = None
+        self._installing: UpdateInfo | None = None
         self._restart_requested = False
         self._check_task = BackgroundTask(self._run_check, FAILURES)
         self._install_task = BackgroundTask(self._run_install, FAILURES)
@@ -70,10 +71,13 @@ class UpdateController:
         info = self.available()
         if info is None or not info.can_install or not self.can_self_update:
             return False
+        with self._lock:
+            self._installing = info  # pinned before the thread starts: a later check cannot change it
         return self._install_task.start()
 
     def _run_install(self) -> str:
-        info = self.available()
+        with self._lock:
+            info = self._installing
         self._install(info)
         with self._lock:
             self._restart_requested = True

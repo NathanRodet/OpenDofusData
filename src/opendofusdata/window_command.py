@@ -11,7 +11,9 @@ from opendofusdata.capture_errors import EXIT_OK, fail
 from opendofusdata.capture_session import CaptureSession
 from opendofusdata.capture_stoppable import StoppableCapture, run_stoppable_capture
 from opendofusdata.categories import categories_from_config
-from opendofusdata.client_settings import choose_database_path, server_names, update_check_enabled
+from opendofusdata.client_settings import (
+    choose_database_path, default_database_path, server_names, update_check_enabled,
+)
 from opendofusdata.item_labels import item_labeler_for_database
 from opendofusdata.names_fetch import http_get_json
 from opendofusdata.run_pipeline import Clock, utc_now
@@ -78,7 +80,7 @@ def window_command(
     resolve_run_server(arguments)
     config_path = default_config_path()
     config = load_config(config_path)
-    database = choose_database_path(arguments.db, config)
+    database = choose_database_path(arguments.db, config, default_database_path())
     session = CaptureSession(database, arguments.server, arguments.interface, capture, now,
                              categories=categories_from_config(config))
     return show_window(WindowContext(session, open_online_prices, config_path, server_names(),

@@ -131,3 +131,16 @@ def test_the_inert_controller_never_checks_nor_installs() -> None:
     assert updates.start_check() is False
     assert updates.start_install() is False
     assert updates.available() is None
+
+
+def test_install_uses_the_update_that_was_available_when_it_started() -> None:
+    answers = [NEW_VERSION, None]
+    installed: list[UpdateInfo] = []
+    updates = controller(check=lambda: answers.pop(0), install=installed.append)
+    updates.start_check()
+    finish_check(updates)
+    assert updates.start_install() is True
+    updates.start_check(manual=True)
+    assert updates.wait_for_install(WAIT_SECONDS)
+    finish_check(updates)
+    assert installed == [NEW_VERSION]

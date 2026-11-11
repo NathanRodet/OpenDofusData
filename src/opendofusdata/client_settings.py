@@ -1,7 +1,9 @@
 """Persistent client settings kept in config.json: database path and server (pure helpers)."""
 
+import sys
 from collections.abc import Mapping
 
+from opendofusdata.app_config import default_config_path
 from opendofusdata.game_servers import DEFAULT_SERVERS_PATH, available_servers
 from opendofusdata.server_choice import SERVER_KEY
 
@@ -16,9 +18,17 @@ def database_from_config(config: Mapping[str, object]) -> str | None:
     return saved.strip() or None if isinstance(saved, str) else None
 
 
-def choose_database_path(option: str | None, config: Mapping[str, object]) -> str:
-    """Option first, then the saved path, then the default `prices.db`."""
-    return option or database_from_config(config) or DEFAULT_DATABASE
+def default_database_path() -> str:
+    """`prices.db` in the working folder, or in the user folder for the packaged program."""
+    if getattr(sys, "frozen", False):
+        return str(default_config_path().parent / DEFAULT_DATABASE)
+    return DEFAULT_DATABASE
+
+
+def choose_database_path(option: str | None, config: Mapping[str, object],
+                         default: str = DEFAULT_DATABASE) -> str:
+    """Option first, then the saved path, then the default."""
+    return option or database_from_config(config) or default
 
 
 def config_with_database(config: Mapping[str, object], path: str) -> dict[str, object]:

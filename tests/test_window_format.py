@@ -69,3 +69,9 @@ def test_records_text_uses_the_french_plural() -> None:
 
 def test_total_records_adds_prices_and_stats() -> None:
     assert total_records(snapshot()) == 5
+
+
+def test_an_unchosen_server_is_explained() -> None:
+    unchosen = SessionSnapshot(CaptureStatus.RUNNING, "unknown", 0, 0, None, None)
+    assert server_text(unchosen) == "Serveur : non choisi (à régler dans Réglages)"
+    assert server_text(snapshot()) == "Serveur : Brial"

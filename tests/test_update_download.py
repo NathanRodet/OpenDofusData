@@ -1,10 +1,13 @@
 """Tests of the verified update download (fake fetcher, no network)."""
 
 import hashlib
+import urllib.request
 
 import pytest
 
-from opendofusdata.update_download import UpdateError, download_update, parse_checksum
+from opendofusdata.update_download import (
+    AllowedRedirectHandler, UpdateError, download_update, http_get_bytes, parse_checksum,
+)
 from opendofusdata.updates import UpdateInfo
 
 EXE_URL = "https://github.com/NathanRodet/OpenDofusData/releases/download/v1.1.0/OpenDofusData.exe"
@@ -74,3 +77,18 @@ def test_a_previous_partial_file_is_replaced(tmp_path) -> None:
     target = tmp_path / "OpenDofusData-1.1.0.exe.new"
     target.write_bytes(b"old partial")
     assert download_update(info(), tmp_path, FakeFetcher()).read_bytes() == EXE_BYTES
+
+
+def test_redirects_to_foreign_hosts_are_refused_and_github_ones_followed() -> None:
+    handler = AllowedRedirectHandler()
+    request = urllib.request.Request(EXE_URL)
+    with pytest.raises(UpdateError, match="refusée"):
+        handler.redirect_request(request, None, 302, "Found", {}, "https://evil.example/O.exe")
+    followed = handler.redirect_request(
+        request, None, 302, "Found", {}, "https://objects.githubusercontent.com/release/O.exe")
+    assert followed.full_url == "https://objects.githubusercontent.com/release/O.exe"
+
+
+def test_http_get_bytes_refuses_a_foreign_host_before_any_request() -> None:
+    with pytest.raises(UpdateError, match="refusée"):
+        http_get_bytes("https://evil.example/O.exe", 10)
