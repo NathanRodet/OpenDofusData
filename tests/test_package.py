@@ -16,10 +16,10 @@ def test_product_version_is_a_semantic_version() -> None:
     assert SEMANTIC_VERSION.match(__version__)
 
 
-def test_v1_is_released_as_1_0_0() -> None:
+def test_the_version_never_goes_below_the_first_release() -> None:
     from opendofusdata import __version__
 
-    assert __version__ == "1.0.0"
+    assert tuple(int(part) for part in __version__.split(".")) >= (1, 0, 0)
 
 
 def test_packaging_reads_the_version_from_the_package() -> None:

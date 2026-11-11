@@ -2,7 +2,7 @@
 
 Outil local pour Windows qui capture passivement le trafic réseau de Dofus 3 (TCP 5555) avec Npcap et Scapy, décode les messages utiles et les stocke dans une base SQLite locale. Objectif global: ce client récolte les données, les stocke en SQLite, puis alimentera à terme un serveur distant (synchronisation et serveur hors périmètre de la v1). La v1 n'envoie rien à l'extérieur.
 
-**Version actuelle : 1.0.0** (la v1 : capture locale de l'HDV, fenêtre joueur). Elle est affichée dans la page À propos de la fenêtre.
+**Version actuelle : 1.1.0** (capture locale de l'HDV, fenêtre joueur, mises à jour; recyclage, brisage et familiers en bêta). Elle est affichée dans la page À propos de la fenêtre.
 
 ## Données collectées
 

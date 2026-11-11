@@ -1,6 +1,6 @@
 # Feuille de route
 
-État au 2026-11-11: la v1 (capture locale, décodage des prix de lots et des cours du marché, base SQLite, noms d'objets, choix du serveur, fenêtre joueur, exécutable et mises à jour) est terminée. Version du produit: 1.0.0 (tag `v1.0.0`, pas encore publié sur GitHub).
+État au 2026-11-11: la v1 (capture locale, décodage des prix de lots et des cours du marché, base SQLite, noms d'objets, choix du serveur, fenêtre joueur, exécutable et mises à jour) est terminée. Version du produit: 1.1.0 (tags `v1.0.0` publié, `v1.1.0` à publier: recyclage, brisage et familiers en bêta, correction de la reconnaissance des objets ramassés après la connexion).
 
 ## Validé en jeu
 
