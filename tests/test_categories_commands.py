@@ -4,7 +4,8 @@ import json
 import os
 from pathlib import Path
 
-from opendofusdata import cli
+from opendofusdata import categories_commands, cli
+from opendofusdata.categories import CATEGORIES, KNOWN_KEYS, DataCategory
 from opendofusdata.capture_errors import EXIT_FAILED, EXIT_OK
 
 
@@ -21,7 +22,9 @@ def test_listing_shows_the_four_categories_and_their_state(capsys) -> None:
     output = capsys.readouterr().out
     for label in ("HDV", "Recyclage des ressources", "Brisage", "Expérience des pets"):
         assert label in output
-    assert "activée" in output and "bientôt" in output
+    assert "activée" in output
+    assert "désactivée" in output
+    assert "bêta" in output
 
 
 def test_disable_hdv_is_saved_and_survives_a_listing(capsys) -> None:
@@ -43,8 +46,11 @@ def test_unknown_category_fails_and_lists_the_known_keys(capsys) -> None:
     assert "xyz" in error and "hdv" in error
 
 
-def test_a_category_without_decoder_cannot_be_enabled(capsys) -> None:
-    assert run("--enable", "breaking") == EXIT_FAILED
+def test_a_category_without_decoder_cannot_be_enabled(monkeypatch, capsys) -> None:
+    future = (*CATEGORIES, DataCategory("future", "Future", False))
+    monkeypatch.setattr(categories_commands, "CATEGORIES", future)
+    monkeypatch.setattr(categories_commands, "KNOWN_KEYS", (*KNOWN_KEYS, "future"))
+    assert run("--enable", "future") == EXIT_FAILED
     assert "pas encore disponible" in capsys.readouterr().err
 
 

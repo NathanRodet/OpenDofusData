@@ -45,8 +45,8 @@ def test_set_enabled_round_trips_through_config() -> None:
     assert categories_from_config(config).is_enabled(CATEGORY_HDV) is False
 
 
-def test_only_breaking_has_no_decoder_yet() -> None:
-    assert [category.key for category in CATEGORIES if not category.available] == ["breaking"]
+def test_every_category_has_a_decoder_now() -> None:
+    assert all(category.available for category in CATEGORIES)
     assert [category.key for category in CATEGORIES] == ["hdv", "recycling", "breaking", "pets"]
 
 

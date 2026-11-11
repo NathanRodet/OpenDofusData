@@ -1,10 +1,15 @@
 """Data categories the player can enable or disable, and the writer that filters on them."""
 
+import logging
 import threading
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
-from opendofusdata.records import PetFeeding, Record, RecyclingEvent
+from opendofusdata.records import (
+    BreakingEvent, LotPrice, MarketStats, PetFeeding, Record, RecyclingEvent,
+)
+
+logger = logging.getLogger(__name__)
 from opendofusdata.session_counters import RecordSink
 
 CATEGORY_HDV = "hdv"
@@ -26,7 +31,7 @@ class DataCategory:
 CATEGORIES = (
     DataCategory(CATEGORY_HDV, "HDV", True),
     DataCategory(CATEGORY_RECYCLING, "Recyclage des ressources (bêta)", True),
-    DataCategory(CATEGORY_BREAKING, "Brisage", False),
+    DataCategory(CATEGORY_BREAKING, "Brisage (bêta)", True),
     DataCategory(CATEGORY_PETS, "Expérience des pets (bêta)", True),
 )
 KNOWN_KEYS = tuple(category.key for category in CATEGORIES)
@@ -72,11 +77,18 @@ def config_with_categories(config: Mapping[str, object], settings: CategorySetti
     return {**config, ENABLED_KEY: settings.enabled_keys()}
 
 
-def category_of(record: Record) -> str:
-    """The data category a record belongs to."""
-    if isinstance(record, RecyclingEvent):
-        return CATEGORY_RECYCLING
-    return CATEGORY_PETS if isinstance(record, PetFeeding) else CATEGORY_HDV
+CATEGORY_BY_TYPE: dict[type, str] = {
+    LotPrice: CATEGORY_HDV,
+    MarketStats: CATEGORY_HDV,
+    RecyclingEvent: CATEGORY_RECYCLING,
+    PetFeeding: CATEGORY_PETS,
+    BreakingEvent: CATEGORY_BREAKING,
+}
+
+
+def category_of(record: Record) -> str | None:
+    """The data category of a record; None for a type nobody declared (it is then never stored)."""
+    return CATEGORY_BY_TYPE.get(type(record))
 
 
 class FilteringWriter:
@@ -87,6 +99,9 @@ class FilteringWriter:
         self._settings = settings
 
     def submit(self, record: Record) -> None:
-        """Forward the record when its category is enabled; drop it otherwise."""
-        if self._settings.is_enabled(category_of(record)):
+        """Forward the record when its category is enabled; drop it (and an undeclared type) otherwise."""
+        category = category_of(record)
+        if category is None:
+            logger.warning("record of undeclared type %s dropped", type(record).__name__)
+        elif self._settings.is_enabled(category):
             self._sink.submit(record)

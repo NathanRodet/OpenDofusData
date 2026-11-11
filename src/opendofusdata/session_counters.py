@@ -5,7 +5,7 @@ from collections.abc import Callable
 from datetime import datetime
 from typing import Protocol
 
-from opendofusdata.records import LotPrice, PetFeeding, Record, RecyclingEvent
+from opendofusdata.records import BreakingEvent, LotPrice, PetFeeding, Record, RecyclingEvent
 
 
 class RecordSink(Protocol):
@@ -23,6 +23,7 @@ class SessionCounters:
         self._stats_count = 0
         self._recycling_count = 0
         self._pet_count = 0
+        self._breaking_count = 0
         self._last_record_at: datetime | None = None
 
     def record(self, record: Record, moment: datetime) -> None:
@@ -34,6 +35,8 @@ class SessionCounters:
                 self._recycling_count += 1
             elif isinstance(record, PetFeeding):
                 self._pet_count += 1
+            elif isinstance(record, BreakingEvent):
+                self._breaking_count += 1
             else:
                 self._stats_count += 1
             self._last_record_at = moment
@@ -47,6 +50,11 @@ class SessionCounters:
         """Number of pet upgrades recorded in this session."""
         with self._lock:
             return self._pet_count
+
+    def breaking_count(self) -> int:
+        """Number of breakings recorded in this session."""
+        with self._lock:
+            return self._breaking_count
 
     def read(self) -> tuple[int, int, datetime | None]:
         """Return (price records, stats records, time of the last record)."""

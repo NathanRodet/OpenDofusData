@@ -25,7 +25,16 @@
 
 ## Catégories de données
 
-L'outil collectera quatre catégories: données HDV (fait), données de recyclage des ressources, données de brisage, données d'expérience des pets. Les trois dernières demandent d'abord une capture en jeu pour identifier les messages (noms obfusqués, champs non documentés: un décodeur écrit sans capture serait faux sans le montrer). `opendofusdata analyze` retrouve le message qui contient les nombres lus à l'écran à partir de deux journaux `discover`: voir [docs/new-categories.md](new-categories.md). En attente des captures du propriétaire. Ensuite, un décodeur par catégorie, enregistré dans `categories.py` (`available=True`) et filtré aussi à l'envoi quand la synchronisation existera.
+Les quatre catégories sont décodées: HDV (validée en jeu), et en **bêta, désactivées par défaut**, recyclage, brisage et familiers, écrits à partir de captures d'un seul joueur et vérifiés contre ses captures d'écran (structure des messages: [docs/protocol-notes.md](protocol-notes.md)). Chaque catégorie a son interrupteur, son compteur et ses lignes dans les Logs, et sa propre table dans `prices.db`.
+
+À faire pour sortir de la bêta, avec les tests en jeu du propriétaire:
+- Activer chaque catégorie dans la page Données, refaire l'action et comparer les Logs à l'écran.
+- Recyclage: confirmer qu'un recyclage de plusieurs objets différents est complet.
+- Brisage: concasser plusieurs exemplaires d'un même équipement (quantité > 1) et des objets de niveaux variés.
+- Familiers: lancer l'outil avant la connexion, faire plusieurs améliorations (dont une montée de niveau) et comparer l'état avant et après.
+- Estimer ensuite les rendements (Pépites par objet recyclé, coefficients de brisage, expérience par ressource) à partir des enregistrements cumulés: aucune de ces valeurs n'est envoyée par le jeu, le client les calcule.
+
+Le guide pour capturer de nouveaux cas: [docs/new-categories.md](new-categories.md).
 
 ## Synchronisation et serveur (plus tard)
 

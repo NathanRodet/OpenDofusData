@@ -64,13 +64,28 @@ Captures `captures/recyclage-*.jsonl` (structure seule), vérifiées contre l'é
 - Non présents sur le réseau (donc calculés par le client): les rendements par objet (0,33 / 1,47 / 0,07 / 0,41, 3,30 pour 1000 Os de Chafer...), la valeur estimée (somme des prix moyens × quantités: 47130 + 252180 + 45400 + 185080 = 529790) et la capacité 4/800. Le jeu n'envoie donc jamais le taux: il se déduit en cumulant de nombreux recyclages (objets recyclés → Pépites obtenues), ce que fait la catégorie.
 - Ce qui reste à valider: l'identifiant d'objet de la Pépite (14635) n'apparaît pas dans ces messages (le résultat n'est qu'une quantité), ce qui suffit puisque le recyclage ne donne que des Pépites.
 
-## Familiers, amélioration (une capture, hypothèses)
+## Familiers, amélioration (décodé, deux captures du 2026-11-11)
 
-Capture `captures/familier-temoin.jsonl`: une amélioration validée (125 Os de Chafer et 2 Œil de Truchtine). L'aperçu des gains du jeu (+5 expérience, +8 niveaux...) n'est jamais envoyé: il est calculé par le client.
+Captures `captures/familier-temoin.jsonl` et `captures/session-complete.jsonl` (cette dernière démarrée avant la connexion, avec `--max-fields 100000`). Constantes dans `messages.py`, suiveur dans `pets.py`.
 
-- Valider: client `irb` {2 = instance du familier, 3 = liste de {1 = quantité, 3 = instance de la pile}}; les objets ne sont désignés que par leur instance, jamais par leur identifiant d'objet.
-- Réponse: `irx` des piles consommées (nouvelle quantité) et `iqy` (le familier mis à jour: 1.1.4 = 6716, 1.1.5 = instance du familier, effets dans 1.1.7).
-- Manque: la correspondance instance → identifiant d'objet (l'inventaire envoyé à la connexion) et l'état du familier avant et après pour en déduire les gains. Voir [docs/new-categories.md](new-categories.md).
+- **Inventaire à la connexion:** serveur `irl`, champ 2 répété {1 = objet, 4 = conteneur}; objet {3 = quantité, 4 = **identifiant d'objet DofusDB**, 5 = **identifiant d'instance**, 7 = effets répétés}. 402 objets dans la capture. **L'identifiant d'instance change à chaque connexion** (l'Os de Chafer était 4854825, puis 2668079): la correspondance instance → objet ne se lit que dans l'inventaire de la même connexion, donc l'outil doit être lancé AVANT de se connecter au jeu.
+- **Valider une amélioration:** client `irb` {2 = instance du familier, 3 = liste répétée de {1 = quantité, 3 = instance de la pile}}. Les ressources ne sont désignées que par leur instance (2668079 = Os de Chafer dans l'inventaire de la même session).
+- **Réponse:** serveur `irx` {3.1 = quantité restante, 3.3 = instance} pour chaque pile consommée (4787 − 100...), et `iqy` {1 = {1 = le familier mis à jour, 4 = conteneur}}.
+- **Effets d'un familier** (champ 7 de l'objet, un message par effet): identifiant d'effet au champ 10. **176 = prospection** (valeur au champ 5). **2821 = niveau** (détail au champ 9: 9.4 = niveau actuel). **2819 = expérience** (9.4 = expérience actuelle, 9.2 = maximum du niveau). Vérifié: avant 257 → après 262, soit +5, exactement l'aperçu « EXPÉRIENCE +5 » du jeu; et dans la première capture, 31 → 32 (« +1 NIVEAU ») et prospection 45 → 46 (« +1 Prospection »).
+- **Non présents sur le réseau** (donc calculés par le client): l'aperçu des gains avant validation (+5, +335, +9 prospection...). Le gain réel se déduit de l'état du familier avant (inventaire ou mise à jour précédente) et après (`iqy`).
+- **Limites:** sans l'inventaire de la connexion (outil lancé après la connexion), les ressources ne peuvent pas être attribuées à un objet et l'amélioration n'est pas enregistrée.
+
+## Brisage, concasseur (décodé, une capture du 2026-11-11)
+
+Capture `captures/brisage-1.jsonl`: trois concassages (1 Lisseur; 4 Volkornes; 2 Volkornes), vérifiés contre l'écran. Suiveur dans `breaking.py`, fenêtre partagée avec le recyclage dans `crafting_window.py`.
+
+- **La fenêtre du Concasseur utilise les mêmes messages que celle du recyclage:** ouverture `itz` / `itv`, ajout client `jys` puis serveur `kch` (identifiant d'objet, quantité, instance), changement de quantité `kdr` (nouveau total), fermeture client `kiq`.
+- **Briser:** client `jxy` {1 = compteur croissant, 3 = 1} puis serveur `kec`, puis le résultat `kag`.
+- **Résultat `kag`:** champ 1 répété, un par objet détruit: {1 = **coefficient**, 2 = quasi identique, 3 = instance de l'objet détruit, 4 = runes répétées {1 = quantité, 2 = identifiant d'objet de la rune}}. Les champs 1 et 2 sont des flottants 32 bits: 1056964608 = 0,5 (50 %), 1057528607 = 0,53362 (le « 53 % » du Lisseur); le champ 2 diffère à peine (0,533616), seul le champ 1 est gardé. Un objet sans rune (le Lisseur) n'a pas de champ 4.
+- **Vérifié:** Lisseur (942): 53 %, aucune rune. Volkorne Orchidée (33199): 50 %, Rune Ga Pa (1557) ×1 et Rune Ine (1522) ×38. Volkorne Ébène (33166): 50 %, Rune Age (1524) ×38 puis ×39. Volkorne Pourpre (33202): 50 %, Ga Pa ×1 et Rune Fo (1519) ×38. Tout correspond aux captures d'écran « Résultat du concassage ».
+- **Non présents sur le réseau:** les valeurs estimées des objets détruits et des runes (162, 62949, 87606...).
+- **Partage avec le recyclage:** les ajouts d'objets sont les mêmes messages; les deux suiveurs se vident mutuellement au résultat de l'autre (`kdd` / `kag`) pour qu'un objet du Concasseur ne se retrouve pas dans un recyclage.
+- **À valider:** les concassages de plusieurs exemplaires d'un même équipement (quantité > 1), et si le champ 2 diffère de plus d'un millionième du champ 1 dans d'autres cas.
 
 ## Autres messages vus (hors périmètre)
 

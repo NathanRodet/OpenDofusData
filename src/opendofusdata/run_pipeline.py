@@ -11,6 +11,8 @@ from opendofusdata.capture_errors import CaptureFunction, fail, run_guarded_capt
 from opendofusdata.framing import Envelope
 from opendofusdata.hdv import decode_lot_prices
 from opendofusdata.market_stats import decode_market_stats
+from opendofusdata.breaking import BreakingTracker
+from opendofusdata.categories import DEFAULT_ENABLED, CategorySettings, FilteringWriter
 from opendofusdata.pets import PetTracker
 from opendofusdata.recycling import RecyclingTracker
 from opendofusdata.records import LotPrice, MarketStats
@@ -46,6 +48,7 @@ class EnvelopeHandler:
         self._echo = echo
         self._recycling = RecyclingTracker(server)
         self._pets = PetTracker(server)
+        self._breaking = BreakingTracker(server)
         self.submitted_count = 0
 
     def __call__(self, envelope: Envelope, key: FlowKey) -> None:
@@ -55,7 +58,8 @@ class EnvelopeHandler:
         self._log(lots, stats)
         from_server = direction_of(key) == DIRECTION_TO_CLIENT
         others = [self._recycling.feed(envelope, from_server, captured_at),
-                  self._pets.feed(envelope, from_server, captured_at)]
+                  self._pets.feed(envelope, from_server, captured_at),
+                  self._breaking.feed(envelope, from_server, captured_at)]
         for record in [*lots, *stats, *(record for record in others if record)]:
             self._writer.submit(record)
             self.submitted_count += 1
@@ -105,8 +109,11 @@ def _capture_and_drain(
         writer.stop()
 
 
-def run_command(arguments: argparse.Namespace, capture: CaptureFunction, now: Clock) -> int:
-    """Capture HDV traffic into the database until Ctrl+C."""
+def run_command(
+    arguments: argparse.Namespace, capture: CaptureFunction, now: Clock,
+    categories: CategorySettings | None = None,
+) -> int:
+    """Capture into the database until Ctrl+C, recording only the enabled categories (HDV by default)."""
     try:
         writer = StoreWriter(arguments.db)
     except (sqlite3.Error, OSError) as error:
@@ -115,5 +122,6 @@ def run_command(arguments: argparse.Namespace, capture: CaptureFunction, now: Cl
     print(f"Base de données : {arguments.db}. Serveur enregistré : {arguments.server}{label}. "
           "Ctrl+C pour arrêter.")
     echo = print if arguments.verbose else None
-    handler = make_envelope_handler(writer, arguments.server, now, echo)
+    consent = categories if categories is not None else CategorySettings(DEFAULT_ENABLED)
+    handler = make_envelope_handler(FilteringWriter(writer, consent), arguments.server, now, echo)
     return _capture_and_drain(writer, handler, arguments.interface, capture)

@@ -38,6 +38,7 @@ from opendofusdata.records import PetFeeding, PetState
 
 logger = logging.getLogger(__name__)
 
+MAX_KNOWN_OBJECTS = 20_000  # an inventory is a few thousand objects at most
 KnownObject = tuple[int, list[Field]]  # (item id, the object's fields)
 Pending = tuple[int, PetState, tuple[tuple[int, int], ...]]  # (pet instance, state before, resources)
 
@@ -112,28 +113,34 @@ class PetTracker:
         objects: dict[int, KnownObject] = {}
         for entry in _messages(decode_fields(payload), INVENTORY_ENTRY_FIELD):
             read = _read_object(entry, OBJECT_FIELD)
-            if read is not None:
+            if read is not None and len(objects) < MAX_KNOWN_OBJECTS:
                 objects[read[0]] = read[1]
         self._objects, self._pending = objects, None
 
     def _request(self, payload: bytes) -> None:
         fields = decode_fields(payload)
-        pet = self._objects.get(_varint(fields, PET_FEED_PET_FIELD) or 0)
-        resources = self._resources(_messages(fields, PET_FEED_RESOURCE_FIELD))
         pet_instance = _varint(fields, PET_FEED_PET_FIELD)
+        pet = self._objects.get(pet_instance) if pet_instance is not None else None
+        resources = self._resources(_messages(fields, PET_FEED_RESOURCE_FIELD))
         self._pending = None
-        if pet is not None and resources and pet_instance is not None:
+        if pet is not None and resources:
             self._pending = (pet_instance, pet_state_of(pet[1]), resources)
 
     def _resources(self, requested: list[list[Field]]) -> tuple[tuple[int, int], ...]:
         resources = []
         for resource in requested:
-            known = self._objects.get(_varint(resource, PET_FEED_STACK_FIELD) or 0)
+            stack = _varint(resource, PET_FEED_STACK_FIELD)
+            known = self._objects.get(stack) if stack is not None else None
             quantity = _varint(resource, PET_FEED_QUANTITY_FIELD)
             if known is None or not quantity:
                 return ()
             resources.append((known[0], quantity))
         return tuple(resources)
+
+    def _remember(self, instance: int, known: KnownObject) -> None:
+        if instance not in self._objects and len(self._objects) >= MAX_KNOWN_OBJECTS:
+            self._objects.pop(next(iter(self._objects)))  # the oldest known object makes room
+        self._objects[instance] = known
 
     def _updated(self, payload: bytes, captured_at: str) -> PetFeeding | None:
         entries = _messages(decode_fields(payload), PET_UPDATE_ENTRY_FIELD)
@@ -141,7 +148,7 @@ class PetTracker:
         if read is None:
             return None
         instance, known = read
-        self._objects[instance] = known
+        self._remember(instance, known)
         if self._pending is None or self._pending[0] != instance:
             return None
         _, before, resources = self._pending

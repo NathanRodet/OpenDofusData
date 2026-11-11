@@ -7,7 +7,9 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from opendofusdata.categories import CATEGORY_HDV, CATEGORY_LABELS
-from opendofusdata.records import MARKET_PERIODS, LotPrice, PetFeeding, PetState, Record, RecyclingEvent
+from opendofusdata.records import (
+    MARKET_PERIODS, BreakingEvent, LotPrice, PetFeeding, PetState, Record, RecyclingEvent,
+)
 from opendofusdata.session_counters import RecordSink
 
 MAX_LOG_LINES = 200
@@ -17,6 +19,9 @@ LOG_COLUMNS = ("Heure", "Type", "Objet", "Détail", "Valeur")
 HDV_LABEL = CATEGORY_LABELS[CATEGORY_HDV]
 RECYCLING_LABEL = "Recyclage"
 PET_LABEL = "Familier"
+BREAKING_LABEL = "Brisage"
+UNKNOWN_COEFFICIENT = "-"
+PERCENT = 100
 UNKNOWN = "?"
 ITEM_SEPARATOR = ", "
 PERIOD_UNITS = {"h": "h", "d": "j"}  # hours stay h, days become j (jours)
@@ -72,11 +77,25 @@ def _pet_gain(before: PetState, after: PetState) -> str:
     return f"+{after.experience - before.experience} XP"
 
 
+def _breaking_entry(record: BreakingEvent, moment: datetime) -> LogEntry:
+    percents = [round(item.coefficient * PERCENT) for item in record.items]
+    shown = UNKNOWN_COEFFICIENT
+    if percents:
+        shown = f"{min(percents)} %" if min(percents) == max(percents) else f"{min(percents)}-{max(percents)} %"
+    runes = sum(quantity for item in record.items for _, quantity in item.runes)
+    first = record.items[0].item_id if record.items else 0
+    return LogEntry(moment, BREAKING_LABEL, first, shown, _plural(runes, "rune"),
+                    tuple((item.item_id, item.quantity) for item in record.items))
+
+
 def entry_from_record(record: Record, moment: datetime) -> LogEntry:
     """Summarise a lot price (price of the lot), market stats (median) or a recycling."""
+    if isinstance(record, BreakingEvent):
+        return _breaking_entry(record, moment)
     if isinstance(record, PetFeeding):
         level = UNKNOWN if record.after.level is None else record.after.level
-        return LogEntry(moment, PET_LABEL, record.resources[0][0], f"niv {level}",
+        first_resource = record.resources[0][0] if record.resources else 0
+        return LogEntry(moment, PET_LABEL, first_resource, f"niv {level}",
                         _pet_gain(record.before, record.after), record.resources)
     if isinstance(record, RecyclingEvent):
         first_item = record.items[0][0] if record.items else 0

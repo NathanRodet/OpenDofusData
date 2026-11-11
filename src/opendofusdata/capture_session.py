@@ -54,6 +54,7 @@ class SessionSnapshot:
     error_message: str | None
     recycling_count: int = 0
     pet_count: int = 0
+    breaking_count: int = 0
 
 
 class CaptureSession:
@@ -86,7 +87,7 @@ class CaptureSession:
             prices, stats, last_record_at = self._counters.read()
             return SessionSnapshot(self._status, self._settings[1], prices, stats,
                                    last_record_at, self._error, self._counters.recycling_count(),
-                                   self._counters.pet_count())
+                                   self._counters.pet_count(), self._counters.breaking_count())
 
     @property
     def database_path(self) -> str:

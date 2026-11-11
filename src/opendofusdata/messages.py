@@ -55,3 +55,13 @@ PET_FEED_QUANTITY_FIELD = 1
 PET_FEED_STACK_FIELD = 3
 PET_UPDATE_TYPE = "iqy"  # server -> client: the pet after the upgrade, {1: {1: object, 4: container}}
 PET_UPDATE_ENTRY_FIELD = 1
+
+# Breaking at the Concasseur (see docs/protocol-notes.md). The window uses the same add, update
+# and close messages as recycling; the result lists each destroyed object with its coefficient.
+BREAKING_RESULT_TYPE = "kag"  # server -> client: {1: repeated outcome}
+BREAKING_RESULT_ENTRY_FIELD = 1
+BREAKING_COEFFICIENT_FIELD = 1  # 32-bit float, 0.5 = 50 %
+BREAKING_OBJECT_FIELD = 3  # instance id of the destroyed object
+BREAKING_RUNE_FIELD = 4  # repeated {1: quantity, 2: rune item id}
+BREAKING_RUNE_QUANTITY_FIELD = 1
+BREAKING_RUNE_ITEM_FIELD = 2

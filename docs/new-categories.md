@@ -1,4 +1,6 @@
-# Capturer une nouvelle catégorie (recyclage, brisage, pets)
+# Capturer et vérifier une catégorie (recyclage, brisage, familiers)
+
+Les trois catégories sont décodées en bêta (voir [protocol-notes.md](protocol-notes.md)). Ce guide sert à les **valider avec d'autres cas** et à en capturer de nouvelles. Pour les familiers, lance `discover` avec `--max-fields 100000` AVANT de te connecter: l'inventaire de la connexion est nécessaire.
 
 Les messages du jeu ont des noms obfusqués qui changent à chaque version, et leurs champs ne sont pas documentés. Un décodeur ne peut donc s'écrire qu'à partir d'une capture réelle: sans elle, il décoderait de travers sans aucune erreur visible, et la base contiendrait de fausses données. Cet outil réduit le travail à **deux captures et quelques nombres lus à l'écran** par catégorie.
 

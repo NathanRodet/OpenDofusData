@@ -12,8 +12,8 @@ L'outil est conçu pour collecter quatre catégories de données. Chacune pourra
 |---|---|---|
 | Données HDV | Prix des lots et cours du marché | Disponible (v1) |
 | Données de recyclage des ressources | Objets recyclés (identifiant, quantité) et Pépites obtenues, un enregistrement par recyclage | Bêta: décodé, désactivé par défaut, à vérifier en jeu |
-| Données de brisage | Résultats de brisage | Prévu, pas encore décodé |
-| Données d'expérience des familiers (pets) | Expérience et ressources des familiers | Prévu, pas encore décodé |
+| Données de brisage | Objets détruits au Concasseur, coefficient et runes obtenues, un enregistrement par concassage | Bêta: décodé, désactivé par défaut, à vérifier en jeu |
+| Données d'expérience des familiers (pets) | Ressources données à un familier et son état avant et après (niveau, expérience, prospection) | Bêta: décodé, désactivé par défaut, à vérifier en jeu; demande de lancer l'outil avant la connexion |
 
 Tant que les autres décodeurs n'existent pas, seule la catégorie HDV est enregistrée.
 
@@ -40,7 +40,7 @@ Thème sombre, menu à gauche, cinq pages. Elle est redimensionnable (minimum 64
 | Page | Contenu |
 |---|---|
 | Accueil | État (Capture active, arrêtée ou erreur avec un message clair, par exemple Npcap absent ou droits insuffisants), serveur, enregistrements de la session, heure du dernier relevé, « Voir les prix en ligne » (adresse provisoire tant que le serveur n'existe pas) |
-| Données | Une ligne par catégorie (HDV, recyclage, brisage, pets) avec un interrupteur. L'HDV et le recyclage (bêta, désactivé par défaut) sont décodés, les autres sont « bientôt ». Désactiver une catégorie arrête de l'enregistrer tout de suite |
+| Données | Une ligne par catégorie (HDV, recyclage, brisage, pets) avec un interrupteur. L'HDV est décodé; recyclage, brisage et familiers le sont aussi, en bêta et désactivés par défaut. Désactiver une catégorie arrête de l'enregistrer tout de suite |
 | Logs | Interrupteur « Afficher les logs », désactivé par défaut. Activé, il affiche en colonnes (heure, type, objet, détail, valeur) les 200 dernières données captées. Désactivé, rien n'est affiché ni gardé |
 | Réglages | Serveur de jeu, emplacement de la base de données (un changement relance la capture), téléchargement des noms d'objets, vérification des mises à jour au démarrage |
 | À propos | Version, mises à jour, ce qui est collecté, lien vers le dépôt |
@@ -190,7 +190,7 @@ Suite prévue du projet: [docs/roadmap.md](docs/roadmap.md).
 ## Limites connues et maintenance
 
 - Les noms courts des messages (`jzs`, `ire`, `kcy`, `iqp`) changent à chaque mise à jour du jeu. Ils sont isolés dans `src/opendofusdata/messages.py`. Si l'outil ne décode plus rien après une mise à jour: lance `discover` avec `--hex-types` sur la nouvelle version, compare avec `docs/protocol-notes.md`, puis mets à jour `messages.py`.
-- L'HDV (prix de lots et cours du marché; pas d'achats, de ventes ni de changements de prix) et le recyclage (bêta) sont décodés. Brisage et expérience des familiers sont prévus mais pas encore décodés. Le recyclage est validé sur trois captures d'un seul joueur: active-le dans la page Données pour le vérifier, il est désactivé par défaut.
+- L'HDV (prix de lots et cours du marché; pas d'achats, de ventes ni de changements de prix) est décodé. Recyclage, brisage et familiers (bêta) le sont aussi, mais validés sur les captures d'un seul joueur: active-les dans la page Données pour les vérifier, ils sont désactivés par défaut. Les familiers demandent de lancer l'outil avant de se connecter au jeu (l'inventaire de la connexion sert à identifier les ressources).
 - Fenêtre de 7 jours: la règle (minuit UTC sept jours avant la date de capture) est vérifiée à l'écran sur cinq objets.
 - Un objet sans aucune offre (« Cet objet n'est pas en vente actuellement ») ne produit aucun enregistrement, par décision: l'absence de relevé ne signifie pas prix 0, le dernier prix connu garde son horodatage d'origine.
 - Le serveur de jeu n'apparaît pas dans les messages: c'est le joueur qui le choisit (voir « Serveur de jeu »).
