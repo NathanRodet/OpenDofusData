@@ -34,10 +34,11 @@ jobs:
       - name: Build
         shell: pwsh
         run: .\dev.ps1 build
+      # First-party GitHub CLI instead of a third-party action: this job holds contents: write
+      # and publishes the file the installed program trusts.
       - name: Publish the release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            dist/OpenDofusData.exe
-            dist/OpenDofusData.exe.sha256
-          generate_release_notes: true
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create $env:TAG dist/OpenDofusData.exe dist/OpenDofusData.exe.sha256 --title $env:TAG --generate-notes --verify-tag
