@@ -318,3 +318,35 @@ def test_hex_types_match_is_case_sensitive() -> None:
         Envelope("JZS", _length_field(PACKED_BYTES)), hex_types=frozenset({"jzs"})
     )
     assert not {"hex", "packed"} & _keys_anywhere(description)
+
+
+def test_max_fields_raises_the_cap_for_large_messages() -> None:
+    payload = bytes([VARINT_TAG, 1]) * (MAX_FIELDS_PER_MESSAGE + 6)
+    description = describe_envelope(Envelope("Demo", payload), max_fields=MAX_FIELDS_PER_MESSAGE + 6)
+    assert len(description["fields"]) == MAX_FIELDS_PER_MESSAGE + 6
+    assert "fields_truncated" not in description
+
+
+def test_max_fields_can_also_lower_the_cap() -> None:
+    description = describe_envelope(Envelope("Demo", bytes([VARINT_TAG, 1]) * 5), max_fields=2)
+    assert len(description["fields"]) == 2
+    assert description["fields_truncated"] == 3
+
+
+def test_cli_max_fields_is_passed_through(tmp_path: Path) -> None:
+    def fake_capture(pipeline, interface) -> None:
+        pipeline.on_envelope(Envelope("A", bytes([VARINT_TAG, 1]) * 5), SERVER_PORT_KEY)
+        raise KeyboardInterrupt
+
+    output = tmp_path / "log.jsonl"
+    assert cli.run(["discover", "--output", str(output), "--max-fields", "3"], capture=fake_capture) == 0
+    record = json.loads(output.read_text(encoding="utf-8"))
+    assert len(record["fields"]) == 3
+    assert record["fields_truncated"] == 2
+
+
+def test_cli_max_fields_must_be_a_positive_integer(tmp_path: Path, capsys) -> None:
+    for bad in ("0", "-5", "abc"):
+        with pytest.raises(SystemExit):
+            cli.run(["discover", "--output", str(tmp_path / "x.jsonl"), "--max-fields", bad],
+                    capture=lambda pipeline, interface: None)

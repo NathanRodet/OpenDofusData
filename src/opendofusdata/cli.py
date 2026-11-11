@@ -20,7 +20,9 @@ from opendofusdata.commands import (
     prices_command,
     stats_command,
 )
-from opendofusdata.discovery import DiscoveryLogger, LogSizeLimitReached, parse_hex_types
+from opendofusdata.discovery import (
+    MAX_FIELDS_PER_MESSAGE, DiscoveryLogger, LogSizeLimitReached, parse_hex_types, parse_max_fields,
+)
 from opendofusdata.framing import Envelope
 from opendofusdata.names_db_commands import names_gaps_command, names_import_command
 from opendofusdata.names_commands import add_names_commands, names_update_command
@@ -60,6 +62,9 @@ def build_parser() -> argparse.ArgumentParser:
     discover.add_argument("--hex-types", type=parse_hex_types, default=frozenset(),
                           metavar="NAMES",
                           help="types de message (ex. jzs,ire) avec aperçu hex de leurs octets (données personnelles possibles)")
+    discover.add_argument("--max-fields", type=parse_max_fields, default=MAX_FIELDS_PER_MESSAGE, metavar="N",
+                          help=f"champs décrits par message (défaut : {MAX_FIELDS_PER_MESSAGE}); "
+                               "augmente-le pour lire une grande liste comme l'inventaire")
     _add_database_commands(commands)
     add_names_commands(commands)
     add_servers_commands(commands)
@@ -143,7 +148,8 @@ def _discover(arguments: argparse.Namespace, capture: CaptureFunction) -> int:
     output = arguments.output
     try:
         discovery_logger = DiscoveryLogger(
-            output, include_text=arguments.include_text, hex_types=arguments.hex_types
+            output, include_text=arguments.include_text, hex_types=arguments.hex_types,
+            max_fields=arguments.max_fields,
         )
     except OSError as error:
         return fail(f"Impossible d'écrire le journal {output} : {error}")

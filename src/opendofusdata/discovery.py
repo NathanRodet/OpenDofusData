@@ -35,6 +35,7 @@ class _Preview:
 
     include_text: bool
     typed_bytes: bool
+    max_fields: int = MAX_FIELDS_PER_MESSAGE
 
 
 def _packed_varints(content: bytes) -> list[int] | None:
@@ -78,8 +79,8 @@ def _preview(content: bytes) -> dict[str, str]:
 def _describe_fields(
     fields: list[Field], depth: int, preview: _Preview
 ) -> dict[str, Any]:
-    """Describe at most MAX_FIELDS_PER_MESSAGE fields, counting the dropped ones."""
-    kept = fields[:MAX_FIELDS_PER_MESSAGE]
+    """Describe at most `preview.max_fields` fields, counting the dropped ones."""
+    kept = fields[:preview.max_fields]
     description: dict[str, Any] = {
         "fields": [_describe_field(item, depth, preview) for item in kept]
     }
@@ -118,13 +119,14 @@ def describe_envelope(
     envelope: Envelope,
     include_text: bool = False,
     hex_types: frozenset[str] = frozenset(),
+    max_fields: int = MAX_FIELDS_PER_MESSAGE,
 ) -> dict[str, Any]:
     """Describe type, size and field structure (numbers, wire types, integer values,
     lengths); text/hex previews of bytes are included only when include_text is set.
     For envelope types in hex_types, every opaque length-delimited field also gets
     "hex" (up to MAX_TYPED_HEX_BYTES bytes) and, if the bytes are exactly varints,
     "packed" (up to MAX_PACKED_VALUES integers)."""
-    preview = _Preview(include_text, envelope.type_name in hex_types)
+    preview = _Preview(include_text, envelope.type_name in hex_types, max_fields)
     description: dict[str, Any] = {"type": envelope.type_name, "size": len(envelope.payload)}
     fields = try_decode_fields(envelope.payload)
     description.update(_describe_fields(fields or [], 0, preview))
@@ -142,11 +144,13 @@ class DiscoveryLogger:
         include_text: bool = False,
         hex_types: frozenset[str] = frozenset(),
         max_bytes: int = MAX_LOG_BYTES,
+        max_fields: int = MAX_FIELDS_PER_MESSAGE,
     ) -> None:
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         self._include_text = include_text
         self._hex_types = hex_types
         self._max_bytes = max_bytes
+        self._max_fields = max_fields
         self._written_bytes = os.path.getsize(path) if os.path.exists(path) else 0
         self._file = open(path, "a", encoding="utf-8")
         self.logged_count = 0
@@ -154,7 +158,7 @@ class DiscoveryLogger:
     def log(self, envelope: Envelope, direction: str) -> None:
         """Write the description of one envelope with its time and direction."""
         record = {"time": datetime.now(timezone.utc).isoformat(), "direction": direction}
-        record.update(describe_envelope(envelope, self._include_text, self._hex_types))
+        record.update(describe_envelope(envelope, self._include_text, self._hex_types, self._max_fields))
         line = json.dumps(record) + "\n"
         size = len(line.encode("utf-8"))
         if self._written_bytes + size > self._max_bytes:
@@ -167,6 +171,17 @@ class DiscoveryLogger:
     def close(self) -> None:
         """Close the log file."""
         self._file.close()
+
+
+def parse_max_fields(raw: str) -> int:
+    """Parse --max-fields: a positive integer."""
+    try:
+        value = int(raw)
+    except ValueError:
+        value = 0
+    if value < 1:
+        raise argparse.ArgumentTypeError("--max-fields attend un entier positif")
+    return value
 
 
 def parse_hex_types(raw: str) -> frozenset[str]:
