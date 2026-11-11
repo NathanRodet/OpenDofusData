@@ -41,13 +41,14 @@ class EnvelopeHandler:
     encode accents), one warning is logged and echoing stops.
     """
 
-    def __init__(self, writer: StoreWriter, server: str, now: Clock, echo: Echo | None = None) -> None:
+    def __init__(self, writer: StoreWriter, server: str, now: Clock, echo: Echo | None = None,
+                 notice: Callable[[str], None] | None = None) -> None:
         self._writer = writer
         self._server = server
         self._now = now
         self._echo = echo
         self._recycling = RecyclingTracker(server)
-        self._pets = PetTracker(server)
+        self._pets = PetTracker(server, notice)
         self._breaking = BreakingTracker(server)
         self.submitted_count = 0
 
@@ -64,6 +65,11 @@ class EnvelopeHandler:
             self._writer.submit(record)
             self.submitted_count += 1
         self._show(lots, stats)
+
+    @property
+    def pets_inventory_seen(self) -> bool:
+        """True once the inventory of this connection was received (pets need it)."""
+        return self._pets.inventory_seen
 
     def _log(self, lots: list[LotPrice], stats: list[MarketStats]) -> None:
         if lots:
@@ -86,10 +92,11 @@ class EnvelopeHandler:
 
 
 def make_envelope_handler(
-    writer: StoreWriter, server: str, now: Clock, echo: Echo | None = None
+    writer: StoreWriter, server: str, now: Clock, echo: Echo | None = None,
+    notice: Callable[[str], None] | None = None,
 ) -> EnvelopeHandler:
-    """Build the envelope callback storing lot prices and market stats via the writer."""
-    return EnvelopeHandler(writer, server, now, echo)
+    """Build the envelope callback storing the decoded records via the writer."""
+    return EnvelopeHandler(writer, server, now, echo, notice)
 
 
 def _capture_and_drain(

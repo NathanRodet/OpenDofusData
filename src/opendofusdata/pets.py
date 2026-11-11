@@ -1,6 +1,7 @@
 """Pet tracker: one event per pet upgrade, from the inventory, the feed request and the update."""
 
 import logging
+from collections.abc import Callable
 
 from opendofusdata.framing import Envelope
 from opendofusdata.messages import (
@@ -87,10 +88,11 @@ def pet_state_of(object_fields: list[Field]) -> PetState:
 class PetTracker:
     """Follows the inventory, the pet feed requests and the pet updates sent by the server."""
 
-    def __init__(self, server: str) -> None:
-        self._server = server
+    def __init__(self, server: str, notice: Callable[[str], None] | None = None) -> None:
+        self._server, self._notice = server, notice
         self._objects: dict[int, KnownObject] = {}
         self._pending: Pending | None = None
+        self.inventory_seen = False
 
     def feed(self, envelope: Envelope, from_server: bool, captured_at: str) -> PetFeeding | None:
         """Update what is known; return the event when an update completes a pet upgrade."""
@@ -119,6 +121,13 @@ class PetTracker:
             if read is not None and len(objects) < MAX_KNOWN_OBJECTS:
                 objects[read[0]] = read[1]
         self._objects, self._pending = objects, None
+        self.inventory_seen = True
+
+    def _skip(self, reason: str) -> None:
+        """An upgrade cannot be attributed: log it and tell whoever shows notices."""
+        logger.info("pet feeding skipped: %s (not in the known inventory)", reason)
+        if self._notice is not None:
+            self._notice(reason)
 
     def _add_to_inventory(self, payload: bytes) -> None:
         """Objects announced after login (loot, crafted items, runes): added to what is known."""
@@ -134,7 +143,7 @@ class PetTracker:
         resources = self._resources(_messages(fields, PET_FEED_RESOURCE_FIELD))
         self._pending = None
         if pet is None:
-            logger.info("pet feeding skipped: pet %s is not in the known inventory", pet_instance)
+            self._skip(f"familier inconnu #{pet_instance}")
         elif resources:
             self._pending = (pet_instance, pet_state_of(pet[1]), resources)
 
@@ -145,7 +154,7 @@ class PetTracker:
             known = self._objects.get(stack) if stack is not None else None
             quantity = _varint(resource, PET_FEED_QUANTITY_FIELD)
             if known is None or not quantity:
-                logger.info("pet feeding skipped: stack %s is not in the known inventory", stack)
+                self._skip(f"ressource inconnue #{stack}")
                 return ()
             resources.append((known[0], quantity))
         return tuple(resources)

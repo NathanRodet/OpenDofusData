@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import customtkinter
 
 from opendofusdata.app_config import load_config, save_config
-from opendofusdata.capture_session import SessionSnapshot
+from opendofusdata.capture_session import CaptureStatus, SessionSnapshot
 from opendofusdata.categories import (
     CATEGORIES, CATEGORY_BREAKING, CATEGORY_HDV, CATEGORY_PETS, CATEGORY_RECYCLING, DataCategory,
     config_with_categories,
@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 TITLE = "Ce que l'outil collecte"
 SUBTITLE = "Chaque catégorie s'active ou se désactive."
 SOON_TEXT = "bientôt"
+PETS_RECONNECT_TEXT = "reconnecte-toi au jeu"
 SAVE_FAILED_MESSAGE = "Ce choix n'a pas pu être enregistré ({error}). Il reste actif jusqu'à la fermeture."
 
 
@@ -75,9 +76,15 @@ class DataPage:
             return
         self.message_label.configure(text="")
 
+    def _pets_text(self, snapshot: SessionSnapshot) -> str:
+        """The pet counter, or the way out while the inventory of this connection has not been seen."""
+        waiting = (self._context.session.categories.is_enabled(CATEGORY_PETS)
+                   and snapshot.status is CaptureStatus.RUNNING and not snapshot.pets_inventory_seen)
+        return PETS_RECONNECT_TEXT if waiting else records_text(snapshot.pet_count)
+
     def render(self, snapshot: SessionSnapshot) -> None:
         """Refresh the counters of the categories that have a decoder."""
         self.rows[CATEGORY_HDV].count_label.configure(text=records_text(total_records(snapshot)))
         self.rows[CATEGORY_RECYCLING].count_label.configure(text=records_text(snapshot.recycling_count))
-        self.rows[CATEGORY_PETS].count_label.configure(text=records_text(snapshot.pet_count))
+        self.rows[CATEGORY_PETS].count_label.configure(text=self._pets_text(snapshot))
         self.rows[CATEGORY_BREAKING].count_label.configure(text=records_text(snapshot.breaking_count))

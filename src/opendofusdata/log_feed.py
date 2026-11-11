@@ -19,6 +19,8 @@ LOG_COLUMNS = ("Heure", "Type", "Objet", "Détail", "Valeur")
 HDV_LABEL = CATEGORY_LABELS[CATEGORY_HDV]
 RECYCLING_LABEL = "Recyclage"
 PET_LABEL = "Familier"
+NOTICE_DETAIL = "ignorée"
+NOTICE_VALUE = "reconnecte"
 BREAKING_LABEL = "Brisage"
 UNKNOWN_COEFFICIENT = "-"
 PERCENT = 100
@@ -57,6 +59,7 @@ class LogEntry:
     detail: str
     value: str
     items: tuple[tuple[int, int], ...] = ()
+    label: str = ""  # shown instead of the item names (notes about a record that could not be made)
 
 
 def format_number(value: int) -> str:
@@ -109,7 +112,9 @@ def entry_from_record(record: Record, moment: datetime) -> LogEntry:
 def format_log_row(entry: LogEntry, name_of: NameLookup) -> tuple[str, str, str, str, str]:
     """The five displayed cells: time (local), type, item name, detail, value."""
     shown_time = entry.moment.astimezone().strftime(TIME_FORMAT)
-    if entry.items:
+    if entry.label:
+        name = entry.label
+    elif entry.items:
         name = ITEM_SEPARATOR.join(f"{name_of(item_id)} ×{quantity}" for item_id, quantity in entry.items)
     else:
         name = name_of(entry.item_id)
@@ -141,6 +146,12 @@ class LogFeed:
         with self._lock:
             if self._visible:
                 self._entries.appendleft(entry_from_record(record, moment))
+
+    def add_note(self, category: str, label: str, moment: datetime, detail: str, value: str) -> None:
+        """Remember a free-text line (why something was not recorded) when the feed is visible."""
+        with self._lock:
+            if self._visible:
+                self._entries.appendleft(LogEntry(moment, category, 0, detail, value, label=label))
 
     def entries(self) -> list[LogEntry]:
         """The remembered entries, newest first."""
