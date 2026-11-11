@@ -6,11 +6,13 @@ NO_RECORD_TEXT = "aucun pour l'instant"
 TIME_FORMAT = "%H:%M:%S"
 STATUS_TEXTS = {
     CaptureStatus.RUNNING: "Capture active",
+    CaptureStatus.STOPPING: "Arrêt en cours...",
     CaptureStatus.STOPPED: "Capture arrêtée",
     CaptureStatus.ERROR: "Erreur",
 }
 STOP_LABEL = "Arrêter"
 RESTART_LABEL = "Relancer"
+STOPPING_LABEL = "Arrêt en cours..."
 
 
 def status_text(snapshot: SessionSnapshot) -> str:
@@ -41,4 +43,11 @@ def last_record_text(snapshot: SessionSnapshot) -> str:
 
 def button_label(snapshot: SessionSnapshot) -> str:
     """Label of the stop/restart button."""
+    if snapshot.status is CaptureStatus.STOPPING:
+        return STOPPING_LABEL
     return STOP_LABEL if snapshot.status is CaptureStatus.RUNNING else RESTART_LABEL
+
+
+def button_enabled(snapshot: SessionSnapshot) -> bool:
+    """The button is disabled while the capture is stopping."""
+    return snapshot.status is not CaptureStatus.STOPPING

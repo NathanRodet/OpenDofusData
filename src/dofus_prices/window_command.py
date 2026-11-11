@@ -1,8 +1,8 @@
-"""The window command: server resolution, then the capture window."""
+"""The window command: server resolution, then the capture window (tkinter loaded lazily)."""
 
 import argparse
-import tkinter
 import webbrowser
+from collections.abc import Callable
 
 from dofus_prices.app_links import SAAS_URL
 from dofus_prices.capture_errors import EXIT_OK, fail
@@ -10,7 +10,6 @@ from dofus_prices.capture_session import CaptureSession
 from dofus_prices.capture_stoppable import StoppableCapture, run_stoppable_capture
 from dofus_prices.run_pipeline import Clock, utc_now
 from dofus_prices.server_choice_commands import resolve_run_server
-from dofus_prices.window_view import CaptureWindow
 
 NO_DISPLAY_MESSAGE = "Impossible d'ouvrir la fenêtre ({error})."
 
@@ -25,8 +24,25 @@ def add_window_command(commands: argparse._SubParsersAction, default_database: s
                         help="redemande le serveur même si un serveur est mémorisé")
 
 
-def _open_online_prices() -> None:
+def open_online_prices() -> None:
+    """Open the online price site in the default browser."""
     webbrowser.open(SAAS_URL)
+
+
+def show_window(session: CaptureSession, open_online: Callable[[], None]) -> int:
+    """Build the window, run it until closed, and always stop the session afterwards."""
+    import tkinter
+
+    from dofus_prices.window_view import CaptureWindow
+
+    try:
+        root = tkinter.Tk()
+    except tkinter.TclError as error:
+        return fail(NO_DISPLAY_MESSAGE.format(error=error))
+    CaptureWindow(root, session, open_online).start()
+    root.mainloop()
+    session.stop()
+    return EXIT_OK
 
 
 def window_command(
@@ -36,11 +52,7 @@ def window_command(
     """Resolve the server in the console (first-run prompt), then run the window."""
     resolve_run_server(arguments)
     session = CaptureSession(arguments.db, arguments.server, arguments.interface, capture, now)
-    try:
-        root = tkinter.Tk()
-    except tkinter.TclError as error:
-        return fail(NO_DISPLAY_MESSAGE.format(error=error))
-    CaptureWindow(root, session, _open_online_prices).start()
-    root.mainloop()
-    session.stop()
-    return EXIT_OK
+    return show_window(session, open_online_prices)
+
+
+WINDOW_COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {"window": window_command}

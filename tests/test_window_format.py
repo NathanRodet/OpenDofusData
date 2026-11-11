@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from dofus_prices.app_links import APP_NAME, SAAS_URL
 from dofus_prices.capture_session import CaptureStatus, SessionSnapshot
 from dofus_prices.window_format import (
-    button_label, counts_text, last_record_text, server_text, status_text,
+    button_enabled, button_label, counts_text, last_record_text, server_text, status_text,
 )
 
 
@@ -42,3 +42,11 @@ def test_button_label_follows_status() -> None:
 
 def test_product_constants() -> None:
     assert APP_NAME == "OpenDofusData" and SAAS_URL.startswith("https://")
+
+
+def test_stopping_state_texts_and_disabled_button() -> None:
+    stopping = snapshot(CaptureStatus.STOPPING)
+    assert status_text(stopping) == "Arrêt en cours..."
+    assert button_label(stopping) == "Arrêt en cours..."
+    assert not button_enabled(stopping)
+    assert button_enabled(snapshot())

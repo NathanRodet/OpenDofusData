@@ -6,9 +6,19 @@ import sys
 from collections.abc import Callable
 
 from dofus_prices.capture import CaptureAborted, PacketPipeline, direction_of, run_capture
-from dofus_prices.capture_errors import EXIT_USAGE, CaptureFunction, fail, run_guarded_capture
-from dofus_prices.commands import export_csv_command, history_command, prices_command, stats_command
-from dofus_prices.discovery import DiscoveryLogger, LogSizeLimitReached
+from dofus_prices.capture_errors import (
+    EXIT_USAGE,
+    CaptureFunction,
+    fail,
+    run_guarded_capture,
+)
+from dofus_prices.commands import (
+    export_csv_command,
+    history_command,
+    prices_command,
+    stats_command,
+)
+from dofus_prices.discovery import DiscoveryLogger, LogSizeLimitReached, parse_hex_types
 from dofus_prices.framing import Envelope
 from dofus_prices.names_db_commands import names_gaps_command, names_import_command
 from dofus_prices.names_commands import add_names_commands, names_update_command
@@ -17,7 +27,7 @@ from dofus_prices.server_choice_commands import CHOICE_COMMANDS, add_server_comm
 from dofus_prices.servers_commands import SERVER_COMMANDS, add_servers_commands
 from dofus_prices.storage import LOT_SIZES, MARKET_PERIODS
 from dofus_prices.tcp import FlowKey
-from dofus_prices.window_command import add_window_command, window_command
+from dofus_prices.window_command import WINDOW_COMMANDS, add_window_command
 
 logger = logging.getLogger(__name__)
 
@@ -34,16 +44,6 @@ HEX_TYPES_NOTICE = (
     "personnelles si ces types transportent du chat ou des identifiants : relisez le "
     "journal avant de le partager."
 )
-
-
-def parse_hex_types(raw: str) -> frozenset[str]:
-    """Parse comma-separated message type names (letters and digits only)."""
-    names = raw.split(",")
-    if not all(name.isascii() and name.isalnum() for name in names):
-        raise argparse.ArgumentTypeError(
-            "noms de types invalides (lettres et chiffres, séparés par des virgules)"
-        )
-    return frozenset(names)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -164,6 +164,7 @@ READ_COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {
     "names-gaps": names_gaps_command,
     **SERVER_COMMANDS,
     **CHOICE_COMMANDS,
+    **WINDOW_COMMANDS,
 }
 
 
@@ -176,8 +177,6 @@ def run(argv: list[str] | None, capture: CaptureFunction, now: Clock = utc_now) 
     if arguments.command == "run":
         resolve_run_server(arguments)
         return run_command(arguments, capture, now)
-    if arguments.command == "window":
-        return window_command(arguments)
     if arguments.command in READ_COMMANDS:
         return READ_COMMANDS[arguments.command](arguments)
     parser.print_help()

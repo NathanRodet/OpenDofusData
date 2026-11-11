@@ -1,5 +1,6 @@
 """Thin tkinter view: renders the session state and wires the buttons."""
 
+import logging
 import tkinter
 from collections.abc import Callable
 from tkinter import ttk
@@ -7,15 +8,19 @@ from tkinter import ttk
 from dofus_prices.app_links import APP_NAME
 from dofus_prices.capture_session import CaptureSession, CaptureStatus
 from dofus_prices.window_format import (
-    button_label, counts_text, last_record_text, server_text, status_text,
+    button_enabled, button_label, counts_text, last_record_text, server_text, status_text,
 )
+
+logger = logging.getLogger(__name__)
 
 WINDOW_SIZE = "360x240"
 REFRESH_MILLISECONDS = 500
+CLOSE_POLL_MILLISECONDS = 100
 PADDING = 10
 LABEL_PADDING = 2
 WRAP_LENGTH = 330
 ONLINE_PRICES_LABEL = "Voir les prix en ligne"
+LABEL_NAMES = ("status", "server", "counts", "last")
 
 
 class CaptureWindow:
@@ -27,10 +32,11 @@ class CaptureWindow:
         root.geometry(WINDOW_SIZE)
         root.resizable(False, False)
         root.protocol("WM_DELETE_WINDOW", self.close)
-        self._labels = {name: self._add_label() for name in ("status", "server", "counts", "last")}
-        self._toggle = ttk.Button(root, command=self._toggle_capture)
-        self._toggle.pack(pady=(PADDING, 0))
-        ttk.Button(root, text=ONLINE_PRICES_LABEL, command=open_online).pack(pady=PADDING)
+        self.labels = {name: self._add_label() for name in LABEL_NAMES}
+        self.toggle_button = ttk.Button(root, command=self._toggle_capture)
+        self.toggle_button.pack(pady=(PADDING, 0))
+        self.online_button = ttk.Button(root, text=ONLINE_PRICES_LABEL, command=open_online)
+        self.online_button.pack(pady=PADDING)
 
     def _add_label(self) -> ttk.Label:
         label = ttk.Label(self._root, wraplength=WRAP_LENGTH, justify="left")
@@ -43,26 +49,36 @@ class CaptureWindow:
         self._poll()
 
     def _poll(self) -> None:
-        self.render()
-        self._root.after(REFRESH_MILLISECONDS, self._poll)
+        try:
+            self.render()
+        except Exception:  # keep refreshing whatever happens to one render
+            logger.exception("window refresh failed")
+        finally:
+            self._root.after(REFRESH_MILLISECONDS, self._poll)
 
     def render(self) -> None:
         """Show the current session state."""
         snapshot = self._session.snapshot()
-        self._labels["status"].configure(text=status_text(snapshot))
-        self._labels["server"].configure(text=server_text(snapshot))
-        self._labels["counts"].configure(text=counts_text(snapshot))
-        self._labels["last"].configure(text=last_record_text(snapshot))
-        self._toggle.configure(text=button_label(snapshot))
+        texts = (status_text, server_text, counts_text, last_record_text)
+        for name, text_of in zip(LABEL_NAMES, texts):
+            self.labels[name].configure(text=text_of(snapshot))
+        self.toggle_button.configure(text=button_label(snapshot))
+        self.toggle_button.state(["!disabled"] if button_enabled(snapshot) else ["disabled"])
 
     def _toggle_capture(self) -> None:
         if self._session.snapshot().status is CaptureStatus.RUNNING:
-            self._session.stop()
+            self._session.request_stop()
         else:
             self._session.start()
         self.render()
 
     def close(self) -> None:
-        """Stop the capture cleanly, then close the window."""
-        self._session.stop()
-        self._root.destroy()
+        """Ask the capture to stop, wait for it without freezing the window, then close."""
+        self._session.request_stop()
+        self._close_when_stopped()
+
+    def _close_when_stopped(self) -> None:
+        if self._session.snapshot().status is CaptureStatus.STOPPING:
+            self._root.after(CLOSE_POLL_MILLISECONDS, self._close_when_stopped)
+        else:
+            self._root.destroy()

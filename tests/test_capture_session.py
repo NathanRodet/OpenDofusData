@@ -133,3 +133,55 @@ def test_unopenable_database_gives_error_without_thread(tmp_path) -> None:
     snapshot = session.snapshot()
     assert snapshot.status is CaptureStatus.ERROR and "base de données" in snapshot.error_message
     session.stop()
+
+
+def test_request_stop_is_non_blocking_and_ends_stopped(tmp_path) -> None:
+    release = threading.Event()
+
+    def slow_capture(pipeline, interface, stop) -> None:
+        stop.wait(WAIT_SECONDS)
+        release.wait(WAIT_SECONDS)
+
+    session = make_session(tmp_path, slow_capture)
+    session.start()
+    session.request_stop()
+    assert session.snapshot().status is CaptureStatus.STOPPING
+    session.start()  # ignored while stopping
+    release.set()
+    wait_for(lambda: session.snapshot().status is CaptureStatus.STOPPED)
+
+
+def test_stop_timeout_becomes_an_error(tmp_path) -> None:
+    release = threading.Event()
+    clock = [0.0]
+
+    def stuck_capture(pipeline, interface, stop) -> None:
+        release.wait(WAIT_SECONDS)
+
+    session = CaptureSession(str(tmp_path / "t.db"), "Brial", None, stuck_capture, fixed_now,
+                             monotonic=lambda: clock[0], stop_timeout=10.0)
+    session.start()
+    session.request_stop()
+    assert session.snapshot().status is CaptureStatus.STOPPING
+    clock[0] = 11.0
+    snapshot = session.snapshot()
+    assert snapshot.status is CaptureStatus.ERROR and "trop de temps" in snapshot.error_message
+    release.set()
+    wait_for(lambda: session.snapshot().status is CaptureStatus.STOPPED)
+
+
+def test_status_is_final_even_if_the_writer_fails_to_stop(tmp_path) -> None:
+    class BrokenWriter:
+        def submit(self, record) -> None:
+            pass
+
+        def stop(self) -> None:
+            raise OSError("disk gone")
+
+    session = CaptureSession(str(tmp_path / "b.db"), "Brial", None, feeding_capture, fixed_now,
+                             writer_factory=lambda path: BrokenWriter())
+    session.start()
+    wait_for(lambda: session.snapshot().stats_count > 0)
+    session.stop()
+    wait_for(lambda: session.snapshot().status is CaptureStatus.ERROR)
+    assert "disk gone" in session.snapshot().error_message
