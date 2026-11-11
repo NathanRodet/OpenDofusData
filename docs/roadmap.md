@@ -1,6 +1,6 @@
 # Feuille de route
 
-État au 2026-11-11: la v1 (capture locale, décodage des prix de lots et des cours du marché, base SQLite, noms d'objets, choix du serveur) est terminée et fusionnée dans `main`.
+État au 2026-11-11: la v1 (capture locale, décodage des prix de lots et des cours du marché, base SQLite, noms d'objets, choix du serveur) est terminée et fusionnée dans `main`. Version du produit: 1.0.0 (tag `v1.0.0`).
 
 ## Validé en jeu
 

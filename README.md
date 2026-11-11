@@ -2,6 +2,8 @@
 
 Outil local pour Windows qui capture passivement le trafic réseau de Dofus 3 (TCP 5555) avec Npcap et Scapy, décode les messages utiles et les stocke dans une base SQLite locale. Objectif global: ce client récolte les données, les stocke en SQLite, puis alimentera à terme un serveur distant (synchronisation et serveur hors périmètre de la v1). La v1 n'envoie rien à l'extérieur.
 
+**Version actuelle : 1.0.0** (la v1 : capture locale de l'HDV, fenêtre joueur). Elle est affichée dans la page À propos de la fenêtre.
+
 ## Données collectées
 
 L'outil est conçu pour collecter quatre catégories de données. Chacune pourra être désactivée séparément par le joueur (voir [docs/roadmap.md](docs/roadmap.md)).
@@ -179,6 +181,10 @@ Suite prévue du projet: [docs/roadmap.md](docs/roadmap.md).
 - Un objet sans aucune offre (« Cet objet n'est pas en vente actuellement ») ne produit aucun enregistrement, par décision: l'absence de relevé ne signifie pas prix 0, le dernier prix connu garde son horodatage d'origine.
 - Le serveur de jeu n'apparaît pas dans les messages: c'est le joueur qui le choisit (voir « Serveur de jeu »).
 - Dans Windows PowerShell 5.1, l'aide française de `dev.ps1` peut afficher des accents cassés (encodage du script).
+
+## Versions
+
+Le numéro de version (`MAJEUR.MINEUR.CORRECTIF`) est défini à un seul endroit: `__version__` dans `src/opendofusdata/__init__.py`. `pyproject.toml` et la page À propos le lisent. Pour publier une version: modifie ce numéro, mets à jour la feuille de route, commite sur `main`, puis crée le tag `vX.Y.Z` (par exemple `git tag -a v1.0.1 -m "v1.0.1"`).
 
 ## Tests et conventions
 

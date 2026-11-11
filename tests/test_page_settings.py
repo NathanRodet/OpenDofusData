@@ -8,6 +8,7 @@ import pytest
 
 pytest.importorskip("customtkinter")
 
+from opendofusdata import __version__
 from opendofusdata.capture_session import CaptureSession
 from opendofusdata.page_about import AboutPage
 from opendofusdata.page_settings import SettingsPage
@@ -88,7 +89,7 @@ def test_current_server_missing_from_the_list_is_still_shown(root, tmp_path) -> 
 def test_about_page_names_the_app_and_says_nothing_is_sent(root, tmp_path) -> None:
     page = AboutPage(root, lambda: None)
     assert "Rien n'est envoyé" in page.summary_label.cget("text")
-    assert page.version_label.cget("text").startswith("Version ")
+    assert page.version_label.cget("text") == f"Version {__version__}"
 
 
 def test_changing_the_database_keeps_the_server_chosen_before(root, tmp_path) -> None:
