@@ -86,7 +86,8 @@ Capture `captures/brisage-1.jsonl`: trois concassages (1 Lisseur; 4 Volkornes; 2
 - **Vérifié:** Lisseur (942): 53 %, aucune rune. Volkorne Orchidée (33199): 50 %, Rune Ga Pa (1557) ×1 et Rune Ine (1522) ×38. Volkorne Ébène (33166): 50 %, Rune Age (1524) ×38 puis ×39. Volkorne Pourpre (33202): 50 %, Ga Pa ×1 et Rune Fo (1519) ×38. Tout correspond aux captures d'écran « Résultat du concassage ».
 - **Non présents sur le réseau:** les valeurs estimées des objets détruits et des runes (162, 62949, 87606...).
 - **Partage avec le recyclage:** les ajouts d'objets sont les mêmes messages; les deux suiveurs se vident mutuellement au résultat de l'autre (`kdd` / `kag`) pour qu'un objet du Concasseur ne se retrouve pas dans un recyclage.
-- **À valider:** les concassages de plusieurs exemplaires d'un même équipement (quantité > 1), et si le champ 2 diffère de plus d'un millionième du champ 1 dans d'autres cas.
+- **Trois exemplaires identiques** (capture `brisage-2`, 3 Sandales du Piou Jaune, objet 8228): le jeu les liste comme trois objets distincts (trois instances, quantité 1 chacun, « 3/50 objets distincts »); résultat: coefficients 0,35525 / 0,35515 / 0,35505 (affichés « 36 % » pour les trois, arrondi au plus proche) et 2, 2, 1 Rune Age (1524), conformes à l'écran. Le coefficient baisse d'environ 0,0001 d'un objet au suivant dans le même concassage.
+- **À valider:** les concassages d'un vrai lot empilé (quantité saisie > 1 pour un équipement identique empilé dans l'inventaire), et si le champ 2 diffère de plus d'un millionième du champ 1 dans d'autres cas.
 
 ## Autres messages vus (hors périmètre)
 

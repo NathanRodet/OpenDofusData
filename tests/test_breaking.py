@@ -107,3 +107,20 @@ def test_unreadable_payloads_are_ignored_without_raising() -> None:
 
 def test_unrelated_messages_do_nothing() -> None:
     assert play(tracker(), (Envelope("jzs", b""), True), (break_request(), False)) == [None, None]
+
+
+SANDALS, SANDAL_STACKS = 8228, (6493110, 5121498, 4907810)
+SANDAL_COEFFICIENT_BITS = (1052107770, 1052104412, 1052101055)  # seen in game: all shown as 36 %
+SANDAL_RUNES = (2, 2, 1)
+
+
+def test_the_real_concassage_of_three_identical_sandals_keeps_each_object_and_its_own_coefficient() -> None:
+    steps = [(added(1, SANDALS, stack), True) for stack in SANDAL_STACKS]
+    steps.append((break_request(3), False))
+    steps.append((broken(*(outcome(stack, ((quantity, AGE),), bits) for stack, quantity, bits
+                           in zip(SANDAL_STACKS, SANDAL_RUNES, SANDAL_COEFFICIENT_BITS))), True))
+    event = play(tracker(), *steps)[-1]
+    assert [item.item_id for item in event.items] == [SANDALS] * 3
+    assert [item.runes for item in event.items] == [((AGE, 2),), ((AGE, 2),), ((AGE, 1),)]
+    assert [round(item.coefficient * 100) for item in event.items] == [36, 36, 36]
+    assert event.items[0].coefficient > event.items[1].coefficient > event.items[2].coefficient
