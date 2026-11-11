@@ -1,35 +1,35 @@
 # Capturer une nouvelle catégorie (recyclage, brisage, pets)
 
-Ce guide décrit comment obtenir ce qu'il faut pour écrire le décodeur d'une catégorie. Chaque catégorie suit la méthode utilisée pour l'HDV (voir [protocol-notes.md](protocol-notes.md)): on repère le message, on décode ses champs, puis on vérifie les valeurs contre l'écran du jeu.
+Les messages du jeu ont des noms obfusqués qui changent à chaque version, et leurs champs ne sont pas documentés. Un décodeur ne peut donc s'écrire qu'à partir d'une capture réelle: sans elle, il décoderait de travers sans aucune erreur visible, et la base contiendrait de fausses données. Cet outil réduit le travail à **deux captures et quelques nombres lus à l'écran** par catégorie.
 
-## Ce qu'il faut fournir par catégorie
+## Ce que tu fais (par catégorie)
 
-1. Un journal `discover` d'une session où tu fais UNE action de la catégorie, à un moment que tu notes (heure de la montre).
-2. Une capture d'écran du jeu juste après l'action, avec les valeurs visibles (objet, quantités, expérience gagnée...). Ce sont elles qui servent à valider le décodage.
-3. Le nom exact des objets en jeu (ou leur identifiant DofusDB).
+1. **Capture témoin** (30 secondes, aucune action en jeu). Dans PowerShell, à la racine du projet, venv actif, avant de te connecter ou en jeu sans toucher à rien:
+   ```powershell
+   opendofusdata discover --output captures\recyclage-temoin.jsonl
+   ```
+   `Ctrl+C` pour arrêter.
+2. **Capture avec l'action**: relance `discover` avec un autre fichier (`captures\recyclage-action.jsonl`), fais UNE action de la catégorie (recycler un objet, briser un objet, nourrir un familier), puis `Ctrl+C`.
+3. **Note les nombres affichés à l'écran** juste après l'action, dans un fichier texte `captures\recyclage-notes.txt`: l'identifiant ou le nom de l'objet, et chaque quantité, chaque valeur que le jeu affiche (ressources obtenues, runes, expérience, coefficients...). Plus il y a de nombres, plus l'identification est sûre. Une capture d'écran du résultat aide aussi.
 
-## Faire la capture
+Sans option, `discover` ne journalise que la structure des messages (types, tailles, numéros de champs, entiers): ni texte ni chat. Les journaux sont dans `captures/`, ignoré par git.
 
-Dans un terminal PowerShell, à la racine du projet (venv actif), AVANT de te connecter au jeu ou de faire l'action:
+## L'analyse (je peux la lancer à ta place)
 
 ```powershell
-opendofusdata discover --output captures\recyclage-1.jsonl
+opendofusdata analyze captures\recyclage-action.jsonl --baseline captures\recyclage-temoin.jsonl --values "33528,4,120" --skeleton
 ```
 
-Sans option, le journal ne contient que la structure des messages (type, taille, champs): ni texte ni octets, donc rien de personnel. Fais l'action une seule fois (ouvrir la fenêtre de recyclage et recycler un objet, briser un objet, nourrir un familier), puis `Ctrl+C`. Note l'heure et le résultat affiché à l'écran.
+`--values` reçoit les nombres de ta note. La commande classe les messages de la capture: d'abord ceux qui contiennent le plus de tes nombres, puis ceux absents de la capture témoin. Pour chacun elle affiche où se trouve chaque nombre (`1.2` = champ 2 du message imbriqué dans le champ 1; `1.2#0` = premier nombre d'une liste compactée) et les nombres introuvables.
 
-Pour les messages repérés, le décodeur a besoin des octets: relance avec `--hex-types "nom1,nom2"` (les noms courts vus dans le premier journal). Attention: ces aperçus peuvent contenir du texte de chat ou des identifiants si le type de message en transporte. Relis le journal avant de le partager, et ne le partage pas s'il contient quelque chose de personnel (`captures/` est ignoré par git).
+Si des nombres sont introuvables, c'est souvent qu'ils sont dans une liste compactée, visible seulement avec les octets: relance la capture avec `--hex-types NOM` (le nom court du message candidat) puis refais l'analyse. Ces aperçus d'octets peuvent contenir du texte de chat ou des identifiants si le message en transporte: relis le journal avant de le partager.
 
-## Repérer le bon message
+## Ce qui se passe ensuite
 
-1. Fais d'abord une capture « témoin » de quelques secondes sans aucune action, puis la capture avec l'action.
-2. Compare les types de message: ceux qui n'apparaissent qu'avec l'action sont les candidats. Les messages très fréquents (`jnz`, `kne`, `knb`...) sont du bruit.
-3. Le nom d'un message change à chaque mise à jour du jeu: note la version du jeu dans le nom du fichier.
+Il suffit de me dire que les fichiers sont dans `captures\`: je lance l'analyse, j'identifie le message, j'écris le décodeur, ses tests (sur des octets synthétiques tirés de ta capture) et l'enregistrement en base, puis je passe la catégorie à `available=True` dans `categories.py`: son interrupteur de la page Données devient actif. Tu vérifies ensuite en jeu en comparant les Logs de la fenêtre à ce que le jeu affiche. Le décodeur suit la structure de `hdv.py`:
 
-## Écrire le décodeur (pour le développement)
-
-1. Ajouter les noms de message dans `src/opendofusdata/messages.py`.
-2. Un module de décodage pur (sans Scapy ni SQLite), comme `hdv.py`, avec des tests sur des octets synthétiques.
-3. Un enregistrement (dataclass dans `records.py`) et une table dans `storage.py`.
-4. Brancher le décodeur dans `run_pipeline.py` et passer la catégorie à `available=True` dans `categories.py`: son interrupteur de la page Données devient actif.
-5. Documenter les champs vérifiés dans `protocol-notes.md`, avec les octets et les valeurs lues à l'écran.
+1. Constantes du message dans `src/opendofusdata/messages.py`.
+2. Module de décodage pur (sans Scapy ni SQLite), avec tests.
+3. Enregistrement (dataclass dans `records.py`) et table dans `storage.py`.
+4. Branchement dans `run_pipeline.py` et dans le fil de logs.
+5. Champs vérifiés documentés dans `protocol-notes.md`, avec les octets et les valeurs lues à l'écran.

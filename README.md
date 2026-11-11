@@ -155,7 +155,7 @@ Chaque enregistrement porte le nom du serveur de jeu (Brial, Dakal...). Le trafi
 
 ## Confidentialité
 
-Pour le fonctionnement normal (`capture` / `run` et la base de données), l'outil ne garde que des données de jeu des catégories ci-dessus (aujourd'hui l'HDV): identifiants d'objets, prix, quantités, horodatages et nom du serveur de jeu choisi par le joueur. Le joueur pourra désactiver chaque catégorie (collecte et envoi). Il ne stocke ni n'envoie jamais d'adresses IP, de comptes, de noms de personnages ni de chat (il utilise les adresses en mémoire pour suivre les connexions, sans les écrire). Le mode découverte optionnel avec `--include-text` ou `--hex-types` (désactivé par défaut, voir plus bas) peut écrire du texte issu des messages (éventuellement du chat ou des identifiants) dans un journal LOCAL que le joueur relit avant de le partager. Aucune donnée de jeu ne quitte ta machine dans cette version; l'envoi prévu vers un serveur distant ne transmettra que ces mêmes données de jeu. Les seules requêtes réseau du programme: la vérification des mises à jour au démarrage (une requête anonyme à api.github.com, sans identifiant; désactivable dans Réglages), et, seulement si tu cliques sur « Télécharger les noms » (ou lances `names-update`), le téléchargement des noms d'objets depuis api.dofusdb.fr. L'outil est libre et open source: son comportement peut être vérifié dans le code.
+Pour le fonctionnement normal (`capture` / `run` et la base de données), l'outil ne garde que des données de jeu des catégories ci-dessus (aujourd'hui l'HDV): identifiants d'objets, prix, quantités, horodatages et nom du serveur de jeu choisi par le joueur. Le joueur pourra désactiver chaque catégorie (collecte et envoi). Il ne stocke ni n'envoie jamais d'adresses IP, de comptes, de noms de personnages ni de chat (il utilise les adresses en mémoire pour suivre les connexions, sans les écrire). Le mode découverte optionnel avec `--include-text` ou `--hex-types` (désactivé par défaut, voir plus bas) peut écrire du texte issu des messages (éventuellement du chat ou des identifiants) dans un journal LOCAL que le joueur relit avant de le partager. Aucune donnée de jeu ne quitte ta machine dans cette version; l'envoi prévu vers un serveur distant ne transmettra que ces mêmes données de jeu. Les seules requêtes réseau du programme: la vérification des mises à jour au démarrage (une requête anonyme à api.github.com, sans identifiant; désactivable dans Réglages), et, seulement si tu cliques sur « Télécharger les noms » (ou lances `names-update`), le téléchargement des noms d'objets depuis api.dofusdb.fr. Le code source est public pour que ce comportement puisse être vérifié.
 
 ## Mode découverte et vie privée
 
@@ -195,6 +195,10 @@ Suite prévue du projet: [docs/roadmap.md](docs/roadmap.md).
 - Un objet sans aucune offre (« Cet objet n'est pas en vente actuellement ») ne produit aucun enregistrement, par décision: l'absence de relevé ne signifie pas prix 0, le dernier prix connu garde son horodatage d'origine.
 - Le serveur de jeu n'apparaît pas dans les messages: c'est le joueur qui le choisit (voir « Serveur de jeu »).
 - Dans Windows PowerShell 5.1, l'aide française de `dev.ps1` peut afficher des accents cassés (encodage du script).
+
+## Licence
+
+Tous droits réservés. Le code est publié sur GitHub pour être consulté et vérifié, mais aucune licence n'autorise à le réutiliser, le modifier ni le redistribuer sans l'accord de l'auteur.
 
 ## Versions
 

@@ -12,6 +12,7 @@ from opendofusdata.capture_errors import (
     fail,
     run_guarded_capture,
 )
+from opendofusdata.analyze_commands import ANALYZE_COMMANDS, add_analyze_command
 from opendofusdata.categories_commands import CATEGORY_COMMANDS, add_categories_command
 from opendofusdata.commands import (
     export_csv_command,
@@ -64,6 +65,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_servers_commands(commands)
     add_server_command(commands)
     add_categories_command(commands)
+    add_analyze_command(commands)
     add_window_command(commands, DEFAULT_DATABASE)
     return parser
 
@@ -167,6 +169,7 @@ READ_COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {
     **SERVER_COMMANDS,
     **CHOICE_COMMANDS,
     **CATEGORY_COMMANDS,
+    **ANALYZE_COMMANDS,
     **WINDOW_COMMANDS,
 }
 

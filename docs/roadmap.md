@@ -18,14 +18,14 @@
 
 ## À décider par le propriétaire
 
-- **Licence** (MIT, GPL, autre): aucune n'est choisie alors que le dépôt est public.
+- **Licence:** décision du propriétaire: aucune, tous droits réservés (le code est public mais n'est pas libre). Les textes ne disent donc plus « open source ».
 - **Première publication:** pousser le tag `v1.0.0` déclenche `release.yml`, qui publie une Release publique avec l'exécutable.
-- **Signature de code** de l'exécutable: absente (projet open source, coût d'un certificat). Windows SmartScreen avertit au premier lancement.
+- **Signature de code** de l'exécutable: absente (coût d'un certificat). Windows SmartScreen avertit au premier lancement.
 - **Installateur** (MSI, Inno Setup...): l'exécutable seul suffit pour l'instant.
 
 ## Catégories de données
 
-L'outil collectera quatre catégories: données HDV (fait), données de recyclage des ressources, données de brisage, données d'expérience des pets. Les trois dernières demandent d'abord une capture en jeu pour identifier les messages: voir [docs/new-categories.md](new-categories.md). Ensuite, un décodeur par catégorie, enregistré dans `categories.py` (`available=True`) et filtré aussi à l'envoi quand la synchronisation existera.
+L'outil collectera quatre catégories: données HDV (fait), données de recyclage des ressources, données de brisage, données d'expérience des pets. Les trois dernières demandent d'abord une capture en jeu pour identifier les messages (noms obfusqués, champs non documentés: un décodeur écrit sans capture serait faux sans le montrer). `opendofusdata analyze` retrouve le message qui contient les nombres lus à l'écran à partir de deux journaux `discover`: voir [docs/new-categories.md](new-categories.md). En attente des captures du propriétaire. Ensuite, un décodeur par catégorie, enregistré dans `categories.py` (`available=True`) et filtré aussi à l'envoi quand la synchronisation existera.
 
 ## Synchronisation et serveur (plus tard)
 

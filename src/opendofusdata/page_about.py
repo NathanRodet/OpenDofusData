@@ -14,7 +14,7 @@ from opendofusdata.window_context import WindowContext
 
 TITLE = "À propos"
 SUMMARY = (
-    "Outil libre et open source qui lit passivement le trafic réseau de Dofus 3.\n"
+    "Outil qui lit passivement le trafic réseau de Dofus 3. Code source public, tous droits réservés.\n"
     "Catégories collectées : HDV (recyclage, brisage et expérience des pets arrivent bientôt).\n"
     "Rien n'est envoyé hors de ta machine, sauf la vérification des mises à jour "
     "(une requête anonyme à GitHub, désactivable dans les réglages)."
