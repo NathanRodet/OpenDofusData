@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from dofus_prices import cli
-from dofus_prices.capture import CaptureAborted, PacketPipeline
-from dofus_prices.storage import LotPrice, MarketStats, PriceStore
+from opendofusdata import cli
+from opendofusdata.capture import CaptureAborted, PacketPipeline
+from opendofusdata.storage import LotPrice, MarketStats, PriceStore
 from tests.envelopes import FLOW_KEY, lot_envelope
 
 CAPTURE_MOMENT = datetime(2026, 11, 10, 10, 29, 17, tzinfo=timezone.utc)

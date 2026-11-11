@@ -2,8 +2,8 @@
 
 import io
 
-from dofus_prices.export import write_lot_prices_csv
-from dofus_prices.storage import LotPrice
+from opendofusdata.export import write_lot_prices_csv
+from opendofusdata.storage import LotPrice
 
 
 def test_export_writes_header_and_rows() -> None:

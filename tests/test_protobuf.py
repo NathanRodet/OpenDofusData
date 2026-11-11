@@ -1,6 +1,6 @@
 import pytest
 
-from dofus_prices.protobuf import (
+from opendofusdata.protobuf import (
     DecodeError,
     decode_fields,
     read_varint,

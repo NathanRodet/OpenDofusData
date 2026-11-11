@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from dofus_prices.app_config import (CONFIG_ENV_VAR, CONFIG_VERSION, default_config_path,
+from opendofusdata.app_config import (CONFIG_ENV_VAR, CONFIG_VERSION, default_config_path,
                                      load_config, save_config)
 
 

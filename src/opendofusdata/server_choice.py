@@ -4,7 +4,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Literal
 
-from dofus_prices.game_servers import UNKNOWN_SERVER, GameServer, canonical_name
+from opendofusdata.game_servers import UNKNOWN_SERVER, GameServer, canonical_name
 
 Ask = Callable[[str], str]
 Say = Callable[[str], None]

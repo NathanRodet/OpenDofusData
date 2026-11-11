@@ -18,8 +18,8 @@
 - Lots ×1, ×10, ×100, ×1000 avec le prix total du lot (jamais le prix unitaire).
 - Historique complet des relevés conservé (pas seulement le dernier prix).
 - Les écritures SQLite se font hors de la boucle de capture.
-- Noms de messages et numéros de champs uniquement dans `src/dofus_prices/messages.py`.
-- Le code vit dans `src/dofus_prices/`, les tests dans `tests/`.
+- Noms de messages et numéros de champs uniquement dans `src/opendofusdata/messages.py`.
+- Le code vit dans `src/opendofusdata/`, les tests dans `tests/`.
 
 ## Review Focus
 
@@ -34,22 +34,22 @@
 ### Task 1: Squelette du projet
 
 **Files:**
-- Create: `src/dofus_prices/__init__.py`, `tests/__init__.py`, `pytest.ini`, `.gitignore`
+- Create: `src/opendofusdata/__init__.py`, `tests/__init__.py`, `pytest.ini`, `.gitignore`
 - Modify: `dev.ps1` (aucune modification attendue si `pytest.ini` fixe `pythonpath = src`)
 
 **Interfaces:**
-- Produces: package importable `dofus_prices`; `pytest` trouve `src/` via `pytest.ini`.
+- Produces: package importable `opendofusdata`; `pytest` trouve `src/` via `pytest.ini`.
 
 - [ ] **Step 1:** `git init` à la racine; `.gitignore` contient `.venv/`, `__pycache__/`, `.pytest_cache/`, `*.db`, `captures/`.
 - [ ] **Step 2:** `pytest.ini` avec `[pytest]`, `pythonpath = src`, `testpaths = tests`.
-- [ ] **Step 3:** Test `tests/test_package.py::test_package_is_importable` (`import dofus_prices`).
+- [ ] **Step 3:** Test `tests/test_package.py::test_package_is_importable` (`import opendofusdata`).
 - [ ] **Step 4:** `.\dev.ps1 setup` puis `.\dev.ps1 test`. Expected: 1 passed.
 - [ ] **Step 5:** Commit `chore: project skeleton`.
 
 ### Task 2: Reconstruction TCP
 
 **Files:**
-- Create: `src/dofus_prices/tcp.py`
+- Create: `src/opendofusdata/tcp.py`
 - Test: `tests/test_tcp.py`
 
 **Interfaces:**
@@ -77,7 +77,7 @@
 ### Task 3: Décodeur Protobuf générique
 
 **Files:**
-- Create: `src/dofus_prices/protobuf.py`
+- Create: `src/opendofusdata/protobuf.py`
 - Test: `tests/test_protobuf.py`
 
 **Interfaces:**
@@ -103,7 +103,7 @@
 ### Task 4: Extraction des enveloppes de messages
 
 **Files:**
-- Create: `src/dofus_prices/framing.py`
+- Create: `src/opendofusdata/framing.py`
 - Test: `tests/test_framing.py`
 
 **Interfaces:**
@@ -130,7 +130,7 @@ Hypothèse à confirmer avec une vraie capture (Task 7): une enveloppe est un me
 ### Task 5: Stockage SQLite
 
 **Files:**
-- Create: `src/dofus_prices/storage.py`
+- Create: `src/opendofusdata/storage.py`
 - Test: `tests/test_storage.py`
 
 **Interfaces:**
@@ -150,7 +150,7 @@ Hypothèse à confirmer avec une vraie capture (Task 7): une enveloppe est un me
 ### Task 6: Capture Scapy et mode découverte
 
 **Files:**
-- Create: `src/dofus_prices/capture.py`, `src/dofus_prices/discovery.py`, `src/dofus_prices/cli.py`
+- Create: `src/opendofusdata/capture.py`, `src/opendofusdata/discovery.py`, `src/opendofusdata/cli.py`
 - Test: `tests/test_discovery.py`
 
 **Interfaces:**
@@ -183,7 +183,7 @@ Les deux captures du joueur (objets Ailes de Moskito, Aile du Tofu Maléfique, �
 ### Task 8: Décodage des lots HDV
 
 **Files:**
-- Create: `src/dofus_prices/messages.py`, `src/dofus_prices/hdv.py`
+- Create: `src/opendofusdata/messages.py`, `src/opendofusdata/hdv.py`
 - Test: `tests/test_hdv.py`
 
 **Interfaces:**
@@ -210,8 +210,8 @@ Les deux captures du joueur (objets Ailes de Moskito, Aile du Tofu Maléfique, �
 ### Task 9: Décodage des cours du marché
 
 **Files:**
-- Create: `src/dofus_prices/timeutil.py`, `src/dofus_prices/market_stats.py`
-- Modify: `src/dofus_prices/storage.py` (annotation seulement: `MarketStats.points` devient `list[tuple[int, int, int]]` = horodatage Unix, prix, quantité; ne pas dépasser 200 lignes), `tests/test_storage.py` (fixtures à trois valeurs)
+- Create: `src/opendofusdata/timeutil.py`, `src/opendofusdata/market_stats.py`
+- Modify: `src/opendofusdata/storage.py` (annotation seulement: `MarketStats.points` devient `list[tuple[int, int, int]]` = horodatage Unix, prix, quantité; ne pas dépasser 200 lignes), `tests/test_storage.py` (fixtures à trois valeurs)
 - Test: `tests/test_market_stats.py`, `tests/test_timeutil.py`
 
 **Interfaces:**
@@ -240,8 +240,8 @@ Les deux captures du joueur (objets Ailes de Moskito, Aile du Tofu Maléfique, �
 ### Task 10: Commandes CLI et assemblage
 
 **Files:**
-- Modify: `src/dofus_prices/cli.py` (déjà proche de la limite: si la limite de 200 lignes est menacée, créer `src/dofus_prices/commands.py` pour les commandes de lecture et le dire dans le rapport)
-- Create: `src/dofus_prices/export.py`, `src/dofus_prices/run_pipeline.py`
+- Modify: `src/opendofusdata/cli.py` (déjà proche de la limite: si la limite de 200 lignes est menacée, créer `src/opendofusdata/commands.py` pour les commandes de lecture et le dire dans le rapport)
+- Create: `src/opendofusdata/export.py`, `src/opendofusdata/run_pipeline.py`
 - Test: `tests/test_cli.py`, `tests/test_export.py`, `tests/test_run_pipeline.py`
 
 **Interfaces:**
@@ -262,7 +262,7 @@ Les deux captures du joueur (objets Ailes de Moskito, Aile du Tofu Maléfique, �
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1:** Le joueur lance `python -m dofus_prices run`, consulte plusieurs objets à l'HDV, puis `python -m dofus_prices prices` et compare avec les prix affichés en jeu (lots et, si disponibles, cours du marché).
+- [ ] **Step 1:** Le joueur lance `python -m opendofusdata run`, consulte plusieurs objets à l'HDV, puis `python -m opendofusdata prices` et compare avec les prix affichés en jeu (lots et, si disponibles, cours du marché).
 - [ ] **Step 2:** Corriger `messages.py` ou les décodeurs d'après les écarts.
 - [ ] **Step 3:** Mettre à jour `README.md`: usage des commandes `discover`, `run`, `prices`, `history`, `export-csv`, avertissement sur les mises à jour de Dofus (noms de messages à ajuster) et retrait de la mention « code de capture non écrit ».
 - [ ] **Step 4:** Commit `docs: usage and v1 validation`.

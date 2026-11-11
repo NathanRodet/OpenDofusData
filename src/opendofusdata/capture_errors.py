@@ -4,7 +4,7 @@ import logging
 import sys
 from collections.abc import Callable
 
-from dofus_prices.capture import CaptureAborted, PacketPipeline
+from opendofusdata.capture import CaptureAborted, PacketPipeline
 
 logger = logging.getLogger(__name__)
 

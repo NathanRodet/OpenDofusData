@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from dofus_prices.timeutil import format_utc, parse_server_timestamp
+from opendofusdata.timeutil import format_utc, parse_server_timestamp
 
 
 def test_nine_digit_fraction_is_truncated_to_microseconds() -> None:

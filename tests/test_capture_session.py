@@ -6,9 +6,9 @@ from datetime import datetime, timezone
 
 import pytest
 
-from dofus_prices.capture import CaptureAborted, PacketPipeline
-from dofus_prices.capture_session import CaptureSession, CaptureStatus
-from dofus_prices.storage import PriceStore
+from opendofusdata.capture import CaptureAborted, PacketPipeline
+from opendofusdata.capture_session import CaptureSession, CaptureStatus
+from opendofusdata.storage import PriceStore
 from tests.envelopes import FLOW_KEY, lot_envelope, stats_envelope
 
 MOMENT = datetime(2026, 11, 11, 12, 0, 0, tzinfo=timezone.utc)

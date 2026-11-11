@@ -7,9 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from dofus_prices import cli, names_db
-from dofus_prices.game_servers import GameServer
-from dofus_prices.item_names import ItemEntry
+from opendofusdata import cli, names_db
+from opendofusdata.game_servers import GameServer
+from opendofusdata.item_names import ItemEntry
 from tests.test_names_db import do_import, items_of, make_database, make_names
 from tests.test_servers_commands import make_servers
 

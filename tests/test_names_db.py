@@ -7,10 +7,10 @@ from pathlib import Path
 
 import pytest
 
-from dofus_prices import cli, names_db
-from dofus_prices.item_names import ItemEntry
-from dofus_prices.records import LotPrice
-from dofus_prices.storage import PriceStore
+from opendofusdata import cli, names_db
+from opendofusdata.item_names import ItemEntry
+from opendofusdata.records import LotPrice
+from opendofusdata.storage import PriceStore
 
 GAP_LISTING_LIMIT = 20
 

@@ -3,18 +3,18 @@
 import argparse
 import sqlite3
 
-from dofus_prices.capture_errors import EXIT_OK, fail
-from dofus_prices.commands import check_database_path, format_table, with_store
-from dofus_prices.game_servers import DEFAULT_SERVERS_PATH, GameServer, load_servers
-from dofus_prices.item_names import DEFAULT_NAMES_PATH, ItemNames
-from dofus_prices.names_db import (
+from opendofusdata.capture_errors import EXIT_OK, fail
+from opendofusdata.commands import check_database_path, format_table, with_store
+from opendofusdata.game_servers import DEFAULT_SERVERS_PATH, GameServer, load_servers
+from opendofusdata.item_names import DEFAULT_NAMES_PATH, ItemNames
+from opendofusdata.names_db import (
     UnknownItem,
     count_items,
     count_servers,
     replace_items,
     unknown_items,
 )
-from dofus_prices.storage import PriceStore
+from opendofusdata.storage import PriceStore
 
 DEFAULT_DATABASE = "prices.db"
 GAP_LISTING_LIMIT = 20

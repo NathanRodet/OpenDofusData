@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from dofus_prices.framing import Envelope
+from opendofusdata.framing import Envelope
 
 REAL_PACKED_PRICES = bytes.fromhex("ee05ec2dc986039fc21e")  # item 307: 750, 5868, 49993, 499999
 STATS_ITEM_ID = 376

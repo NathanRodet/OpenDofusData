@@ -4,12 +4,12 @@ import argparse
 import webbrowser
 from collections.abc import Callable
 
-from dofus_prices.app_links import SAAS_URL
-from dofus_prices.capture_errors import EXIT_OK, fail
-from dofus_prices.capture_session import CaptureSession
-from dofus_prices.capture_stoppable import StoppableCapture, run_stoppable_capture
-from dofus_prices.run_pipeline import Clock, utc_now
-from dofus_prices.server_choice_commands import resolve_run_server
+from opendofusdata.app_links import SAAS_URL
+from opendofusdata.capture_errors import EXIT_OK, fail
+from opendofusdata.capture_session import CaptureSession
+from opendofusdata.capture_stoppable import StoppableCapture, run_stoppable_capture
+from opendofusdata.run_pipeline import Clock, utc_now
+from opendofusdata.server_choice_commands import resolve_run_server
 
 NO_DISPLAY_MESSAGE = "Impossible d'ouvrir la fenêtre ({error})."
 
@@ -33,7 +33,7 @@ def show_window(session: CaptureSession, open_online: Callable[[], None]) -> int
     """Build the window, run it until closed, and always stop the session afterwards."""
     import tkinter
 
-    from dofus_prices.window_view import CaptureWindow
+    from opendofusdata.window_view import CaptureWindow
 
     try:
         root = tkinter.Tk()

@@ -5,9 +5,9 @@ import tkinter
 from collections.abc import Callable
 from tkinter import ttk
 
-from dofus_prices.app_links import APP_NAME
-from dofus_prices.capture_session import CaptureSession, CaptureStatus
-from dofus_prices.window_format import (
+from opendofusdata.app_links import APP_NAME
+from opendofusdata.capture_session import CaptureSession, CaptureStatus
+from opendofusdata.window_format import (
     button_enabled, button_label, counts_text, last_record_text, server_text, status_text,
 )
 

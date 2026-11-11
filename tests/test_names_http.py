@@ -9,8 +9,8 @@ from collections.abc import Iterator
 
 import pytest
 
-from dofus_prices import names_fetch
-from dofus_prices.names_fetch import NamesFetchError, TransientFetchError, http_get_json
+from opendofusdata import names_fetch
+from opendofusdata.names_fetch import NamesFetchError, TransientFetchError, http_get_json
 
 LOCAL_HOST = "127.0.0.1"
 

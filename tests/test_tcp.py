@@ -1,6 +1,6 @@
 """Tests for TCP stream reassembly."""
 
-from dofus_prices.tcp import FlowTable, StreamReassembler, payload_length
+from opendofusdata.tcp import FlowTable, StreamReassembler, payload_length
 
 SEQUENCE_MODULUS = 2**32
 FLOW = ("10.0.0.1", 5555, "10.0.0.2", 50000)

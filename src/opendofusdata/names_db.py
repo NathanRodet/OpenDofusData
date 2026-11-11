@@ -4,8 +4,8 @@ import sqlite3
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from dofus_prices.game_servers import GameServer
-from dofus_prices.item_names import ItemEntry
+from opendofusdata.game_servers import GameServer
+from opendofusdata.item_names import ItemEntry
 
 INSERT_ITEM_SQL = "INSERT INTO items (item_id, name_fr, level, type_fr) VALUES (?, ?, ?, ?)"
 INSERT_SERVER_SQL = ("INSERT INTO servers (server_id, name_fr, game_type_id, game_type_fr, "

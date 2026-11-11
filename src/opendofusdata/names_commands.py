@@ -4,11 +4,11 @@ import argparse
 import time
 from pathlib import Path
 
-from dofus_prices.capture_errors import EXIT_OK, fail
-from dofus_prices.item_names import DEFAULT_NAMES_PATH
-from dofus_prices.names_db_commands import add_names_db_commands
-from dofus_prices.names_build import NamesFetchError
-from dofus_prices.names_fetch import (
+from opendofusdata.capture_errors import EXIT_OK, fail
+from opendofusdata.item_names import DEFAULT_NAMES_PATH
+from opendofusdata.names_db_commands import add_names_db_commands
+from opendofusdata.names_build import NamesFetchError
+from opendofusdata.names_fetch import (
     REQUEST_DELAY_SECONDS,
     FetchJson,
     FetchSummary,

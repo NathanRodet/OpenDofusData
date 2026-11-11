@@ -4,8 +4,8 @@ import sqlite3
 from contextlib import closing
 from pathlib import Path
 
-from dofus_prices.records import LotPrice, MarketStats
-from dofus_prices.storage import PriceStore
+from opendofusdata.records import LotPrice, MarketStats
+from opendofusdata.storage import PriceStore
 
 OLD_SCHEMA = (
     """CREATE TABLE lot_prices (

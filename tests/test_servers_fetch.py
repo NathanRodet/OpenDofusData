@@ -6,9 +6,9 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 
-from dofus_prices import names_build, servers_build
-from dofus_prices.names_fetch import NamesFetchError, TransientFetchError
-from dofus_prices.servers_fetch import download_game_servers
+from opendofusdata import names_build, servers_build
+from opendofusdata.names_fetch import NamesFetchError, TransientFetchError
+from opendofusdata.servers_fetch import download_game_servers
 from tests.test_names_fetch import FakeApi
 
 GAME_TYPES = [{"id": 0, "name": {"fr": "Classique"}}, {"id": 3, "name": {"fr": "Tournoi"}}]

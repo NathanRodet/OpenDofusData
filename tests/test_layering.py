@@ -11,7 +11,7 @@ SOURCE_DIRECTORY = Path(__file__).resolve().parent.parent / "src"
 # -I ignores PYTHONPATH, so the script extends sys.path itself from the first argument.
 CHECK_SCRIPT = (
     "import sys; sys.path.insert(0, sys.argv[1]); "
-    "import dofus_prices.hdv, dofus_prices.market_stats, dofus_prices.export; "
+    "import opendofusdata.hdv, opendofusdata.market_stats, opendofusdata.export; "
     "sys.exit(1 if 'sqlite3' in sys.modules else 0)"
 )
 
@@ -27,7 +27,7 @@ def test_pure_modules_do_not_import_sqlite() -> None:
 
 NAMES_CHECK_SCRIPT = (
     "import sys; sys.path.insert(0, sys.argv[1]); "
-    "import dofus_prices.item_names, dofus_prices.names_build; "
+    "import opendofusdata.item_names, opendofusdata.names_build; "
     "banned = {'sqlite3', 'scapy', 'urllib.request'}; "
     "sys.exit(1 if banned & set(sys.modules) else 0)"
 )
@@ -47,13 +47,13 @@ GUARDED_MODULES = (
     "storage", "run_pipeline", "commands", "export", "verbose_table", "timeutil", "discovery",
     "capture_stoppable", "capture_session", "session_counters",
 )
-FORBIDDEN_IMPORTS = ("dofus_prices.names_fetch", "dofus_prices.names_build",
-                     "dofus_prices.item_names", "dofus_prices.game_servers",
-                     "dofus_prices.servers_fetch", "dofus_prices.servers_build",
-                     "dofus_prices.servers_commands", "dofus_prices.app_config",
-                     "dofus_prices.server_choice", "dofus_prices.server_choice_commands",
-                     "dofus_prices.window_view", "dofus_prices.window_command",
-                     "dofus_prices.app_links", "tkinter", "urllib")
+FORBIDDEN_IMPORTS = ("opendofusdata.names_fetch", "opendofusdata.names_build",
+                     "opendofusdata.item_names", "opendofusdata.game_servers",
+                     "opendofusdata.servers_fetch", "opendofusdata.servers_build",
+                     "opendofusdata.servers_commands", "opendofusdata.app_config",
+                     "opendofusdata.server_choice", "opendofusdata.server_choice_commands",
+                     "opendofusdata.window_view", "opendofusdata.window_command",
+                     "opendofusdata.app_links", "tkinter", "urllib")
 
 
 def forbidden_imports(source: str) -> list[str]:
@@ -70,34 +70,34 @@ def forbidden_imports(source: str) -> list[str]:
 
 def test_guard_detects_offending_sources() -> None:
     assert forbidden_imports("import urllib.request") == ["urllib.request"]
-    assert forbidden_imports("from dofus_prices import item_names") == ["dofus_prices.item_names"]
+    assert forbidden_imports("from opendofusdata import item_names") == ["opendofusdata.item_names"]
     assert forbidden_imports("from urllib import parse") != []
-    assert forbidden_imports("from dofus_prices.names_build import write_items_csv") != []
-    assert forbidden_imports("import json; from dofus_prices.hdv import decode_lot_prices") == []
+    assert forbidden_imports("from opendofusdata.names_build import write_items_csv") != []
+    assert forbidden_imports("import json; from opendofusdata.hdv import decode_lot_prices") == []
 
 
 @pytest.mark.parametrize("module", GUARDED_MODULES)
 def test_capture_decoder_and_storage_modules_stay_offline(module: str) -> None:
-    source = (SOURCE_DIRECTORY / "dofus_prices" / f"{module}.py").read_text(encoding="utf-8")
+    source = (SOURCE_DIRECTORY / "opendofusdata" / f"{module}.py").read_text(encoding="utf-8")
     assert forbidden_imports(source) == []
 
 
 SERVERS_CHECK_SCRIPT = (
     "import sys; sys.path.insert(0, sys.argv[1]); "
-    "import dofus_prices.game_servers, dofus_prices.servers_build; "
+    "import opendofusdata.game_servers, opendofusdata.servers_build; "
     "banned = {'sqlite3', 'scapy', 'urllib.request'}; "
     "sys.exit(1 if banned & set(sys.modules) else 0)"
 )
 
 
 def test_server_list_modules_stay_out_of_the_capture_path() -> None:
-    assert forbidden_imports("from dofus_prices.servers_fetch import x") != []
-    assert forbidden_imports("from dofus_prices import game_servers") != []
-    assert forbidden_imports("import dofus_prices.servers_commands") != []
-    assert forbidden_imports("from dofus_prices.servers_build import x") != []
-    assert forbidden_imports("from dofus_prices.app_config import load_config") != []
-    assert forbidden_imports("import dofus_prices.server_choice") != []
-    assert forbidden_imports("from dofus_prices import server_choice_commands") != []
+    assert forbidden_imports("from opendofusdata.servers_fetch import x") != []
+    assert forbidden_imports("from opendofusdata import game_servers") != []
+    assert forbidden_imports("import opendofusdata.servers_commands") != []
+    assert forbidden_imports("from opendofusdata.servers_build import x") != []
+    assert forbidden_imports("from opendofusdata.app_config import load_config") != []
+    assert forbidden_imports("import opendofusdata.server_choice") != []
+    assert forbidden_imports("from opendofusdata import server_choice_commands") != []
 
 
 def test_pure_server_modules_do_not_import_network_storage_or_capture() -> None:
@@ -109,7 +109,7 @@ def test_pure_server_modules_do_not_import_network_storage_or_capture() -> None:
 
 WINDOW_LOGIC_CHECK_SCRIPT = (
     "import sys; sys.path.insert(0, sys.argv[1]); "
-    "import dofus_prices.capture_session, dofus_prices.window_format, dofus_prices.capture_stoppable; "
+    "import opendofusdata.capture_session, opendofusdata.window_format, opendofusdata.capture_stoppable; "
     "banned = {'tkinter', 'scapy', 'webbrowser'}; "
     "sys.exit(1 if banned & set(sys.modules) else 0)"
 )

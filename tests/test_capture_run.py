@@ -5,7 +5,7 @@ from typing import Any
 
 import pytest
 
-from dofus_prices.capture import BPF_FILTER, CaptureAborted, PacketPipeline, run_capture
+from opendofusdata.capture import BPF_FILTER, CaptureAborted, PacketPipeline, run_capture
 from tests.test_capture import frame, segment
 
 

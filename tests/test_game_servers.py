@@ -3,7 +3,7 @@
 import logging
 from pathlib import Path
 
-from dofus_prices.game_servers import (
+from opendofusdata.game_servers import (
     BUNDLED_CLASSIC_SERVERS,
     GameServer,
     available_servers,

@@ -7,9 +7,9 @@ from typing import Any
 
 import pytest
 
-from dofus_prices import capture_stoppable
-from dofus_prices.capture import CaptureAborted, PacketPipeline
-from dofus_prices.capture_stoppable import run_stoppable_capture
+from opendofusdata import capture_stoppable
+from opendofusdata.capture import CaptureAborted, PacketPipeline
+from opendofusdata.capture_stoppable import run_stoppable_capture
 
 SLOW_START_SECONDS = 0.5
 

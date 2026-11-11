@@ -1,6 +1,6 @@
 """French texts of the capture window (pure functions, no tkinter)."""
 
-from dofus_prices.capture_session import CaptureStatus, SessionSnapshot
+from opendofusdata.capture_session import CaptureStatus, SessionSnapshot
 
 NO_RECORD_TEXT = "aucun pour l'instant"
 TIME_FORMAT = "%H:%M:%S"

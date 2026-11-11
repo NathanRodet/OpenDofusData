@@ -5,9 +5,9 @@ import sqlite3
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
-from dofus_prices.capture_errors import EXIT_OK, fail
-from dofus_prices.export import write_lot_prices_csv
-from dofus_prices.storage import MARKET_PERIODS, LotPrice, MarketStats, PriceStore
+from opendofusdata.capture_errors import EXIT_OK, fail
+from opendofusdata.export import write_lot_prices_csv
+from opendofusdata.storage import MARKET_PERIODS, LotPrice, MarketStats, PriceStore
 
 COLUMN_SEPARATOR = "  "
 PRICE_HEADERS = ("item", "server", "lot", "price", "captured_at (UTC)")

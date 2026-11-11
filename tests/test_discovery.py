@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from dofus_prices import cli
-from dofus_prices.discovery import (
+from opendofusdata import cli
+from opendofusdata.discovery import (
     MAX_HEX_BYTES,
     MAX_PACKED_VALUES,
     MAX_TYPED_HEX_BYTES,
@@ -16,7 +16,7 @@ from dofus_prices.discovery import (
     LogSizeLimitReached,
     describe_envelope,
 )
-from dofus_prices.framing import Envelope
+from opendofusdata.framing import Envelope
 
 VARINT_TAG = 0x08
 LENGTH_TAG = 0x12

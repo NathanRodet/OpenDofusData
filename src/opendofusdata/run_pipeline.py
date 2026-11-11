@@ -6,16 +6,16 @@ import sqlite3
 from collections.abc import Callable
 from datetime import datetime, timezone
 
-from dofus_prices.capture import CaptureAborted, PacketPipeline
-from dofus_prices.capture_errors import CaptureFunction, fail, run_guarded_capture
-from dofus_prices.framing import Envelope
-from dofus_prices.hdv import decode_lot_prices
-from dofus_prices.market_stats import decode_market_stats
-from dofus_prices.records import LotPrice, MarketStats
-from dofus_prices.storage import StoreWriter
-from dofus_prices.tcp import FlowKey
-from dofus_prices.timeutil import format_utc
-from dofus_prices.verbose_table import format_lot_prices, format_market_stats
+from opendofusdata.capture import CaptureAborted, PacketPipeline
+from opendofusdata.capture_errors import CaptureFunction, fail, run_guarded_capture
+from opendofusdata.framing import Envelope
+from opendofusdata.hdv import decode_lot_prices
+from opendofusdata.market_stats import decode_market_stats
+from opendofusdata.records import LotPrice, MarketStats
+from opendofusdata.storage import StoreWriter
+from opendofusdata.tcp import FlowKey
+from opendofusdata.timeutil import format_utc
+from opendofusdata.verbose_table import format_lot_prices, format_market_stats
 
 logger = logging.getLogger(__name__)
 

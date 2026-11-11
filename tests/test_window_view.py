@@ -8,8 +8,8 @@ import pytest
 
 tkinter = pytest.importorskip("tkinter")
 
-from dofus_prices.capture_session import CaptureSession
-from dofus_prices.window_view import CaptureWindow
+from opendofusdata.capture_session import CaptureSession
+from opendofusdata.window_view import CaptureWindow
 
 WAIT_SECONDS = 5.0
 

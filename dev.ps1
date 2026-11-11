@@ -39,7 +39,7 @@ function Invoke-Program {
     param([string[]]$ProgramArguments)
     Assert-VenvExists
     $env:PYTHONPATH = Join-Path $ProjectRoot "src"
-    & $VenvPython -m dofus_prices @ProgramArguments
+    & $VenvPython -m opendofusdata @ProgramArguments
     exit $LASTEXITCODE
 }
 
@@ -66,7 +66,7 @@ function Show-Help {
     Write-Host "  test   Lance pytest dans le venv"
     Write-Host "  clean  Supprime le venv et les caches"
     Write-Host "  capture Lance la capture des prix (ex: .\dev.ps1 capture --server MonServeur)"
-    Write-Host "  run    Lance dofus_prices (ex: .\dev.ps1 run discover --interface Ethernet)"
+    Write-Host "  run    Lance opendofusdata (ex: .\dev.ps1 run discover --interface Ethernet)"
 }
 
 switch ($Command) {

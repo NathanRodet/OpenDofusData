@@ -4,7 +4,7 @@ import csv
 from collections.abc import Iterable
 from typing import TextIO
 
-from dofus_prices.records import LotPrice
+from opendofusdata.records import LotPrice
 
 CSV_COLUMNS = ("item_id", "server", "lot_size", "price", "captured_at")
 

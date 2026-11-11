@@ -26,12 +26,12 @@ Depuis PowerShell, à la racine du projet:
 
 Cette commande crée le venv `.venv` et installe `requirements.txt` (`scapy` pour la capture, `pytest` pour les tests; le décodage Protobuf et SQLite utilisent la bibliothèque standard). Si PowerShell refuse d'exécuter le script, lance une fois `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. Npcap étant installé au niveau du système, il fonctionne depuis le venv sans configuration.
 
-Le projet est aussi un paquet Python (`pyproject.toml`). Dans le venv, `pip install -e .` installe la commande `opendofusdata`, équivalente à `python -m dofus_prices` (ex. `opendofusdata run --server Kourial`). `.\dev.ps1 setup` fait cette installation.
+Le projet est aussi un paquet Python (`pyproject.toml`). Dans le venv, `pip install -e .` installe la commande `opendofusdata`, équivalente à `python -m opendofusdata` (ex. `opendofusdata run --server Kourial`). `.\dev.ps1 setup` fait cette installation.
 
 ## Fenêtre OpenDofusData (utilisation pour les joueurs)
 
 1. Installe Npcap depuis npcap.com (voir « Prérequis »; le mode « WinPcap API-compatible » n'est pas nécessaire).
-2. Lance `opendofusdata window` (ou `python -m dofus_prices window`) AVANT de te connecter au jeu. Au tout premier lancement, la console te propose la liste des serveurs de jeu (le choix est mémorisé, voir « Serveur de jeu »); `--server NOM` et `--choose-server` fonctionnent aussi.
+2. Lance `opendofusdata window` (ou `python -m opendofusdata window`) AVANT de te connecter au jeu. Au tout premier lancement, la console te propose la liste des serveurs de jeu (le choix est mémorisé, voir « Serveur de jeu »); `--server NOM` et `--choose-server` fonctionnent aussi.
 3. Une petite fenêtre OpenDofusData s'ouvre et lance la capture: état (Capture active, arrêtée ou erreur avec un message clair, par exemple Npcap absent ou droits insuffisants), serveur choisi, nombre de prix et de statistiques enregistrés pendant cette session, heure du dernier enregistrement. Les données vont dans `prices.db` (dossier courant), comme avec `run`.
 4. « Arrêter » stoppe proprement la capture (le bouton devient « Relancer »); fermer la fenêtre l'arrête aussi. La fenêtre peut rester ouverte en arrière-plan pendant que tu joues.
 5. « Voir les prix en ligne » ouvre le site dans ton navigateur (adresse provisoire tant que le serveur n'existe pas). Rien n'est envoyé nulle part. Pas de démarrage automatique avec Windows.
@@ -148,7 +148,7 @@ Suite prévue du projet: [docs/roadmap.md](docs/roadmap.md).
 
 ## Limites connues et maintenance
 
-- Les noms courts des messages (`jzs`, `ire`, `kcy`, `iqp`) changent à chaque mise à jour du jeu. Ils sont isolés dans `src/dofus_prices/messages.py`. Si l'outil ne décode plus rien après une mise à jour: lance `discover` avec `--hex-types` sur la nouvelle version, compare avec `docs/protocol-notes.md`, puis mets à jour `messages.py`.
+- Les noms courts des messages (`jzs`, `ire`, `kcy`, `iqp`) changent à chaque mise à jour du jeu. Ils sont isolés dans `src/opendofusdata/messages.py`. Si l'outil ne décode plus rien après une mise à jour: lance `discover` avec `--hex-types` sur la nouvelle version, compare avec `docs/protocol-notes.md`, puis mets à jour `messages.py`.
 - Le pipeline `run` n'a pas encore été validé de bout en bout sur le jeu réel (validation de la v1 en attente). Les décodeurs ont été vérifiés sur deux captures du mode découverte.
 - Seuls les prix de lots et les cours du marché sont décodés: pas d'achats, de ventes ni de changements de prix, et pas d'affichage en direct.
 - Fenêtre de 7 jours: la règle (minuit UTC sept jours avant la date de capture) est vérifiée à l'écran sur quatre objets; une confirmation reste en attente (Filet multiplicateur de Dragodinde, id 32525).

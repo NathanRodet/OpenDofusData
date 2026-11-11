@@ -6,8 +6,8 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 
-from dofus_prices import names_build, names_fetch
-from dofus_prices.names_fetch import (
+from opendofusdata import names_build, names_fetch
+from opendofusdata.names_fetch import (
     NamesFetchError,
     TransientFetchError,
     download_item_names,
@@ -147,7 +147,7 @@ def test_failed_rename_leaves_no_temp_file(tmp_path: Path, monkeypatch) -> None:
     def refuse(source, destination) -> None:
         raise PermissionError("denied")
 
-    monkeypatch.setattr("dofus_prices.names_build.os.replace", refuse)
+    monkeypatch.setattr("opendofusdata.names_build.os.replace", refuse)
     with pytest.raises(NamesFetchError, match="écrire"):
         run_download(tmp_path / "items.csv", FakeApi())
     assert list(tmp_path.iterdir()) == []

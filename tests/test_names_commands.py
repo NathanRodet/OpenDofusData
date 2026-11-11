@@ -2,8 +2,8 @@
 
 from pathlib import Path
 
-from dofus_prices import cli, names_commands
-from dofus_prices.names_build import NamesFetchError
+from opendofusdata import cli, names_commands
+from opendofusdata.names_build import NamesFetchError
 from tests.test_names_fetch import FakeApi
 
 

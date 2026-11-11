@@ -6,7 +6,7 @@ import time
 from collections.abc import Callable
 from typing import Any
 
-from dofus_prices.capture import CaptureAborted, PacketPipeline, sniff_arguments
+from opendofusdata.capture import CaptureAborted, PacketPipeline, sniff_arguments
 
 logger = logging.getLogger(__name__)
 

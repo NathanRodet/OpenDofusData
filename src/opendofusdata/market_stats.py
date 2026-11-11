@@ -4,8 +4,8 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import NamedTuple
 
-from dofus_prices.framing import Envelope
-from dofus_prices.messages import (
+from opendofusdata.framing import Envelope
+from opendofusdata.messages import (
     POINT_ITEM_FIELD,
     POINT_PRICE_FIELD,
     POINT_QUANTITY_FIELD,
@@ -14,7 +14,7 @@ from dofus_prices.messages import (
     STATS_HOURLY_POINTS_FIELD,
     STATS_RESPONSE_TYPE,
 )
-from dofus_prices.protobuf import (
+from opendofusdata.protobuf import (
     WIRE_TYPE_LENGTH_DELIMITED,
     WIRE_TYPE_VARINT,
     DecodeError,
@@ -22,8 +22,8 @@ from dofus_prices.protobuf import (
     decode_fields,
     to_signed,
 )
-from dofus_prices.records import MarketStats
-from dofus_prices.timeutil import STORED_TIMESTAMP_FORMAT, format_utc, parse_server_timestamp
+from opendofusdata.records import MarketStats
+from opendofusdata.timeutil import STORED_TIMESTAMP_FORMAT, format_utc, parse_server_timestamp
 
 logger = logging.getLogger(__name__)
 

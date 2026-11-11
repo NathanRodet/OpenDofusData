@@ -5,7 +5,7 @@ from collections.abc import Callable
 from datetime import datetime
 from typing import Protocol
 
-from dofus_prices.records import LotPrice, MarketStats
+from opendofusdata.records import LotPrice, MarketStats
 
 
 class RecordSink(Protocol):

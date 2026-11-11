@@ -4,12 +4,12 @@ import logging
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from dofus_prices.framing import Envelope
-from dofus_prices.hdv import decode_lot_prices
-from dofus_prices.market_stats import decode_market_stats
-from dofus_prices.run_pipeline import make_envelope_handler
-from dofus_prices.verbose_table import format_lot_prices, format_market_stats
-from dofus_prices.storage import PriceStore, StoreWriter
+from opendofusdata.framing import Envelope
+from opendofusdata.hdv import decode_lot_prices
+from opendofusdata.market_stats import decode_market_stats
+from opendofusdata.run_pipeline import make_envelope_handler
+from opendofusdata.verbose_table import format_lot_prices, format_market_stats
+from opendofusdata.storage import PriceStore, StoreWriter
 from tests.envelopes import FLOW_KEY, STATS_ITEM_ID, lot_envelope, stats_envelope
 
 CAPTURE_MOMENT = datetime(2026, 11, 10, 10, 29, 17, tzinfo=timezone.utc)

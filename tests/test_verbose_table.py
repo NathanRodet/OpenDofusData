@@ -1,7 +1,7 @@
 """Tests for the pure text tables shown by run --verbose."""
 
-from dofus_prices.records import LotPrice, MarketStats
-from dofus_prices.verbose_table import format_lot_prices, format_market_stats, group_thousands
+from opendofusdata.records import LotPrice, MarketStats
+from opendofusdata.verbose_table import format_lot_prices, format_market_stats, group_thousands
 
 CAPTURED_AT = "2026-11-10T10:29:17Z"
 LAST_PURCHASE = "2026-11-10T09:43:01Z"

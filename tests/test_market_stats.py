@@ -1,10 +1,10 @@
 import logging
 from datetime import datetime, timedelta, timezone
 
-from dofus_prices.framing import Envelope
-from dofus_prices.market_stats import decode_market_stats
-from dofus_prices.records import MarketStats
-from dofus_prices.timeutil import format_utc
+from opendofusdata.framing import Envelope
+from opendofusdata.market_stats import decode_market_stats
+from opendofusdata.records import MarketStats
+from opendofusdata.timeutil import format_utc
 
 SERVER = "Ilyzaelle"
 CAPTURED_AT = "2026-11-09T12:00:00Z"

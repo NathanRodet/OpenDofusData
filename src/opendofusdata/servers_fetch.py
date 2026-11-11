@@ -4,9 +4,9 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from dofus_prices.game_servers import CLASSIC_GAME_TYPE_ID
-from dofus_prices.names_build import build_type_names
-from dofus_prices.names_fetch import (
+from opendofusdata.game_servers import CLASSIC_GAME_TYPE_ID
+from opendofusdata.names_build import build_type_names
+from opendofusdata.names_fetch import (
     PAGE_SIZE,
     REQUEST_DELAY_SECONDS,
     FetchJson,
@@ -17,7 +17,7 @@ from dofus_prices.names_fetch import (
     collect_all,
     http_get_json,
 )
-from dofus_prices.servers_build import build_servers, write_servers_csv
+from opendofusdata.servers_build import build_servers, write_servers_csv
 
 GAME_TYPES_PATH = "/server-game-types"
 SERVERS_PATH = "/servers"

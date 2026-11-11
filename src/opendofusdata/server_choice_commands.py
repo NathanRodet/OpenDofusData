@@ -6,10 +6,10 @@ import sys
 from collections.abc import Callable
 from pathlib import Path
 
-from dofus_prices.app_config import default_config_path, load_config, save_config
-from dofus_prices.capture_errors import EXIT_OK, fail
-from dofus_prices.game_servers import DEFAULT_SERVERS_PATH, available_servers, canonical_name
-from dofus_prices.server_choice import SERVER_KEY, ServerResolution, resolve_server
+from opendofusdata.app_config import default_config_path, load_config, save_config
+from opendofusdata.capture_errors import EXIT_OK, fail
+from opendofusdata.game_servers import DEFAULT_SERVERS_PATH, available_servers, canonical_name
+from opendofusdata.server_choice import SERVER_KEY, ServerResolution, resolve_server
 
 logger = logging.getLogger(__name__)
 

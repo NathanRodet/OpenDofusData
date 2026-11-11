@@ -2,8 +2,8 @@
 
 from datetime import datetime
 
-from dofus_prices.records import LotPrice, MarketStats
-from dofus_prices.timeutil import STORED_TIMESTAMP_FORMAT
+from opendofusdata.records import LotPrice, MarketStats
+from opendofusdata.timeutil import STORED_TIMESTAMP_FORMAT
 
 COLUMN_SEPARATOR = "   "
 LOT_COLUMN_WIDTH = 5

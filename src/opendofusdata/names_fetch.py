@@ -10,7 +10,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from dofus_prices.names_build import (
+from opendofusdata.names_build import (
     NamesFetchError,
     UNEXPECTED_SHAPE_MESSAGE,
     build_entries,

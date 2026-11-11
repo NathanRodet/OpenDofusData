@@ -1,6 +1,6 @@
 # Notes de protocole (Dofus 3, TCP 5555)
 
-Établies à partir de deux captures du mode découverte (2026-11-10), croisées avec des captures d'écran du jeu pour trois objets: Ailes de Moskito (identifiant 307), Aile du Tofu Maléfique (376) et Âme capturée: Fourapin le Chaud (34095). Les noms courts de messages (`jzs`, `ire`, `kcy`, `iqp`) changent à chaque version du jeu: ils sont isolés dans `src/dofus_prices/messages.py`.
+Établies à partir de deux captures du mode découverte (2026-11-10), croisées avec des captures d'écran du jeu pour trois objets: Ailes de Moskito (identifiant 307), Aile du Tofu Maléfique (376) et Âme capturée: Fourapin le Chaud (34095). Les noms courts de messages (`jzs`, `ire`, `kcy`, `iqp`) changent à chaque version du jeu: ils sont isolés dans `src/opendofusdata/messages.py`.
 
 ## Format
 

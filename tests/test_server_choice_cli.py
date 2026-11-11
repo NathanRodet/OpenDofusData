@@ -8,10 +8,10 @@ from pathlib import Path
 
 import pytest
 
-from dofus_prices import cli, server_choice_commands
-from dofus_prices.app_config import CONFIG_ENV_VAR
-from dofus_prices.capture import PacketPipeline
-from dofus_prices.storage import PriceStore
+from opendofusdata import cli, server_choice_commands
+from opendofusdata.app_config import CONFIG_ENV_VAR
+from opendofusdata.capture import PacketPipeline
+from opendofusdata.storage import PriceStore
 from tests.envelopes import FLOW_KEY, lot_envelope
 from tests.test_servers_commands import make_servers
 

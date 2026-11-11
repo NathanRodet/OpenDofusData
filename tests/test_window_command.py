@@ -6,13 +6,13 @@ import sys
 import tkinter
 from pathlib import Path
 
-from dofus_prices import window_command as module
-from dofus_prices.capture_errors import EXIT_FAILED, EXIT_OK
+from opendofusdata import window_command as module
+from opendofusdata.capture_errors import EXIT_FAILED, EXIT_OK
 
 SOURCE_DIRECTORY = Path(__file__).resolve().parent.parent / "src"
 LAZY_TKINTER_SCRIPT = (
     "import sys; sys.path.insert(0, sys.argv[1]); sys.modules['tkinter'] = None; "
-    "import dofus_prices.cli as cli; "
+    "import opendofusdata.cli as cli; "
     "sys.exit(cli.run(['prices', '--help'], lambda pipeline, interface: None))"
 )
 
@@ -49,7 +49,7 @@ def test_session_is_stopped_after_the_main_loop(monkeypatch) -> None:
             events.append("start")
 
     monkeypatch.setattr(tkinter, "Tk", FakeRoot)
-    monkeypatch.setattr("dofus_prices.window_view.CaptureWindow", FakeWindow)
+    monkeypatch.setattr("opendofusdata.window_view.CaptureWindow", FakeWindow)
     session = FakeSession()
     assert module.show_window(session, lambda: None) == EXIT_OK
     assert events == ["start", "mainloop"] and session.stop_calls == 1

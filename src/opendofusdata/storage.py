@@ -7,8 +7,8 @@ import sqlite3
 import threading
 from collections.abc import Iterator
 
-from dofus_prices.names_schema import NAMES_SCHEMA_STATEMENTS
-from dofus_prices.records import LOT_SIZES, MARKET_PERIODS, LotPrice, MarketStats
+from opendofusdata.names_schema import NAMES_SCHEMA_STATEMENTS
+from opendofusdata.records import LOT_SIZES, MARKET_PERIODS, LotPrice, MarketStats
 
 logger = logging.getLogger(__name__)
 

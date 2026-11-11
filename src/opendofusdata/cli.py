@@ -5,29 +5,29 @@ import logging
 import sys
 from collections.abc import Callable
 
-from dofus_prices.capture import CaptureAborted, PacketPipeline, direction_of, run_capture
-from dofus_prices.capture_errors import (
+from opendofusdata.capture import CaptureAborted, PacketPipeline, direction_of, run_capture
+from opendofusdata.capture_errors import (
     EXIT_USAGE,
     CaptureFunction,
     fail,
     run_guarded_capture,
 )
-from dofus_prices.commands import (
+from opendofusdata.commands import (
     export_csv_command,
     history_command,
     prices_command,
     stats_command,
 )
-from dofus_prices.discovery import DiscoveryLogger, LogSizeLimitReached, parse_hex_types
-from dofus_prices.framing import Envelope
-from dofus_prices.names_db_commands import names_gaps_command, names_import_command
-from dofus_prices.names_commands import add_names_commands, names_update_command
-from dofus_prices.run_pipeline import Clock, run_command, utc_now
-from dofus_prices.server_choice_commands import CHOICE_COMMANDS, add_server_command, resolve_run_server
-from dofus_prices.servers_commands import SERVER_COMMANDS, add_servers_commands
-from dofus_prices.storage import LOT_SIZES, MARKET_PERIODS
-from dofus_prices.tcp import FlowKey
-from dofus_prices.window_command import WINDOW_COMMANDS, add_window_command
+from opendofusdata.discovery import DiscoveryLogger, LogSizeLimitReached, parse_hex_types
+from opendofusdata.framing import Envelope
+from opendofusdata.names_db_commands import names_gaps_command, names_import_command
+from opendofusdata.names_commands import add_names_commands, names_update_command
+from opendofusdata.run_pipeline import Clock, run_command, utc_now
+from opendofusdata.server_choice_commands import CHOICE_COMMANDS, add_server_command, resolve_run_server
+from opendofusdata.servers_commands import SERVER_COMMANDS, add_servers_commands
+from opendofusdata.storage import LOT_SIZES, MARKET_PERIODS
+from opendofusdata.tcp import FlowKey
+from opendofusdata.window_command import WINDOW_COMMANDS, add_window_command
 
 logger = logging.getLogger(__name__)
 

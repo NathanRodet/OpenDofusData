@@ -1,7 +1,7 @@
 """Tests for the server resolution precedence and the numbered prompt (no console)."""
 
-from dofus_prices.game_servers import GameServer
-from dofus_prices.server_choice import ServerResolution, resolve_server
+from opendofusdata.game_servers import GameServer
+from opendofusdata.server_choice import ServerResolution, resolve_server
 
 SERVERS = [
     GameServer(295, "Draconiros", 0, "Classique", 0),

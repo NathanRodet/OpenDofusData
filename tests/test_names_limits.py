@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from dofus_prices import names_build, names_fetch
-from dofus_prices.names_fetch import NamesFetchError
+from opendofusdata import names_build, names_fetch
+from opendofusdata.names_fetch import NamesFetchError
 from tests.test_names_fetch import PAGE_SIZE_FOR_TESTS, FakeApi, run_download
 
 

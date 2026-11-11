@@ -5,7 +5,7 @@ import logging
 from dataclasses import dataclass
 from enum import Enum, auto
 
-from dofus_prices.protobuf import (
+from opendofusdata.protobuf import (
     MAX_VARINT_BYTES,
     WIRE_TYPE_LENGTH_DELIMITED,
     DecodeError,

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from dofus_prices.item_names import ITEMS_CSV_HEADER, ItemNames
+from opendofusdata.item_names import ITEMS_CSV_HEADER, ItemNames
 
 SYNTHETIC_ROW_COUNT = 3000
 

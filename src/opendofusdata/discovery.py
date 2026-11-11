@@ -9,8 +9,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from dofus_prices.framing import Envelope
-from dofus_prices.protobuf import (
+from opendofusdata.framing import Envelope
+from opendofusdata.protobuf import (
     WIRE_TYPE_LENGTH_DELIMITED,
     DecodeError,
     Field,

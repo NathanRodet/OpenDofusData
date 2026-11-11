@@ -4,8 +4,8 @@ import random
 
 import pytest
 
-from dofus_prices import framing
-from dofus_prices.framing import (
+from opendofusdata import framing
+from opendofusdata.framing import (
     MAX_BUFFER_BYTES,
     MAX_FRAME_BYTES,
     TYPE_URL_PREFIX,

@@ -2,15 +2,15 @@
 
 import logging
 
-from dofus_prices.framing import Envelope
-from dofus_prices.messages import (
+from opendofusdata.framing import Envelope
+from opendofusdata.messages import (
     LOT_DETAIL_FIELD,
     LOT_FALLBACK_ITEM_FIELD,
     LOT_ITEM_FIELD,
     LOT_PRICES_FIELD,
     LOT_RESPONSE_TYPE,
 )
-from dofus_prices.protobuf import (
+from opendofusdata.protobuf import (
     WIRE_TYPE_LENGTH_DELIMITED,
     WIRE_TYPE_VARINT,
     DecodeError,
@@ -18,7 +18,7 @@ from dofus_prices.protobuf import (
     decode_fields,
     read_varint,
 )
-from dofus_prices.records import LOT_SIZES, LotPrice
+from opendofusdata.records import LOT_SIZES, LotPrice
 
 logger = logging.getLogger(__name__)
 

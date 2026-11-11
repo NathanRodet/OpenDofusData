@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from dofus_prices import cli, servers_commands
-from dofus_prices.names_build import NamesFetchError
+from opendofusdata import cli, servers_commands
+from opendofusdata.names_build import NamesFetchError
 from tests.test_servers_fetch import FakeServersApi
 
 HEADER = "id,name_fr,game_type_id,game_type_fr,community_id\n"

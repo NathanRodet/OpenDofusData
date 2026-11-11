@@ -4,10 +4,10 @@ import logging
 
 import pytest
 
-from dofus_prices.framing import Envelope
-from dofus_prices.hdv import decode_lot_prices, unpack_varints
-from dofus_prices.protobuf import DecodeError
-from dofus_prices.storage import LotPrice
+from opendofusdata.framing import Envelope
+from opendofusdata.hdv import decode_lot_prices, unpack_varints
+from opendofusdata.protobuf import DecodeError
+from opendofusdata.storage import LotPrice
 
 SERVER = "Test"
 CAPTURED_AT = "2026-11-10T12:00:00Z"

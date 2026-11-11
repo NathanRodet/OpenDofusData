@@ -5,20 +5,20 @@ import time
 from collections.abc import Callable
 from pathlib import Path
 
-from dofus_prices.capture_errors import EXIT_OK, fail
-from dofus_prices.commands import format_table
-from dofus_prices.game_servers import (DEFAULT_SERVERS_PATH, UNKNOWN_SERVER, GameServer,
+from opendofusdata.capture_errors import EXIT_OK, fail
+from opendofusdata.commands import format_table
+from opendofusdata.game_servers import (DEFAULT_SERVERS_PATH, UNKNOWN_SERVER, GameServer,
                                        canonical_name, load_servers)
-from dofus_prices.names_build import NamesFetchError
-from dofus_prices.names_commands import INTERRUPTED_MESSAGE
-from dofus_prices.names_fetch import (
+from opendofusdata.names_build import NamesFetchError
+from opendofusdata.names_commands import INTERRUPTED_MESSAGE
+from opendofusdata.names_fetch import (
     REQUEST_DELAY_SECONDS,
     FetchJson,
     Sleep,
     http_get_json,
 )
-from dofus_prices.server_choice import UNLISTED_WARNING
-from dofus_prices.servers_fetch import ServersSummary, download_game_servers
+from opendofusdata.server_choice import UNLISTED_WARNING
+from opendofusdata.servers_fetch import ServersSummary, download_game_servers
 
 DEV_RUN = r".\dev.ps1 run"
 UPDATE_NOTICE = (

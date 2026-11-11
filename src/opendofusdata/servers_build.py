@@ -3,8 +3,8 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from dofus_prices.game_servers import SERVERS_CSV_HEADER, GameServer
-from dofus_prices.names_build import (
+from opendofusdata.game_servers import SERVERS_CSV_HEADER, GameServer
+from opendofusdata.names_build import (
     localized_name,
     require_id,
     write_csv_atomically,

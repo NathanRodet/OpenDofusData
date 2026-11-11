@@ -9,12 +9,12 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 
-from dofus_prices.capture import CaptureAborted, PacketPipeline
-from dofus_prices.capture_errors import CAPTURE_FAILED_MESSAGE
-from dofus_prices.capture_stoppable import StoppableCapture
-from dofus_prices.run_pipeline import Clock, make_envelope_handler
-from dofus_prices.session_counters import CountingWriter, SessionCounters
-from dofus_prices.storage import StoreWriter
+from opendofusdata.capture import CaptureAborted, PacketPipeline
+from opendofusdata.capture_errors import CAPTURE_FAILED_MESSAGE
+from opendofusdata.capture_stoppable import StoppableCapture
+from opendofusdata.run_pipeline import Clock, make_envelope_handler
+from opendofusdata.session_counters import CountingWriter, SessionCounters
+from opendofusdata.storage import StoreWriter
 
 logger = logging.getLogger(__name__)
 

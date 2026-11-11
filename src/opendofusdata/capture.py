@@ -5,8 +5,8 @@ import time
 from collections.abc import Callable
 from typing import Any, Protocol
 
-from dofus_prices.framing import Envelope, EnvelopeExtractor
-from dofus_prices.tcp import DEFAULT_MAX_FLOWS, FlowKey, FlowTable, payload_length
+from opendofusdata.framing import Envelope, EnvelopeExtractor
+from opendofusdata.tcp import DEFAULT_MAX_FLOWS, FlowKey, FlowTable, payload_length
 
 logger = logging.getLogger(__name__)
 

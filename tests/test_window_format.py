@@ -2,9 +2,9 @@
 
 from datetime import datetime, timezone
 
-from dofus_prices.app_links import APP_NAME, SAAS_URL
-from dofus_prices.capture_session import CaptureStatus, SessionSnapshot
-from dofus_prices.window_format import (
+from opendofusdata.app_links import APP_NAME, SAAS_URL
+from opendofusdata.capture_session import CaptureStatus, SessionSnapshot
+from opendofusdata.window_format import (
     button_enabled, button_label, counts_text, last_record_text, server_text, status_text,
 )
 

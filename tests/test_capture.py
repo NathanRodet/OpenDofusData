@@ -7,8 +7,8 @@ from scapy.packet import Raw
 
 import logging
 
-from dofus_prices.capture import DOFUS_PORT, CaptureAborted, PacketPipeline, direction_of
-from dofus_prices.framing import TYPE_URL_PREFIX, Envelope
+from opendofusdata.capture import DOFUS_PORT, CaptureAborted, PacketPipeline, direction_of
+from opendofusdata.framing import TYPE_URL_PREFIX, Envelope
 
 CLIENT = "10.0.0.2"
 SERVER = "20.0.0.3"

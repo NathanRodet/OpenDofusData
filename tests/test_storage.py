@@ -7,7 +7,7 @@ from collections.abc import Iterator
 
 import pytest
 
-from dofus_prices.storage import LotPrice, MarketStats, PriceStore, StoreWriter
+from opendofusdata.storage import LotPrice, MarketStats, PriceStore, StoreWriter
 
 
 @pytest.fixture
@@ -159,7 +159,7 @@ def test_failed_open_closes_the_connection(tmp_path) -> None:
 
 
 def test_every_connection_uses_the_long_busy_timeout(store: PriceStore) -> None:
-    from dofus_prices.storage import BUSY_TIMEOUT_SECONDS
+    from opendofusdata.storage import BUSY_TIMEOUT_SECONDS
 
     milliseconds = store.connection.execute("PRAGMA busy_timeout").fetchone()[0]
     assert milliseconds == int(BUSY_TIMEOUT_SECONDS * 1000) == 30_000
