@@ -48,7 +48,7 @@ HEX_TYPES_NOTICE = (
 
 def build_parser() -> argparse.ArgumentParser:
     """Build the argument parser."""
-    parser = argparse.ArgumentParser(prog="dofus_prices")
+    parser = argparse.ArgumentParser(prog="opendofusdata")
     commands = parser.add_subparsers(dest="command")
     discover = commands.add_parser("discover", help="journalise la structure des messages")
     discover.add_argument("--interface", default=None, help="interface réseau à écouter")

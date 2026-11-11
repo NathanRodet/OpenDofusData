@@ -3,15 +3,15 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "dofus-prices"
+name = "open-dofus-data"
 version = "0.1.0"
-description = "Passive capture of Dofus 3 auction-house prices into a local SQLite database."
+description = "Passive capture of Dofus 3 packets into a local SQLite database."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = ["scapy>=2.6,<3"]
 
 [project.scripts]
-dofus-prices = "dofus_prices.cli:main"
+opendofusdata = "dofus_prices.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

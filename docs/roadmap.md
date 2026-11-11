@@ -8,13 +8,20 @@
 
 ## Fenêtre de capture (fait)
 
-- `dofus-prices window`: petite fenêtre tkinter (état, serveur, compteurs de la session, dernier enregistrement, Arrêter/Relancer, lien vers les prix en ligne). Choisie à la place d'une icône de zone de notification; pas de démarrage automatique avec Windows. L'adresse du site (`SAAS_URL` dans `app_links.py`) est un espace réservé tant que le serveur n'existe pas.
+- `opendofusdata window`: petite fenêtre tkinter (état, serveur, compteurs de la session, dernier enregistrement, Arrêter/Relancer, lien vers les prix en ligne). Choisie à la place d'une icône de zone de notification; pas de démarrage automatique avec Windows. L'adresse du site (`SAAS_URL` dans `app_links.py`) est un espace réservé tant que le serveur n'existe pas.
 
 ## Packaging et distribution (en cours)
 
-- Fait: `pyproject.toml` et commande `dofus-prices` (sans `.\dev.ps1`).
+- Fait: `pyproject.toml` et commande `opendofusdata` (sans `.\dev.ps1`).
 - Installateur Windows, démarrage automatique (volontairement absent pour l'instant), mises à jour; sans signature de code (projet open source).
 - Choisir une licence (MIT, GPL, autre) et créer le dépôt distant; aucun remote n'est configuré.
+
+## Catégories de données désactivables (à faire avant le 2e décodeur)
+
+- Chaque type de donnée est une catégorie nommée (`hdv`, puis `brisage`, `recyclage`, `familiers`...), enregistrée dans une liste de décodeurs.
+- Réglage du joueur `enabled_categories` dans `config.json`; par défaut seule `hdv` est active.
+- Une catégorie désactivée n'est ni enregistrée ni mise en file d'envoi (filtre à l'entrée de la capture, puis à l'envoi).
+- Cases à cocher dans la fenêtre et commande `opendofusdata categories`.
 
 ## Synchronisation et serveur (plus tard)
 
