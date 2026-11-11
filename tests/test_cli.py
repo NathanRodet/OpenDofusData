@@ -88,7 +88,7 @@ def test_cli_export_csv_creates_file(tmp_path: Path) -> None:
     assert run_cli(["export-csv", "--output", str(output), "--db", str(tmp_path / "p.db")]) == 0
     with output.open(encoding="utf-8", newline="") as handle:
         rows = list(csv.reader(handle))
-    assert rows[0] == ["item_id", "item_name", "server", "lot_size", "price", "captured_at"]
+    assert rows[0] == ["item_id", "item_name", "item_category", "server", "lot_size", "price", "captured_at"]
     assert len(rows) == 1 + 4
 
 
@@ -202,7 +202,7 @@ def test_window_command_is_registered_and_dispatched(monkeypatch) -> None:
 def add_item_name(path: Path) -> None:
     store = PriceStore(str(path))
     try:
-        store.connection.execute("INSERT INTO items (item_id, name_fr) VALUES (307, 'Ailes de Moskito')")
+        store.connection.execute("INSERT INTO items (item_id, name_fr, type_fr) VALUES (307, 'Ailes de Moskito', 'Ressource')")
         store.connection.commit()
     finally:
         store.close()
@@ -213,7 +213,7 @@ def test_cli_prices_shows_item_names_and_na_for_unknown(tmp_path: Path, capsys) 
     add_item_name(tmp_path / "p.db")
     assert run_cli(["prices", "--db", str(tmp_path / "p.db")]) == 0
     lines = capsys.readouterr().out.splitlines()
-    assert any("307" in line and "Ailes de Moskito" in line for line in lines)
+    assert any("307" in line and "Ailes de Moskito" in line and "Ressource" in line for line in lines)
     assert any("999" in line and "N/A" in line for line in lines)
 
 
@@ -227,4 +227,4 @@ def test_cli_stats_title_has_the_item_name(tmp_path: Path, capsys) -> None:
     seed(tmp_path / "p.db")
     add_item_name(tmp_path / "p.db")
     assert run_cli(["stats", "307", "--db", str(tmp_path / "p.db")]) == 0
-    assert "Objet 307 : Ailes de Moskito" in capsys.readouterr().out
+    assert "Objet 307 : Ailes de Moskito (Ressource)" in capsys.readouterr().out
