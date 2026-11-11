@@ -147,7 +147,7 @@ def _load_scapy_sniff() -> SniffFunction:
     return sniff
 
 
-def _sniff_arguments(pipeline: PacketPipeline, interface: str | None) -> dict[str, Any]:
+def sniff_arguments(pipeline: PacketPipeline, interface: str | None) -> dict[str, Any]:
     return {
         "filter": BPF_FILTER,
         "store": False,
@@ -173,6 +173,6 @@ def run_capture(
     """
     pipeline.abort_error = None
     sniff = sniff_function or _load_scapy_sniff()
-    sniff(**_sniff_arguments(pipeline, interface))
+    sniff(**sniff_arguments(pipeline, interface))
     if pipeline.abort_error is not None:
         raise pipeline.abort_error

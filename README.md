@@ -13,7 +13,7 @@ Outil local pour Windows qui capture passivement le trafic réseau de Dofus 3 (T
 
 - Windows 11
 - Python 3.13
-- [Npcap](https://npcap.com) 1.90 installé au niveau du système. Ne pas cocher « Restrict Npcap driver's access to Administrators only », sinon l'outil doit être lancé dans un terminal administrateur (c'est aussi la solution si la capture échoue faute de droits). Le mode « WinPcap API-compatible » n'est pas nécessaire.
+- [Npcap](https://npcap.com) 1.90, à installer toi-même depuis npcap.com (il n'est pas fourni avec OpenDofusData), au niveau du système. Ne pas cocher « Restrict Npcap driver's access to Administrators only », sinon l'outil doit être lancé dans un terminal administrateur (c'est aussi la solution si la capture échoue faute de droits). Le mode « WinPcap API-compatible » n'est pas nécessaire.
 - Dofus 3 lancé sur la même machine que l'outil.
 
 ## Installation
@@ -27,6 +27,16 @@ Depuis PowerShell, à la racine du projet:
 Cette commande crée le venv `.venv` et installe `requirements.txt` (`scapy` pour la capture, `pytest` pour les tests; le décodage Protobuf et SQLite utilisent la bibliothèque standard). Si PowerShell refuse d'exécuter le script, lance une fois `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. Npcap étant installé au niveau du système, il fonctionne depuis le venv sans configuration.
 
 Le projet est aussi un paquet Python (`pyproject.toml`). Dans le venv, `pip install -e .` installe la commande `dofus-prices`, équivalente à `python -m dofus_prices` (ex. `dofus-prices run --server Kourial`). `.\dev.ps1 setup` fait cette installation.
+
+## Fenêtre OpenDofusData (utilisation pour les joueurs)
+
+1. Installe Npcap depuis npcap.com (voir « Prérequis »; le mode « WinPcap API-compatible » n'est pas nécessaire).
+2. Lance `dofus-prices window` (ou `python -m dofus_prices window`) AVANT de te connecter au jeu. Au tout premier lancement, la console te propose la liste des serveurs de jeu (le choix est mémorisé, voir « Serveur de jeu »); `--server NOM` et `--choose-server` fonctionnent aussi.
+3. Une petite fenêtre OpenDofusData s'ouvre et lance la capture: état (Capture active, arrêtée ou erreur avec un message clair, par exemple Npcap absent ou droits insuffisants), serveur choisi, nombre de prix et de statistiques enregistrés pendant cette session, heure du dernier enregistrement. Les données vont dans `prices.db` (dossier courant), comme avec `run`.
+4. « Arrêter » stoppe proprement la capture (le bouton devient « Relancer »); fermer la fenêtre l'arrête aussi. La fenêtre peut rester ouverte en arrière-plan pendant que tu joues.
+5. « Voir les prix en ligne » ouvre le site dans ton navigateur (adresse provisoire tant que le serveur n'existe pas). Rien n'est envoyé nulle part. Pas de démarrage automatique avec Windows.
+
+Les droits administrateur ne sont nécessaires que si Npcap a été installé avec « Restrict Npcap driver's access to Administrators only »: dans ce cas lance la commande dans un terminal administrateur.
 
 ## Script de dev
 

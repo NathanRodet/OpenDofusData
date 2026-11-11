@@ -18,7 +18,7 @@ from dofus_prices.commands import (
     prices_command,
     stats_command,
 )
-from dofus_prices.discovery import DiscoveryLogger, LogSizeLimitReached
+from dofus_prices.discovery import DiscoveryLogger, LogSizeLimitReached, parse_hex_types
 from dofus_prices.framing import Envelope
 from dofus_prices.names_db_commands import names_gaps_command, names_import_command
 from dofus_prices.names_commands import add_names_commands, names_update_command
@@ -27,6 +27,7 @@ from dofus_prices.server_choice_commands import CHOICE_COMMANDS, add_server_comm
 from dofus_prices.servers_commands import SERVER_COMMANDS, add_servers_commands
 from dofus_prices.storage import LOT_SIZES, MARKET_PERIODS
 from dofus_prices.tcp import FlowKey
+from dofus_prices.window_command import WINDOW_COMMANDS, add_window_command
 
 logger = logging.getLogger(__name__)
 
@@ -45,16 +46,6 @@ HEX_TYPES_NOTICE = (
 )
 
 
-def parse_hex_types(raw: str) -> frozenset[str]:
-    """Parse comma-separated message type names (letters and digits only)."""
-    names = raw.split(",")
-    if not all(name.isascii() and name.isalnum() for name in names):
-        raise argparse.ArgumentTypeError(
-            "noms de types invalides (lettres et chiffres, séparés par des virgules)"
-        )
-    return frozenset(names)
-
-
 def build_parser() -> argparse.ArgumentParser:
     """Build the argument parser."""
     parser = argparse.ArgumentParser(prog="dofus_prices")
@@ -71,6 +62,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_names_commands(commands)
     add_servers_commands(commands)
     add_server_command(commands)
+    add_window_command(commands, DEFAULT_DATABASE)
     return parser
 
 
@@ -172,6 +164,7 @@ READ_COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {
     "names-gaps": names_gaps_command,
     **SERVER_COMMANDS,
     **CHOICE_COMMANDS,
+    **WINDOW_COMMANDS,
 }
 
 

@@ -190,3 +190,10 @@ def test_empty_selection_says_nothing_matches(tmp_path: Path, capsys) -> None:
     seed(tmp_path / "p.db")
     assert run_cli(["prices", "--item", "5", "--db", str(tmp_path / "p.db")]) == 0
     assert "pour cette sélection" in capsys.readouterr().out
+
+
+def test_window_command_is_registered_and_dispatched(monkeypatch) -> None:
+    seen: list[object] = []
+    monkeypatch.setitem(cli.READ_COMMANDS, "window", lambda arguments: seen.append(arguments) or 0)
+    assert cli.run(["window", "--server", "Brial"], capture=lambda pipeline, interface: None) == 0
+    assert seen[0].server == "Brial" and seen[0].db == cli.DEFAULT_DATABASE

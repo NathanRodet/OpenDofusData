@@ -1,5 +1,6 @@
 """Discovery log: structure of each message (no raw packets, no text by default)."""
 
+import argparse
 import json
 import logging
 import os
@@ -166,3 +167,13 @@ class DiscoveryLogger:
     def close(self) -> None:
         """Close the log file."""
         self._file.close()
+
+
+def parse_hex_types(raw: str) -> frozenset[str]:
+    """Parse comma-separated message type names (letters and digits only)."""
+    names = raw.split(",")
+    if not all(name.isascii() and name.isalnum() for name in names):
+        raise argparse.ArgumentTypeError(
+            "noms de types invalides (lettres et chiffres, séparés par des virgules)"
+        )
+    return frozenset(names)
