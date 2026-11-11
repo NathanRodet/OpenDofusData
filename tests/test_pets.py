@@ -134,3 +134,53 @@ def test_missing_effects_leave_the_state_values_empty() -> None:
     outcome = play(tracker, (feed(PET, (1, BONE_STACK)), False), (updated(pet_entry()), True))
     assert outcome[1].before == PetState(None, None, None, None)
     assert outcome[1].after == PetState(32, 257, 286, 46)
+
+
+def object_added(entry: bytes) -> Envelope:
+    """An object added to (or changed in) the inventory after login: same entry shape as the inventory list."""
+    return Envelope("iqx", bytes_field(2, bytes_field(1, entry) + int_field(4, CONTAINER_FLAG)))
+
+
+SKULL, SKULL_STACK = 8139, 7777001
+
+
+def test_a_resource_picked_up_after_login_is_known_from_the_inventory_update() -> None:
+    tracker = start()
+    tracker.feed(object_added(stack_entry(SKULL, SKULL_STACK, 1)), True, MOMENT)
+    outcome = play(tracker, (feed(PET, (1, SKULL_STACK)), False), (updated(pet_entry(experience=259)), True))
+    assert outcome[1] == PetFeeding(
+        SERVER, NOMOON, ((SKULL, 1),), PetState(32, 257, 286, 46), PetState(32, 259, 286, 46), MOMENT)
+
+
+def test_an_inventory_update_keeps_the_rest_of_the_inventory() -> None:
+    tracker = start()
+    tracker.feed(object_added(stack_entry(SKULL, SKULL_STACK, 1)), True, MOMENT)
+    outcome = play(tracker, (feed(PET, (100, BONE_STACK), (1, SKULL_STACK)), False),
+                   (updated(pet_entry(experience=270)), True))
+    assert outcome[1].resources == ((BONE, 100), (SKULL, 1))
+
+
+def test_an_inventory_update_of_the_pet_refreshes_its_known_state() -> None:
+    tracker = start()
+    tracker.feed(object_added(pet_entry(experience=300)), True, MOMENT)
+    outcome = play(tracker, (feed(PET, (100, BONE_STACK)), False), (updated(pet_entry(experience=305)), True))
+    assert outcome[1].before.experience == 300
+
+
+def test_an_inventory_update_from_the_client_or_unreadable_is_ignored() -> None:
+    tracker = start()
+    assert tracker.feed(object_added(stack_entry(SKULL, SKULL_STACK, 1)), False, MOMENT) is None
+    assert tracker.feed(Envelope("iqx", b"\xff\xff"), True, MOMENT) is None
+    outcome = play(tracker, (feed(PET, (1, SKULL_STACK)), False), (updated(pet_entry(experience=259)), True))
+    assert outcome == [None, None]
+
+
+def test_a_skipped_feeding_says_why_in_the_log(caplog) -> None:
+    import logging
+
+    with caplog.at_level(logging.INFO):
+        tracker = start()
+        tracker.feed(feed(PET, (100, 999999)), False, MOMENT)
+        tracker.feed(feed(123, (100, BONE_STACK)), False, MOMENT)
+    assert "999999" in caplog.text
+    assert "123" in caplog.text

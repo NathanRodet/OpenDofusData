@@ -35,6 +35,7 @@ RECYCLING_NUGGETS_FIELD = 3  # nuggets obtained; absent when the result is 0
 # instance id that changes with each connection; the inventory maps it to the DofusDB item id.
 INVENTORY_LIST_TYPE = "irl"  # server -> client at login: every object of the inventory
 INVENTORY_ENTRY_FIELD = 2  # repeated: {1: object, 4: container}
+INVENTORY_UPDATE_TYPE = "iqx"  # server -> client: object(s) added or changed after login, same entry shape
 OBJECT_FIELD = 1
 OBJECT_QUANTITY_FIELD = 3
 OBJECT_ITEM_FIELD = 4  # DofusDB item id

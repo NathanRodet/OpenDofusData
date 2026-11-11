@@ -14,6 +14,7 @@ from opendofusdata.messages import (
     EFFECT_VALUE_FIELD,
     INVENTORY_ENTRY_FIELD,
     INVENTORY_LIST_TYPE,
+    INVENTORY_UPDATE_TYPE,
     OBJECT_EFFECTS_FIELD,
     OBJECT_FIELD,
     OBJECT_INSTANCE_FIELD,
@@ -103,6 +104,8 @@ class PetTracker:
         kind = envelope.type_name
         if from_server and kind == INVENTORY_LIST_TYPE:
             self._load_inventory(envelope.payload)
+        elif from_server and kind == INVENTORY_UPDATE_TYPE:
+            self._add_to_inventory(envelope.payload)
         elif not from_server and kind == PET_FEED_TYPE:
             self._request(envelope.payload)
         elif from_server and kind == PET_UPDATE_TYPE:
@@ -117,13 +120,22 @@ class PetTracker:
                 objects[read[0]] = read[1]
         self._objects, self._pending = objects, None
 
+    def _add_to_inventory(self, payload: bytes) -> None:
+        """Objects announced after login (loot, crafted items, runes): added to what is known."""
+        for entry in _messages(decode_fields(payload), INVENTORY_ENTRY_FIELD):
+            read = _read_object(entry, OBJECT_FIELD)
+            if read is not None:
+                self._remember(read[0], read[1])
+
     def _request(self, payload: bytes) -> None:
         fields = decode_fields(payload)
         pet_instance = _varint(fields, PET_FEED_PET_FIELD)
         pet = self._objects.get(pet_instance) if pet_instance is not None else None
         resources = self._resources(_messages(fields, PET_FEED_RESOURCE_FIELD))
         self._pending = None
-        if pet is not None and resources:
+        if pet is None:
+            logger.info("pet feeding skipped: pet %s is not in the known inventory", pet_instance)
+        elif resources:
             self._pending = (pet_instance, pet_state_of(pet[1]), resources)
 
     def _resources(self, requested: list[list[Field]]) -> tuple[tuple[int, int], ...]:
@@ -133,6 +145,7 @@ class PetTracker:
             known = self._objects.get(stack) if stack is not None else None
             quantity = _varint(resource, PET_FEED_QUANTITY_FIELD)
             if known is None or not quantity:
+                logger.info("pet feeding skipped: stack %s is not in the known inventory", stack)
                 return ()
             resources.append((known[0], quantity))
         return tuple(resources)
