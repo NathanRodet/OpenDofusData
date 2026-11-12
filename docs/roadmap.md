@@ -1,6 +1,6 @@
 # Feuille de route
 
-État au 2026-11-11: la v1 (capture locale, décodage des prix de lots et des cours du marché, base SQLite, noms d'objets, choix du serveur, fenêtre joueur, exécutable et mises à jour) est terminée. Version du produit: 1.1.0 (tags `v1.0.0` publié, `v1.1.0` à publier: brisage et familiers en bêta, correction de la reconnaissance des objets ramassés après la connexion).
+État au 2026-11-13: la V2 (refonte de la fenêtre) est développée. Version du produit: 2.0.0 (tag `v1.0.0` publié; `v1.1.0` et `v2.0.0` à publier sur décision du propriétaire).
 
 ## Validé en jeu
 
@@ -9,11 +9,11 @@
 
 ## Fait
 
-- **Fenêtre du client:** `opendofusdata window`, fenêtre CustomTkinter à menu latéral (Accueil, Données, Logs, Réglages, À propos), thème sombre, redimensionnable. Conception: [docs/superpowers/specs/2026-11-11-player-client-ui-design.md](superpowers/specs/2026-11-11-player-client-ui-design.md). Pas de démarrage automatique avec Windows. L'adresse du site (`SAAS_URL`) est un espace réservé tant que le serveur n'existe pas.
-- **Catégories désactivables:** `enabled_categories` dans `config.json`, filtre à l'entrée de la capture, interrupteurs dans la page Données, commande `opendofusdata categories`.
+- **Fenêtre du client (V2):** `opendofusdata window`, fenêtre CustomTkinter pleine taille et responsive, menu HDV / Brisage / Familiers / Logs / Réglages, tableaux triables, filtres par période, détails avec courbes datées, estimations de brisage (plus-value) et de familiers (kamas par XP), prix utilisé réglable. Tout est collecté en permanence. Conception: [docs/superpowers/specs/2026-11-12-client-redesign-design.md](superpowers/specs/2026-11-12-client-redesign-design.md). Pas de démarrage automatique avec Windows, plus de lien vers un site.
+- **Remise à zéro:** `reset-data --yes` sauvegarde puis efface les données collectées (faite sur la base du propriétaire le 2026-11-13).
 - **Noms d'objets pour les joueurs:** bouton « Télécharger les noms » dans Réglages (api.dofusdb.fr, une fois, à la demande), chargés dans la base.
 - **Exécutable:** `.\dev.ps1 build` produit `dist\OpenDofusData.exe` (PyInstaller, sans console) et son SHA-256. Base, config et journal dans `%APPDATA%\OpenDofusData`.
-- **Mises à jour, jamais automatiques:** vérification au démarrage de la dernière Release GitHub (désactivable), point de notification à côté de « À propos », un clic télécharge, vérifie le SHA-256 et relance. Conception et limites: README, section « Mises à jour ».
+- **Mises à jour, jamais automatiques:** vérification au démarrage de la dernière Release GitHub (désactivable), point de notification à côté de « Réglages », un clic télécharge, vérifie le SHA-256 et relance. Conception et limites: README, section « Mises à jour ».
 - **Intégration continue:** `.github/workflows/ci.yml` (tests) et `release.yml` (publie l'exécutable et son empreinte sur la Release d'un tag `vX.Y.Z`). Non exécutés pour l'instant: ils le seront au premier push.
 
 ## À décider par le propriétaire
@@ -25,10 +25,10 @@
 
 ## Catégories de données
 
-Les trois catégories sont décodées: HDV (validée en jeu), et en **bêta, désactivées par défaut**, brisage et familiers, écrits à partir de captures d'un seul joueur et vérifiés contre ses captures d'écran (structure des messages: [docs/protocol-notes.md](protocol-notes.md)). Chaque catégorie a son interrupteur, son compteur et ses lignes dans les Logs, et sa propre table dans `prices.db`.
+Les trois catégories sont décodées et toujours collectées: HDV (validée en jeu), brisage et familiers (écrits à partir de captures d'un seul joueur et vérifiés contre ses captures d'écran; structure des messages: [docs/protocol-notes.md](protocol-notes.md)). Chacune a son compteur, ses lignes dans les Logs, sa vue et sa table dans `prices.db`.
 
-À faire pour sortir de la bêta, avec les tests en jeu du propriétaire:
-- Activer chaque catégorie dans la page Données, refaire l'action et comparer les Logs à l'écran.
+À vérifier en jeu avec les nouvelles vues:
+- Refaire l'action et comparer les vues Brisage et Familiers à l'écran.
 - Recyclage: la capture réseau est abandonnée (décision du 2026-11-12). Les taux viennent du téléchargement DofusDB (colonne `recycling_nuggets` de `data/items.csv` et de la table `items`); les anciennes tables de recyclage sont supprimées des bases au démarrage.
 - Brisage: concasser plusieurs exemplaires d'un même équipement (quantité > 1) et des objets de niveaux variés.
 - Familiers: lancer l'outil avant la connexion, faire plusieurs améliorations (dont une montée de niveau) et comparer l'état avant et après.
