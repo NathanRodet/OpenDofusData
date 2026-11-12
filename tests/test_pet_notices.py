@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 import pytest
 
 from opendofusdata.capture_session import CaptureSession
-from opendofusdata.categories import CATEGORY_HDV, CATEGORY_PETS, CategorySettings
 from opendofusdata.log_feed import LogFeed, format_log_row
 from opendofusdata.pets import PetTracker
 from tests.envelopes import FLOW_KEY
@@ -62,7 +61,7 @@ def test_a_note_is_kept_only_while_the_feed_is_visible_and_shown_in_the_name_col
     assert row[1:] == ("Familier", "ressource inconnue #5", "ignorée", "reconnecte")
 
 
-def run_unknown_feeding(tmp_path, categories: CategorySettings) -> tuple[CaptureSession, LogFeed]:
+def run_unknown_feeding(tmp_path) -> tuple[CaptureSession, LogFeed]:
     feed_log = LogFeed()
     feed_log.set_visible(True)
     done = threading.Event()
@@ -74,51 +73,22 @@ def run_unknown_feeding(tmp_path, categories: CategorySettings) -> tuple[Capture
         stop.wait(5.0)
 
     session = CaptureSession(str(tmp_path / "n.db"), "Brial", None, capture, lambda: NOW,
-                             categories=categories, feed=feed_log)
+                             feed=feed_log)
     session.start()
     assert done.wait(5.0)
     return session, feed_log
 
 
-def test_the_session_shows_the_notice_in_the_logs_when_pets_are_enabled(tmp_path) -> None:
-    session, feed_log = run_unknown_feeding(tmp_path, CategorySettings([CATEGORY_PETS]))
+def test_the_session_shows_the_notice_in_the_logs(tmp_path) -> None:
+    session, feed_log = run_unknown_feeding(tmp_path)
     session.stop()
     row = format_log_row(feed_log.entries()[0], lambda item_id: "x")
     assert row[1:] == ("Familier", f"ressource inconnue #{UNKNOWN_STACK}", "ignorée", "reconnecte")
 
 
-def test_a_disabled_pet_category_shows_no_notice(tmp_path) -> None:
-    session, feed_log = run_unknown_feeding(tmp_path, CategorySettings([CATEGORY_HDV]))
-    session.stop()
-    assert feed_log.entries() == []
-
-
 def test_the_snapshot_tells_whether_the_inventory_was_seen(tmp_path) -> None:
-    session, _ = run_unknown_feeding(tmp_path, CategorySettings([CATEGORY_PETS]))
+    session, _ = run_unknown_feeding(tmp_path)
     assert session.snapshot().pets_inventory_seen is True
     session.stop()
     fresh = CaptureSession(str(tmp_path / "f.db"), "Brial", None, lambda p, i, s: s.wait(0.1), lambda: NOW)
     assert fresh.snapshot().pets_inventory_seen is False
-
-
-tkinter = pytest.importorskip("tkinter")
-
-
-def test_the_data_page_asks_for_a_reconnection_until_the_inventory_is_seen(root, tmp_path) -> None:
-    from opendofusdata.page_data import DataPage
-    from opendofusdata.window_context import WindowContext
-
-    session = CaptureSession(str(tmp_path / "d.db"), "Brial", None, lambda p, i, s: s.wait(5.0), lambda: NOW,
-                             categories=CategorySettings([CATEGORY_PETS]))
-    context = WindowContext(session, lambda: None, tmp_path / "config.json", ["Brial"], lambda item_id: "N/A")
-    page = DataPage(root, context)
-    session.start()
-    page.render(session.snapshot())
-    assert "reconnecte" in page.rows[CATEGORY_PETS].count_label.cget("text")
-    session.stop()
-    disabled = CaptureSession(str(tmp_path / "e.db"), "Brial", None, lambda p, i, s: s.wait(5.0), lambda: NOW)
-    other = DataPage(root, WindowContext(disabled, lambda: None, tmp_path / "c.json", ["Brial"], lambda item_id: "N/A"))
-    disabled.start()
-    other.render(disabled.snapshot())
-    assert "reconnecte" not in other.rows[CATEGORY_PETS].count_label.cget("text")
-    disabled.stop()

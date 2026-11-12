@@ -102,11 +102,6 @@ def test_default_database_when_nothing_is_set(monkeypatch, tmp_path) -> None:
     assert context.session.database_path == "prices.db"
 
 
-def test_saved_categories_are_loaded(monkeypatch, tmp_path) -> None:
-    context = run_window_command(monkeypatch, tmp_path, None, '{"enabled_categories": []}')
-    assert context.session.categories.enabled_keys() == []
-
-
 def test_cli_imports_and_runs_without_tkinter() -> None:
     result = subprocess.run(
         [sys.executable, "-I", "-c", LAZY_TKINTER_SCRIPT, str(SOURCE_DIRECTORY)],

@@ -8,9 +8,7 @@ from datetime import datetime, timezone
 
 from opendofusdata.breaking_store import broken_items
 from opendofusdata.capture_session import CaptureSession
-from opendofusdata.categories import (
-    CATEGORY_BREAKING, CATEGORY_HDV, CategorySettings, FilteringWriter, category_of,
-)
+from opendofusdata.categories import CATEGORY_BREAKING, category_of
 from opendofusdata.log_feed import LogFeed, entry_from_record, format_log_line, format_log_row
 from opendofusdata.records import BrokenItem
 from opendofusdata.run_pipeline import make_envelope_handler
@@ -96,16 +94,11 @@ def test_the_handler_emits_one_record_per_object_and_no_recycling() -> None:
     assert sink.records == [ORCHID, EBONY]
 
 
-def test_category_and_filter() -> None:
+def test_category() -> None:
     assert category_of(ORCHID) == CATEGORY_BREAKING
-    off, on = ListSink(), ListSink()
-    FilteringWriter(off, CategorySettings([CATEGORY_HDV])).submit(ORCHID)
-    FilteringWriter(on, CategorySettings([CATEGORY_BREAKING])).submit(ORCHID)
-    assert (off.records, on.records) == ([], [ORCHID])
 
 
-def run_session(tmp_path, categories: CategorySettings, feed: LogFeed | None = None,
-                wait_for: int = 2) -> CaptureSession:
+def run_session(tmp_path, feed: LogFeed | None = None, wait_for: int = 2) -> CaptureSession:
     done = threading.Event()
 
     def capture(pipeline, interface, stop) -> None:
@@ -114,7 +107,7 @@ def run_session(tmp_path, categories: CategorySettings, feed: LogFeed | None = N
         stop.wait(5.0)
 
     session = CaptureSession(str(tmp_path / "s.db"), "Brial", None, capture, lambda: MOMENT,
-                             categories=categories, feed=feed)
+                             feed=feed)
     session.start()
     assert done.wait(5.0)
     for _ in range(300):
@@ -125,10 +118,10 @@ def run_session(tmp_path, categories: CategorySettings, feed: LogFeed | None = N
     return session
 
 
-def test_an_enabled_breaking_counts_stores_and_logs_one_line_per_object(tmp_path) -> None:
+def test_a_breaking_counts_stores_and_logs_one_line_per_object(tmp_path) -> None:
     feed = LogFeed()
     feed.set_visible(True)
-    session = run_session(tmp_path, CategorySettings([CATEGORY_BREAKING]), feed)
+    session = run_session(tmp_path, feed)
     assert session.snapshot().breaking_count == 2
     store = PriceStore(str(tmp_path / "s.db"))
     try:
@@ -136,30 +129,3 @@ def test_an_enabled_breaking_counts_stores_and_logs_one_line_per_object(tmp_path
     finally:
         store.close()
     assert [entry.category for entry in feed.entries()] == ["Brisage", "Brisage"]
-
-
-def test_a_disabled_breaking_is_neither_counted_nor_stored(tmp_path) -> None:
-    session = run_session(tmp_path, CategorySettings([CATEGORY_HDV]), wait_for=0)
-    assert session.snapshot().breaking_count == 0
-    store = PriceStore(str(tmp_path / "s.db"))
-    try:
-        assert broken_items(store.connection) == []
-    finally:
-        store.close()
-
-
-NAMES = {VOLKORNE_ORCHID: "Volkorne Orchidée", VOLKORNE_EBONY: "Volkorne Ébène", 942: "Lisseur"}
-
-
-def test_each_log_line_shows_the_object_its_coefficient_and_its_runes() -> None:
-    assert format_log_row(entry_from_record(ORCHID, MOMENT), NAMES.__getitem__)[1:] == (
-        "Brisage", "Volkorne Orchidée ×1", "50 %", "39 runes")
-    assert format_log_row(entry_from_record(EBONY, MOMENT), NAMES.__getitem__)[1:] == (
-        "Brisage", "Volkorne Ébène ×1", "50 %", "38 runes")
-
-
-def test_a_stack_shows_its_quantity_and_an_object_without_rune_shows_zero() -> None:
-    stack = BrokenItem("Brial", 942, 2, FIFTY_THREE, (), "t")
-    row = format_log_row(entry_from_record(stack, MOMENT), NAMES.__getitem__)
-    assert row[1:] == ("Brisage", "Lisseur ×2", "53 %", "0 rune")
-    assert "Lisseur ×2" in format_log_line(row)

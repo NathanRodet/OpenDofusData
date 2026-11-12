@@ -8,7 +8,6 @@ import pytest
 
 from opendofusdata.capture import CaptureAborted, PacketPipeline
 from opendofusdata.capture_session import CaptureSession, CaptureStatus
-from opendofusdata.categories import CategorySettings
 from opendofusdata.log_feed import LogFeed
 from opendofusdata.storage import PriceStore
 from tests.envelopes import FLOW_KEY, lot_envelope, stats_envelope
@@ -187,28 +186,6 @@ def test_status_is_final_even_if_the_writer_fails_to_stop(tmp_path) -> None:
     session.stop()
     wait_for(lambda: session.snapshot().status is CaptureStatus.ERROR)
     assert "disk gone" in session.snapshot().error_message
-
-
-def test_disabled_hdv_records_are_not_counted_or_stored(tmp_path) -> None:
-    ran = threading.Event()
-
-    def capture(pipeline, interface, stop) -> None:
-        feeding_capture_once(pipeline)
-        ran.set()
-        stop.wait(WAIT_SECONDS)
-
-    session = CaptureSession(str(tmp_path / "test.db"), "Brial", None, capture, fixed_now,
-                             categories=CategorySettings([]))
-    session.start()
-    wait_for(ran.is_set)
-    session.stop()
-    snapshot = session.snapshot()
-    assert (snapshot.price_count, snapshot.stats_count) == (0, 0)
-    store = PriceStore(str(tmp_path / "test.db"))
-    try:
-        assert store.latest_prices() == []
-    finally:
-        store.close()
 
 
 def feeding_capture_once(pipeline: PacketPipeline) -> None:

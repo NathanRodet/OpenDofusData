@@ -12,7 +12,6 @@ from enum import Enum
 from opendofusdata.capture import CaptureAborted, PacketPipeline
 from opendofusdata.capture_errors import CAPTURE_FAILED_MESSAGE
 from opendofusdata.capture_stoppable import StoppableCapture
-from opendofusdata.categories import CATEGORY_PETS, DEFAULT_ENABLED, CategorySettings, FilteringWriter
 from opendofusdata.log_feed import NOTICE_DETAIL, NOTICE_VALUE, PET_LABEL, FeedWriter, LogFeed
 from opendofusdata.run_pipeline import Clock, make_envelope_handler
 from opendofusdata.session_counters import CountingWriter, SessionCounters
@@ -64,12 +63,11 @@ class CaptureSession:
         self, database_path: str, server: str, interface: str | None, capture: StoppableCapture,
         now: Clock, writer_factory: WriterFactory = StoreWriter,
         monotonic: Monotonic = time.monotonic, stop_timeout: float = STOP_TIMEOUT_SECONDS,
-        categories: CategorySettings | None = None, feed: LogFeed | None = None,
+        feed: LogFeed | None = None,
     ) -> None:
         self._settings = (database_path, server, interface)
         self._pending: tuple[str, str] | None = None
         self._handler = None
-        self.categories = categories if categories is not None else CategorySettings(DEFAULT_ENABLED)
         self.feed = feed if feed is not None else LogFeed()
         self._capture, self._now, self._writer_factory = capture, now, writer_factory
         self._monotonic, self._stop_timeout = monotonic, stop_timeout
@@ -145,9 +143,8 @@ class CaptureSession:
         self.snapshot()
 
     def _show_pet_notice(self, reason: str) -> None:
-        """Say in the Logs why a pet upgrade was not recorded (only when the player enabled pets)."""
-        if self.categories.is_enabled(CATEGORY_PETS):
-            self.feed.add_note(PET_LABEL, reason, self._now(), NOTICE_DETAIL, NOTICE_VALUE)
+        """Say in the Logs why a pet upgrade was not recorded."""
+        self.feed.add_note(PET_LABEL, reason, self._now(), NOTICE_DETAIL, NOTICE_VALUE)
 
     def _open_writer(self) -> StoreWriter | None:
         path = self._settings[0]
@@ -160,8 +157,7 @@ class CaptureSession:
 
     def _run(self, writer: StoreWriter, stop_event: threading.Event) -> None:
         _, server, interface = self._settings
-        sink = FilteringWriter(FeedWriter(CountingWriter(writer, self._counters, self._now),
-                                          self.feed, self._now), self.categories)
+        sink = FeedWriter(CountingWriter(writer, self._counters, self._now), self.feed, self._now)
         self._handler = make_envelope_handler(sink, server, self._now, notice=self._show_pet_notice)
         pipeline = PacketPipeline(self._handler)
         error = None

@@ -1,4 +1,4 @@
-"""The run command must respect the per-category consent of config.json (deny by default)."""
+"""Every category is stored by the run command, whatever an old config.json says."""
 
 import json
 import os
@@ -14,7 +14,7 @@ from tests.window_messages import OS_OF_CHAFER, OS_STACK, added
 
 MOMENT = datetime(2026, 11, 11, 19, 18, 30, tzinfo=timezone.utc)
 CLIENT_KEY = (FLOW_KEY[2], FLOW_KEY[3], FLOW_KEY[0], FLOW_KEY[1])
-DATABASE = "consent.db"
+DATABASE = "always.db"
 
 
 def capture(pipeline, interface) -> None:
@@ -25,11 +25,8 @@ def capture(pipeline, interface) -> None:
     raise KeyboardInterrupt
 
 
-def run_with(enabled: list[str] | None) -> tuple[int, int]:
+def run_and_count() -> tuple[int, int]:
     """Run the CLI capture; return (stored lot prices, stored broken objects)."""
-    if enabled is not None:
-        Path(os.environ["OPENDOFUSDATA_CONFIG"]).write_text(json.dumps({"enabled_categories": enabled}),
-                                                            encoding="utf-8")
     assert cli.run(["run", "--db", DATABASE, "--server", "Brial"], capture, lambda: MOMENT) == 0
     store = PriceStore(DATABASE)
     try:
@@ -38,24 +35,14 @@ def run_with(enabled: list[str] | None) -> tuple[int, int]:
         store.close()
 
 
-def test_without_a_config_only_hdv_is_recorded() -> None:
-    prices, breakings = run_with(None)
-    assert prices > 0
-    assert breakings == 0
-
-
-def test_an_enabled_category_is_recorded_and_a_disabled_one_is_not() -> None:
-    assert run_with(["breaking"]) == (0, 1)
-
-
-def test_all_enabled_categories_are_recorded() -> None:
-    prices, breakings = run_with(["hdv", "pets", "breaking"])
+def test_every_category_is_stored_without_any_config() -> None:
+    prices, breakings = run_and_count()
     assert prices > 0
     assert breakings == 1
 
 
-def test_a_corrupt_config_falls_back_to_hdv_only() -> None:
-    Path(os.environ["OPENDOFUSDATA_CONFIG"]).write_text("{ not json", encoding="utf-8")
-    prices, breakings = run_with(None)
+def test_enabled_categories_in_an_old_config_are_ignored() -> None:
+    Path(os.environ["OPENDOFUSDATA_CONFIG"]).write_text(json.dumps({"enabled_categories": []}), encoding="utf-8")
+    prices, breakings = run_and_count()
     assert prices > 0
-    assert breakings == 0
+    assert breakings == 1

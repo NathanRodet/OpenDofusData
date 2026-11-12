@@ -10,7 +10,6 @@ from opendofusdata.app_links import SAAS_URL
 from opendofusdata.capture_errors import EXIT_OK, fail
 from opendofusdata.capture_session import CaptureSession
 from opendofusdata.capture_stoppable import StoppableCapture, run_stoppable_capture
-from opendofusdata.categories import categories_from_config
 from opendofusdata.client_settings import (
     choose_database_path, default_database_path, server_names, update_check_enabled,
 )
@@ -81,8 +80,7 @@ def window_command(
     config_path = default_config_path()
     config = load_config(config_path)
     database = choose_database_path(arguments.db, config, default_database_path())
-    session = CaptureSession(database, arguments.server, arguments.interface, capture, now,
-                             categories=categories_from_config(config))
+    session = CaptureSession(database, arguments.server, arguments.interface, capture, now)
     return show_window(WindowContext(session, open_online_prices, config_path, server_names(),
                                      item_labeler_for_database(database),
                                      build_update_controller(config)))

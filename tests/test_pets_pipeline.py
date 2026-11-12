@@ -3,7 +3,7 @@
 import threading
 from datetime import datetime, timezone
 
-from opendofusdata.categories import CATEGORY_HDV, CATEGORY_PETS, CategorySettings, FilteringWriter, category_of
+from opendofusdata.categories import CATEGORY_PETS, category_of
 from opendofusdata.capture_session import CaptureSession
 from opendofusdata.log_feed import LogFeed, entry_from_record, format_log_row
 from opendofusdata.pets_store import pet_feedings
@@ -72,15 +72,11 @@ def test_the_handler_emits_the_event_from_real_messages() -> None:
     assert sink.records == [FEEDING]
 
 
-def test_category_and_filter() -> None:
+def test_category() -> None:
     assert category_of(FEEDING) == CATEGORY_PETS
-    off, on = ListSink(), ListSink()
-    FilteringWriter(off, CategorySettings([CATEGORY_HDV])).submit(FEEDING)
-    FilteringWriter(on, CategorySettings([CATEGORY_PETS])).submit(FEEDING)
-    assert (off.records, on.records) == ([], [FEEDING])
 
 
-def test_an_enabled_pet_upgrade_is_counted_stored_and_logged(tmp_path) -> None:
+def test_a_pet_upgrade_is_counted_stored_and_logged(tmp_path) -> None:
     feed_log = LogFeed()
     feed_log.set_visible(True)
 
@@ -89,7 +85,7 @@ def test_an_enabled_pet_upgrade_is_counted_stored_and_logged(tmp_path) -> None:
         stop.wait(5.0)
 
     session = CaptureSession(str(tmp_path / "s.db"), "Brial", None, capture, lambda: MOMENT,
-                             categories=CategorySettings([CATEGORY_PETS]), feed=feed_log)
+                             feed=feed_log)
     session.start()
     for _ in range(500):
         if session.snapshot().pet_count:
@@ -103,27 +99,6 @@ def test_an_enabled_pet_upgrade_is_counted_stored_and_logged(tmp_path) -> None:
     finally:
         store.close()
     assert feed_log.entries()[0].category == "Familier"
-
-
-def test_a_disabled_pet_category_is_neither_counted_nor_stored(tmp_path) -> None:
-    ran = threading.Event()
-
-    def capture(pipeline, interface, stop) -> None:
-        play(lambda envelope, key: pipeline.on_envelope(envelope, key))
-        ran.set()
-        stop.wait(5.0)
-
-    session = CaptureSession(str(tmp_path / "s.db"), "Brial", None, capture, lambda: MOMENT,
-                             categories=CategorySettings([CATEGORY_HDV]))
-    session.start()
-    assert ran.wait(5.0)
-    session.stop()
-    assert session.snapshot().pet_count == 0
-    store = PriceStore(str(tmp_path / "s.db"))
-    try:
-        assert pet_feedings(store.connection) == []
-    finally:
-        store.close()
 
 
 def test_the_log_row_shows_the_resources_the_level_and_the_experience_gain() -> None:

@@ -13,9 +13,6 @@ from opendofusdata.capture_errors import (
     run_guarded_capture,
 )
 from opendofusdata.analyze_commands import ANALYZE_COMMANDS, add_analyze_command
-from opendofusdata.app_config import default_config_path, load_config
-from opendofusdata.categories import categories_from_config
-from opendofusdata.categories_commands import CATEGORY_COMMANDS, add_categories_command
 from opendofusdata.commands import (
     export_csv_command,
     history_command,
@@ -59,7 +56,6 @@ def build_parser() -> argparse.ArgumentParser:
     add_names_commands(commands)
     add_servers_commands(commands)
     add_server_command(commands)
-    add_categories_command(commands)
     add_analyze_command(commands)
     add_window_command(commands, DEFAULT_DATABASE)
     return parser
@@ -164,7 +160,6 @@ READ_COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {
     "names-gaps": names_gaps_command,
     **SERVER_COMMANDS,
     **CHOICE_COMMANDS,
-    **CATEGORY_COMMANDS,
     **ANALYZE_COMMANDS,
     **WINDOW_COMMANDS,
 }
@@ -178,7 +173,7 @@ def run(argv: list[str] | None, capture: CaptureFunction, now: Clock = utc_now) 
         return _discover(arguments, capture)
     if arguments.command == "run":
         resolve_run_server(arguments)
-        return run_command(arguments, capture, now, categories_from_config(load_config(default_config_path())))
+        return run_command(arguments, capture, now)
     if arguments.command in READ_COMMANDS:
         return READ_COMMANDS[arguments.command](arguments)
     parser.print_help()

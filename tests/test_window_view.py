@@ -36,9 +36,9 @@ def test_minimum_size_is_at_least_640_by_400(root, tmp_path) -> None:
     assert height >= MIN_HEIGHT
 
 
-def test_menu_has_the_five_pages_and_switches(root, tmp_path) -> None:
+def test_menu_has_the_four_pages_and_switches(root, tmp_path) -> None:
     window, _ = build(root, tmp_path, [])
-    assert list(window.pages) == list(PAGE_NAMES) == ["Accueil", "Données", "Logs", "Réglages", "À propos"]
+    assert list(window.pages) == list(PAGE_NAMES) == ["Accueil", "Logs", "Réglages", "À propos"]
     window.show_page("Logs")
     assert window.current_page == "Logs"
     assert window.pages["Logs"].frame.winfo_manager() == "pack"

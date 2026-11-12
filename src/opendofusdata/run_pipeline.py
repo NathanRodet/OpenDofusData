@@ -12,7 +12,6 @@ from opendofusdata.framing import Envelope
 from opendofusdata.hdv import decode_lot_prices
 from opendofusdata.market_stats import decode_market_stats
 from opendofusdata.breaking import BreakingTracker
-from opendofusdata.categories import DEFAULT_ENABLED, CategorySettings, FilteringWriter
 from opendofusdata.pets import PetTracker
 from opendofusdata.records import LotPrice, MarketStats
 from opendofusdata.storage import StoreWriter
@@ -115,9 +114,8 @@ def _capture_and_drain(
 
 def run_command(
     arguments: argparse.Namespace, capture: CaptureFunction, now: Clock,
-    categories: CategorySettings | None = None,
 ) -> int:
-    """Capture into the database until Ctrl+C, recording only the enabled categories (HDV by default)."""
+    """Capture into the database until Ctrl+C, recording every category."""
     try:
         writer = StoreWriter(arguments.db)
     except (sqlite3.Error, OSError) as error:
@@ -126,6 +124,5 @@ def run_command(
     print(f"Base de données : {arguments.db}. Serveur enregistré : {arguments.server}{label}. "
           "Ctrl+C pour arrêter.")
     echo = print if arguments.verbose else None
-    consent = categories if categories is not None else CategorySettings(DEFAULT_ENABLED)
-    handler = make_envelope_handler(FilteringWriter(writer, consent), arguments.server, now, echo)
+    handler = make_envelope_handler(writer, arguments.server, now, echo)
     return _capture_and_drain(writer, handler, arguments.interface, capture)

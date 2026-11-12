@@ -1,6 +1,5 @@
-"""Headless-safe checks of the Données and Logs pages (skipped when no display is available)."""
+"""Headless-safe checks of the Logs page (skipped when no display is available)."""
 
-import json
 import threading
 from datetime import datetime, timezone
 
@@ -9,9 +8,7 @@ import pytest
 pytest.importorskip("customtkinter")
 
 from opendofusdata.capture_session import CaptureSession
-from opendofusdata.categories import CATEGORIES, CATEGORY_HDV, CategorySettings
 from opendofusdata.log_feed import MAX_LOG_LINES, LogFeed
-from opendofusdata.page_data import DataPage
 from opendofusdata.page_logs import LogsPage
 from opendofusdata.records import LotPrice
 from opendofusdata.window_context import WindowContext
@@ -25,48 +22,13 @@ def idle_capture(pipeline, interface, stop: threading.Event) -> None:
 
 def make_context(tmp_path, config_path=None) -> WindowContext:
     session = CaptureSession(str(tmp_path / "p.db"), "Brial", None, idle_capture, lambda: MOMENT,
-                             categories=CategorySettings([CATEGORY_HDV]), feed=LogFeed())
+                             feed=LogFeed())
     return WindowContext(session, lambda: None, config_path or tmp_path / "config.json",
                          ["Brial"], lambda item_id: f"Objet {item_id}")
 
 
 def lot(item_id: int) -> LotPrice:
     return LotPrice(item_id, "Brial", 10, 5868, "2026-11-11T13:32:05Z")
-
-
-def test_unavailable_categories_are_disabled_and_labelled_soon(root, tmp_path) -> None:
-    page = DataPage(root, make_context(tmp_path))
-    for category in CATEGORIES:
-        row = page.rows[category.key]
-        assert (row.switch.cget("state") == "normal") is category.available
-        assert ("bientôt" in row.count_label.cget("text")) is (not category.available)
-
-
-def test_hdv_switch_starts_on_and_counts_records(root, tmp_path) -> None:
-    context = make_context(tmp_path)
-    page = DataPage(root, context)
-    assert page.rows[CATEGORY_HDV].switch.get() == 1
-    page.render(context.session.snapshot())
-    assert page.rows[CATEGORY_HDV].count_label.cget("text") == "0 enregistrement"
-
-
-def test_toggling_hdv_updates_settings_and_config_file(root, tmp_path) -> None:
-    context = make_context(tmp_path)
-    page = DataPage(root, context)
-    page.rows[CATEGORY_HDV].switch.toggle()
-    assert context.session.categories.is_enabled(CATEGORY_HDV) is False
-    saved = json.loads((tmp_path / "config.json").read_text(encoding="utf-8"))
-    assert saved["enabled_categories"] == []
-
-
-def test_toggle_survives_an_unwritable_config(root, tmp_path) -> None:
-    blocker = tmp_path / "blocker"
-    blocker.write_text("a file, not a folder", encoding="utf-8")
-    context = make_context(tmp_path, blocker / "config.json")
-    page = DataPage(root, context)
-    page.rows[CATEGORY_HDV].switch.toggle()
-    assert context.session.categories.is_enabled(CATEGORY_HDV) is False
-    assert "pas pu être enregistré" in page.message_label.cget("text")
 
 
 def test_logs_are_hidden_by_default_and_the_switch_controls_the_feed(root, tmp_path) -> None:
@@ -138,9 +100,3 @@ def test_logs_refresh_when_the_name_lookup_changes(root, tmp_path) -> None:
     assert "Nouveau nom" in page.log_text()
 
 
-def test_data_page_counter_follows_the_session_records(root, tmp_path) -> None:
-    context = make_context(tmp_path)
-    page = DataPage(root, context)
-    snapshot = context.session.snapshot()
-    page.render(snapshot.__class__(snapshot.status, snapshot.server, 2, 1, None, None))
-    assert page.rows[CATEGORY_HDV].count_label.cget("text") == "3 enregistrements"

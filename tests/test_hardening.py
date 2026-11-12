@@ -3,7 +3,7 @@
 import logging
 
 from opendofusdata import crafting_window, pets
-from opendofusdata.categories import CATEGORY_HDV, CategorySettings, FilteringWriter, category_of
+from opendofusdata.categories import CATEGORY_HDV, category_of
 from opendofusdata.crafting_window import CraftingWindow
 from opendofusdata.framing import Envelope
 from opendofusdata.log_feed import entry_from_record
@@ -72,16 +72,11 @@ def test_a_broken_object_without_rune_can_be_logged() -> None:
     assert (entry.item_id, entry.detail, entry.value) == (942, "50 %", "0 rune")
 
 
-def test_an_unknown_record_type_has_no_category_and_is_dropped_and_logged(caplog) -> None:
+def test_an_unknown_record_type_has_no_category() -> None:
     class Unknown:
         pass
 
-    sink = ListSink()
     assert category_of(Unknown()) is None
-    with caplog.at_level(logging.WARNING):
-        FilteringWriter(sink, CategorySettings([CATEGORY_HDV])).submit(Unknown())
-    assert sink.records == []
-    assert "Unknown" in caplog.text
 
 
 def test_known_record_types_keep_their_category() -> None:
