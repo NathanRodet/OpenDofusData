@@ -33,13 +33,19 @@ def read_only_uri(path: str) -> str:
     return Path(path).resolve().as_uri() + "?mode=ro"
 
 
-def item_labeler_for_database(path: str) -> ItemLabeler:
-    """Name lookup read from a database file; 'N/A' when it is absent or unreadable (never creates it)."""
+def item_labelers_for_database(path: str) -> tuple[ItemLabeler, ItemTyper]:
+    """(name lookup, type lookup) read from a database file; 'N/A' when it is absent or unreadable."""
+    unknown = (lambda item_id: UNKNOWN_ITEM_NAME, lambda item_id: UNKNOWN_ITEM_TYPE)
     if not Path(path).is_file():
-        return lambda item_id: UNKNOWN_ITEM_NAME
+        return unknown
     try:
         with closing(sqlite3.connect(read_only_uri(path), uri=True)) as connection:
-            return load_item_labelers(connection)[0]
+            return load_item_labelers(connection)
     except sqlite3.Error as error:
         logger.warning("noms d'objets illisibles dans %s (%s)", path, error)
-        return lambda item_id: UNKNOWN_ITEM_NAME
+        return unknown
+
+
+def item_labeler_for_database(path: str) -> ItemLabeler:
+    """Name lookup read from a database file; 'N/A' when it is absent or unreadable (never creates it)."""
+    return item_labelers_for_database(path)[0]

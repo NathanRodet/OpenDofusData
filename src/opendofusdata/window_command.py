@@ -13,7 +13,7 @@ from opendofusdata.capture_stoppable import StoppableCapture, run_stoppable_capt
 from opendofusdata.client_settings import (
     choose_database_path, default_database_path, server_names, update_check_enabled,
 )
-from opendofusdata.item_labels import item_labeler_for_database
+from opendofusdata.item_labels import item_labelers_for_database
 from opendofusdata.names_fetch import http_get_json
 from opendofusdata.run_pipeline import Clock, utc_now
 from opendofusdata.server_choice_commands import resolve_run_server
@@ -81,9 +81,9 @@ def window_command(
     config = load_config(config_path)
     database = choose_database_path(arguments.db, config, default_database_path())
     session = CaptureSession(database, arguments.server, arguments.interface, capture, now)
-    return show_window(WindowContext(session, open_online_prices, config_path, server_names(),
-                                     item_labeler_for_database(database),
-                                     build_update_controller(config)))
+    name_of, type_of = item_labelers_for_database(database)
+    return show_window(WindowContext(session, open_online_prices, config_path, server_names(), name_of,
+                                     build_update_controller(config), type_of=type_of))
 
 
 WINDOW_COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {"window": window_command}
