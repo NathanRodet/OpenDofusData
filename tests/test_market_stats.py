@@ -178,6 +178,15 @@ def test_points_are_sorted_by_timestamp() -> None:
     assert stats.points == [(int(earlier.timestamp()), 1, 3), (int(later.timestamp()), 2, 4)]
 
 
+def test_a_point_without_price_field_is_a_price_of_zero() -> None:
+    """Protobuf omits a zero: the game's Flèche du Chafer Archer (108 sold, median 0, mean 0)."""
+    free = (varint_field(2, ITEM_ID) + bytes_field(3, b"2026-11-09T10:50:09Z") + varint_field(4, 100))
+    hourly = [free, point(1, LAST_DAY, 8)]
+    stats = by_period(stats_envelope(hourly=hourly))["24h"]
+    assert (stats.median, stats.mean, stats.sold_count) == (0, 0, 108)
+    assert stats.points[0][1:] == (0, 100)
+
+
 def test_zero_total_quantity_period_is_omitted() -> None:
     assert decode_market_stats(stats_envelope(hourly=[point(5, LAST_DAY, 0)]), SERVER, CAPTURED_AT) == []
 

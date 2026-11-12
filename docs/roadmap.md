@@ -1,6 +1,6 @@
 # Feuille de route
 
-État au 2026-11-11: la v1 (capture locale, décodage des prix de lots et des cours du marché, base SQLite, noms d'objets, choix du serveur, fenêtre joueur, exécutable et mises à jour) est terminée. Version du produit: 1.1.0 (tags `v1.0.0` publié, `v1.1.0` à publier: recyclage, brisage et familiers en bêta, correction de la reconnaissance des objets ramassés après la connexion).
+État au 2026-11-11: la v1 (capture locale, décodage des prix de lots et des cours du marché, base SQLite, noms d'objets, choix du serveur, fenêtre joueur, exécutable et mises à jour) est terminée. Version du produit: 1.1.0 (tags `v1.0.0` publié, `v1.1.0` à publier: brisage et familiers en bêta, correction de la reconnaissance des objets ramassés après la connexion).
 
 ## Validé en jeu
 
@@ -25,14 +25,14 @@
 
 ## Catégories de données
 
-Les quatre catégories sont décodées: HDV (validée en jeu), et en **bêta, désactivées par défaut**, recyclage, brisage et familiers, écrits à partir de captures d'un seul joueur et vérifiés contre ses captures d'écran (structure des messages: [docs/protocol-notes.md](protocol-notes.md)). Chaque catégorie a son interrupteur, son compteur et ses lignes dans les Logs, et sa propre table dans `prices.db`.
+Les trois catégories sont décodées: HDV (validée en jeu), et en **bêta, désactivées par défaut**, brisage et familiers, écrits à partir de captures d'un seul joueur et vérifiés contre ses captures d'écran (structure des messages: [docs/protocol-notes.md](protocol-notes.md)). Chaque catégorie a son interrupteur, son compteur et ses lignes dans les Logs, et sa propre table dans `prices.db`.
 
 À faire pour sortir de la bêta, avec les tests en jeu du propriétaire:
 - Activer chaque catégorie dans la page Données, refaire l'action et comparer les Logs à l'écran.
-- Recyclage: confirmer qu'un recyclage de plusieurs objets différents est complet.
+- Recyclage: la capture réseau est abandonnée (décision du 2026-11-12). Les taux viennent du téléchargement DofusDB (colonne `recycling_nuggets` de `data/items.csv` et de la table `items`); les anciennes tables de recyclage sont supprimées des bases au démarrage.
 - Brisage: concasser plusieurs exemplaires d'un même équipement (quantité > 1) et des objets de niveaux variés.
 - Familiers: lancer l'outil avant la connexion, faire plusieurs améliorations (dont une montée de niveau) et comparer l'état avant et après.
-- Recyclage: le coefficient attendu est calculé à partir de `recyclingNuggets` (DofusDB), affiché « att. 0,07 » dans les Logs et comparé au résultat réel par la vue `recycling_yields` de la base. Le facteur 0,6 est la part fixe du joueur (60 % joueur, 40 % prisme depuis la mise à jour 3.3), il ne dépend pas du personnage. Le résultat est l'arrondi de la somme des coefficients (déterministe): un écart entre « att. » et le résultat signalerait un changement de règle du jeu. Brisage (coefficients) et familiers (expérience par ressource) se déduisent des enregistrements cumulés.
+- Brisage (coefficients) et familiers (expérience par ressource) se déduisent des enregistrements cumulés.
 
 Le guide pour capturer de nouveaux cas: [docs/new-categories.md](new-categories.md).
 
@@ -45,7 +45,7 @@ Le guide pour capturer de nouveaux cas: [docs/new-categories.md](new-categories.
 ## Pistes facultatives
 
 - Caractéristiques (effets) des équipements dans l'HDV: non décodées.
-- Recyclage: confirmé, le taux est calculé côté client et absent du réseau; la catégorie enregistre donc les objets recyclés et les Pépites obtenues (voir docs/protocol-notes.md), le taux se déduira de nombreux recyclages.
+- Recyclage: le taux n'est pas sur le réseau; il se calcule à partir de `recyclingNuggets` (voir docs/protocol-notes.md).
 - Avertir quand le décodage ne voit plus rien après une mise à jour du jeu: pas de signal fiable aujourd'hui (rien n'est décodé tant que le joueur n'ouvre pas l'HDV), donc pas d'alerte pour éviter les fausses alarmes.
 - `names-import` réduirait la table `servers` de la base locale de 27 à 15 lignes (CSV filtré aux serveurs classiques): non exécuté.
 - Les noms de messages obfusqués (`jzs`, `ire`, `kcy`, `iqp`) changent à chaque version du jeu: `messages.py` est à remettre à jour avec le mode `discover`.

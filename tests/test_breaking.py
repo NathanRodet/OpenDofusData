@@ -6,7 +6,7 @@ from opendofusdata.breaking import BreakingTracker
 from opendofusdata.framing import Envelope
 from opendofusdata.records import BrokenItem
 from tests.envelopes import bytes_field, int_field, varint
-from tests.test_recycling import added, cleared, request, result, updated
+from tests.window_messages import added, cleared, request, result, updated
 
 SERVER = "Brial"
 MOMENT = "2026-11-11T19:27:56Z"

@@ -7,9 +7,8 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from opendofusdata.categories import CATEGORY_HDV, CATEGORY_LABELS
-from opendofusdata.recycling import expected_nuggets
 from opendofusdata.records import (
-    MARKET_PERIODS, BrokenItem, LotPrice, PetFeeding, PetState, Record, RecyclingEvent,
+    MARKET_PERIODS, BrokenItem, LotPrice, PetFeeding, PetState, Record,
 )
 from opendofusdata.session_counters import RecordSink
 
@@ -18,11 +17,8 @@ TIME_FORMAT = "%H:%M:%S"
 NameLookup = Callable[[int], str]
 LOG_COLUMNS = ("Heure", "Type", "Objet", "Détail", "Valeur")
 HDV_LABEL = CATEGORY_LABELS[CATEGORY_HDV]
-RECYCLING_LABEL = "Recyclage"
 PET_LABEL = "Familier"
 NOTICE_DETAIL = "ignorée"
-EXPECTED_FORMAT = "att. {value}"
-RateLookup = Callable[[int], float | None]
 NOTICE_VALUE = "reconnecte"
 BREAKING_LABEL = "Brisage"
 PERCENT = 100
@@ -88,7 +84,7 @@ def _breaking_entry(record: BrokenItem, moment: datetime) -> LogEntry:
 
 
 def entry_from_record(record: Record, moment: datetime) -> LogEntry:
-    """Summarise a lot price (price of the lot), market stats (median) or a recycling."""
+    """Summarise a record: lot price, market stats (median), pet upgrade or broken object."""
     if isinstance(record, BrokenItem):
         return _breaking_entry(record, moment)
     if isinstance(record, PetFeeding):
@@ -96,10 +92,6 @@ def entry_from_record(record: Record, moment: datetime) -> LogEntry:
         first_resource = record.resources[0][0] if record.resources else 0
         return LogEntry(moment, PET_LABEL, first_resource, f"niv {level}",
                         _pet_gain(record.before, record.after), record.resources)
-    if isinstance(record, RecyclingEvent):
-        first_item = record.items[0][0] if record.items else 0
-        return LogEntry(moment, RECYCLING_LABEL, first_item, _plural(len(record.items), "objet"),
-                        _plural(record.nuggets, "Pépite"), record.items)
     if isinstance(record, LotPrice):
         return LogEntry(moment, HDV_LABEL, record.item_id,
                         LOT_DETAIL.format(size=record.lot_size), format_number(record.price))
@@ -107,15 +99,7 @@ def entry_from_record(record: Record, moment: datetime) -> LogEntry:
     return LogEntry(moment, HDV_LABEL, record.item_id, detail, format_number(record.median))
 
 
-def _detail_of(entry: LogEntry, rate_of: RateLookup | None) -> str:
-    """The detail cell; a recycling shows the yield the game announced when every rate is known."""
-    if entry.category != RECYCLING_LABEL or rate_of is None:
-        return entry.detail
-    expected = expected_nuggets(entry.items, rate_of)
-    return entry.detail if expected is None else EXPECTED_FORMAT.format(value=f"{expected:.2f}".replace(".", ","))
-
-
-def format_log_row(entry: LogEntry, name_of: NameLookup, rate_of: RateLookup | None = None) -> tuple[str, str, str, str, str]:
+def format_log_row(entry: LogEntry, name_of: NameLookup) -> tuple[str, str, str, str, str]:
     """The five displayed cells: time (local), type, item name, detail, value."""
     shown_time = entry.moment.astimezone().strftime(TIME_FORMAT)
     if entry.label:
@@ -124,7 +108,7 @@ def format_log_row(entry: LogEntry, name_of: NameLookup, rate_of: RateLookup | N
         name = ITEM_SEPARATOR.join(f"{name_of(item_id)} ×{quantity}" for item_id, quantity in entry.items)
     else:
         name = name_of(entry.item_id)
-    return shown_time, entry.category, name, _detail_of(entry, rate_of), entry.value
+    return shown_time, entry.category, name, entry.detail, entry.value
 
 
 class LogFeed:

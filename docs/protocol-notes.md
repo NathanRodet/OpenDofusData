@@ -51,7 +51,9 @@ Flux de messages Protobuf précédés de leur longueur, avec des enveloppes `typ
 - Le serveur de jeu (Dofus a plusieurs serveurs) n'est pas identifié dans ces messages: le nom du serveur est choisi par le joueur (voir le README, « Serveur de jeu »).
 - Aucun identifiant de serveur n'existe dans les messages de connexion / handshake (vérifié sur une capture d'une connexion à Kourial): le serveur de jeu est choisi par le joueur, aucune détection à partir du trafic n'est possible. Le champ 5 de `itv` (valeurs 355 / 457) ressemble à une latence et n'est PAS un identifiant de serveur; les autres correspondances avec des identifiants de serveur dans les captures précédentes étaient des coïncidences dans des listes d'objets.
 
-## Recyclage (décodé, trois captures du 2026-11-11)
+## Recyclage (plus collecté depuis le 2026-11-12; notes conservées)
+
+La catégorie a été retirée de l'outil: le suivi, la table et l'interrupteur n'existent plus. Seuls les messages de la fenêtre d'objets, partagée avec le brisage, restent décodés (`crafting_window.py`), et les taux viennent du CSV des noms. Ce qui suit documente ce qui avait été observé.
 
 Captures `captures/recyclage-*.jsonl` (structure seule), vérifiées contre l'écran: sept recyclages dont 0, 0, 1, 2 et 3 Pépites. Les noms courts des messages changent à chaque version du jeu (constantes dans `messages.py`, suiveur dans `recycling.py`).
 

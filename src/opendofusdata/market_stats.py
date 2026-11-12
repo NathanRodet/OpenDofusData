@@ -55,6 +55,16 @@ def _required_count(fields: list[Field], number: int) -> int:
     return value
 
 
+def _price_or_zero(fields: list[Field]) -> int:
+    """Price of a point; Protobuf omits a zero, so a missing price field means 0 kamas."""
+    try:
+        return _required_count(fields, POINT_PRICE_FIELD)
+    except ValueError as error:
+        if "missing" in str(error):
+            return 0
+        raise
+
+
 def _read_point(data: bytes) -> SamplePoint:
     """Decode one point sub-message; ValueError (or DecodeError) when invalid."""
     fields = decode_fields(data)
@@ -62,7 +72,7 @@ def _read_point(data: bytes) -> SamplePoint:
     moment = parse_server_timestamp(text.decode("ascii", errors="replace"))
     return SamplePoint(
         _required_count(fields, POINT_ITEM_FIELD), moment,
-        _required_count(fields, POINT_PRICE_FIELD), _required_count(fields, POINT_QUANTITY_FIELD),
+        _price_or_zero(fields), _required_count(fields, POINT_QUANTITY_FIELD),
     )
 
 

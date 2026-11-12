@@ -8,7 +8,7 @@ import customtkinter
 from opendofusdata.app_config import load_config, save_config
 from opendofusdata.capture_session import CaptureStatus, SessionSnapshot
 from opendofusdata.categories import (
-    CATEGORIES, CATEGORY_BREAKING, CATEGORY_HDV, CATEGORY_PETS, CATEGORY_RECYCLING, DataCategory,
+    CATEGORIES, CATEGORY_BREAKING, CATEGORY_HDV, CATEGORY_PETS, DataCategory,
     config_with_categories,
 )
 from opendofusdata.ui_theme import (
@@ -85,6 +85,5 @@ class DataPage:
     def render(self, snapshot: SessionSnapshot) -> None:
         """Refresh the counters of the categories that have a decoder."""
         self.rows[CATEGORY_HDV].count_label.configure(text=records_text(total_records(snapshot)))
-        self.rows[CATEGORY_RECYCLING].count_label.configure(text=records_text(snapshot.recycling_count))
         self.rows[CATEGORY_PETS].count_label.configure(text=self._pets_text(snapshot))
         self.rows[CATEGORY_BREAKING].count_label.configure(text=records_text(snapshot.breaking_count))

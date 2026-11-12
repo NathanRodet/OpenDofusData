@@ -14,7 +14,6 @@ from opendofusdata.market_stats import decode_market_stats
 from opendofusdata.breaking import BreakingTracker
 from opendofusdata.categories import DEFAULT_ENABLED, CategorySettings, FilteringWriter
 from opendofusdata.pets import PetTracker
-from opendofusdata.recycling import RecyclingTracker
 from opendofusdata.records import LotPrice, MarketStats
 from opendofusdata.storage import StoreWriter
 from opendofusdata.tcp import FlowKey
@@ -47,7 +46,6 @@ class EnvelopeHandler:
         self._server = server
         self._now = now
         self._echo = echo
-        self._recycling = RecyclingTracker(server)
         self._pets = PetTracker(server, notice)
         self._breaking = BreakingTracker(server)
         self.submitted_count = 0
@@ -58,10 +56,9 @@ class EnvelopeHandler:
         stats = decode_market_stats(envelope, self._server, captured_at)
         self._log(lots, stats)
         from_server = direction_of(key) == DIRECTION_TO_CLIENT
-        singles = [self._recycling.feed(envelope, from_server, captured_at),
-                   self._pets.feed(envelope, from_server, captured_at)]
+        pet = self._pets.feed(envelope, from_server, captured_at)
         broken = self._breaking.feed(envelope, from_server, captured_at)
-        for record in [*lots, *stats, *(record for record in singles if record), *broken]:
+        for record in [*lots, *stats, *([pet] if pet else []), *broken]:
             self._writer.submit(record)
             self.submitted_count += 1
         self._show(lots, stats)

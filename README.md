@@ -2,7 +2,7 @@
 
 Outil local pour Windows qui capture passivement le trafic réseau de Dofus 3 (TCP 5555) avec Npcap et Scapy, décode les messages utiles et les stocke dans une base SQLite locale. Objectif global: ce client récolte les données, les stocke en SQLite, puis alimentera à terme un serveur distant (synchronisation et serveur hors périmètre de la v1). La v1 n'envoie rien à l'extérieur.
 
-**Version actuelle : 1.1.0** (capture locale de l'HDV, fenêtre joueur, mises à jour; recyclage, brisage et familiers en bêta). Elle est affichée dans la page À propos de la fenêtre.
+**Version actuelle : 1.1.0** (capture locale de l'HDV, fenêtre joueur, mises à jour; brisage et familiers en bêta). Elle est affichée dans la page À propos de la fenêtre.
 
 ## Données collectées
 
@@ -11,7 +11,7 @@ L'outil est conçu pour collecter quatre catégories de données. Chacune pourra
 | Catégorie | Contenu | État |
 |---|---|---|
 | Données HDV | Prix des lots et cours du marché | Disponible (v1) |
-| Données de recyclage des ressources | Objets recyclés (identifiant, quantité) et Pépites obtenues, un enregistrement par recyclage | Bêta: décodé, désactivé par défaut, à vérifier en jeu |
+| Taux de recyclage des ressources | Pas de capture réseau: le taux à 100 % de chaque objet (`recycling_nuggets`, DofusDB) est une colonne de `data/items.csv`, téléchargée avec les noms (« Télécharger les noms ») | Disponible, sans interrupteur |
 | Données de brisage | Objets détruits au Concasseur, coefficient et runes obtenues, un enregistrement par concassage | Bêta: décodé, désactivé par défaut, à vérifier en jeu |
 | Données d'expérience des familiers (pets) | Ressources données à un familier et son état avant et après (niveau, expérience, prospection) | Bêta: décodé, désactivé par défaut, à vérifier en jeu; demande de lancer l'outil avant la connexion |
 
@@ -40,8 +40,8 @@ Thème sombre, menu à gauche, cinq pages. Elle est redimensionnable (minimum 64
 | Page | Contenu |
 |---|---|
 | Accueil | État (Capture active, arrêtée ou erreur avec un message clair, par exemple Npcap absent ou droits insuffisants), serveur, enregistrements de la session, heure du dernier relevé, « Voir les prix en ligne » (adresse provisoire tant que le serveur n'existe pas) |
-| Données | Une ligne par catégorie (HDV, recyclage, brisage, pets) avec un interrupteur. L'HDV est décodé; recyclage, brisage et familiers le sont aussi, en bêta et désactivés par défaut. Désactiver une catégorie arrête de l'enregistrer tout de suite |
-| Logs | Interrupteur « Afficher les logs », désactivé par défaut. Activé, il affiche en colonnes (heure, type, objet, détail, valeur) les 200 dernières données captées, **une ligne par objet** pour le brisage (coefficient et runes) et, pour un recyclage, le rendement annoncé par le jeu (« att. 0,07 ») à côté du résultat réel (« 0 Pépite »). Le rendement annoncé demande les taux de recyclage: clique sur « Télécharger les noms » dans Réglages (à refaire si tu l'avais déjà fait avant cette version). Désactivé, rien n'est affiché ni gardé |
+| Données | Une ligne par catégorie (HDV, brisage, pets) avec un interrupteur. L'HDV est décodé; brisage et familiers le sont aussi, en bêta et désactivés par défaut. Désactiver une catégorie arrête de l'enregistrer tout de suite |
+| Logs | Interrupteur « Afficher les logs », désactivé par défaut. Activé, il affiche en colonnes (heure, type, objet, détail, valeur) les 200 dernières données captées, **une ligne par objet** pour le brisage (coefficient et runes). Désactivé, rien n'est affiché ni gardé |
 | Réglages | Serveur de jeu, emplacement de la base de données (un changement relance la capture), téléchargement des noms d'objets, vérification des mises à jour au démarrage |
 | À propos | Version, mises à jour, ce qui est collecté, lien vers le dépôt |
 
@@ -190,7 +190,7 @@ Suite prévue du projet: [docs/roadmap.md](docs/roadmap.md).
 ## Limites connues et maintenance
 
 - Les noms courts des messages (`jzs`, `ire`, `kcy`, `iqp`) changent à chaque mise à jour du jeu. Ils sont isolés dans `src/opendofusdata/messages.py`. Si l'outil ne décode plus rien après une mise à jour: lance `discover` avec `--hex-types` sur la nouvelle version, compare avec `docs/protocol-notes.md`, puis mets à jour `messages.py`.
-- L'HDV (prix de lots et cours du marché; pas d'achats, de ventes ni de changements de prix) est décodé. Recyclage, brisage et familiers (bêta) le sont aussi, mais validés sur les captures d'un seul joueur: active-les dans la page Données pour les vérifier, ils sont désactivés par défaut. Les familiers demandent l'inventaire envoyé à la connexion pour identifier les ressources: lance l'outil avant de te connecter, ou déconnecte-toi puis reconnecte-toi une fois l'outil lancé. Tant que l'inventaire n'est pas reçu, la page Données affiche « reconnecte-toi au jeu » et une amélioration ignorée apparaît dans les Logs (« ressource inconnue » ou « familier inconnu », « ignorée », « reconnecte »).
+- L'HDV (prix de lots et cours du marché; pas d'achats, de ventes ni de changements de prix) est décodé. Brisage et familiers (bêta) le sont aussi, mais validés sur les captures d'un seul joueur: active-les dans la page Données pour les vérifier, ils sont désactivés par défaut. Les familiers demandent l'inventaire envoyé à la connexion pour identifier les ressources: lance l'outil avant de te connecter, ou déconnecte-toi puis reconnecte-toi une fois l'outil lancé. Tant que l'inventaire n'est pas reçu, la page Données affiche « reconnecte-toi au jeu » et une amélioration ignorée apparaît dans les Logs (« ressource inconnue » ou « familier inconnu », « ignorée », « reconnecte »).
 - Fenêtre de 7 jours: la règle (minuit UTC sept jours avant la date de capture) est vérifiée à l'écran sur cinq objets.
 - Un objet sans aucune offre (« Cet objet n'est pas en vente actuellement ») ne produit aucun enregistrement, par décision: l'absence de relevé ne signifie pas prix 0, le dernier prix connu garde son horodatage d'origine.
 - Le serveur de jeu n'apparaît pas dans les messages: c'est le joueur qui le choisit (voir « Serveur de jeu »).

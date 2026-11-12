@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HDV plein écran</title>
+<style>
+  :root { --bg:#12141f; --panel:#161a2b; --side:#0e1019; --line:#2a2e45; --text:#d8dbe8; --muted:#7b80a3; --accent:#8fd13f; --sel:#23274a; --field:#1c2036; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { height:100%; background:var(--bg); color:var(--text); font:15px/1.4 "Segoe UI", system-ui, sans-serif; }
+  .w-app { display:grid; grid-template-columns:220px minmax(0,1fr); height:100vh; }
+  .w-side { background:var(--side); padding:18px 12px; display:flex; flex-direction:column; border-right:1px solid var(--line); }
+  .w-brand { font-weight:700; font-size:17px; padding:4px 12px 18px; color:#fff; }
+  .w-nav a { display:block; padding:10px 14px; border-radius:8px; color:var(--muted); margin-bottom:4px; }
+  .w-nav a.on { background:var(--sel); color:#fff; }
+  .w-status { margin-top:auto; padding:14px 12px 4px; border-top:1px solid var(--line); }
+  .w-state { font-weight:600; margin-bottom:8px; display:flex; align-items:center; gap:8px; }
+  .w-dot { width:9px; height:9px; border-radius:50%; background:var(--accent); }
+  .w-kv { display:flex; justify-content:space-between; padding:2px 0; font-size:13px; }
+  .w-kv span { color:var(--muted); } .w-kv b { font-weight:600; }
+  .w-main { padding:20px 24px; display:flex; flex-direction:column; min-width:0; min-height:0; }
+  .w-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px; }
+  .w-head h1 { font-size:22px; color:#fff; } .w-head span { color:var(--muted); font-size:13px; }
+  .w-bar { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+  .w-field { background:var(--field); border:1px solid #2f3452; border-radius:8px; padding:9px 14px; color:#b7bbd6; }
+  .w-search { flex:1 1 260px; color:var(--muted); }
+  .w-btn { background:var(--accent); color:#10130a; border-radius:8px; padding:9px 16px; font-weight:600; }
+  .w-body { display:flex; gap:20px; flex:1; min-height:0; }
+  .w-table { flex:1; min-width:0; overflow:auto; }
+  table { width:100%; border-collapse:collapse; }
+  th { text-align:left; color:var(--muted); font-weight:600; padding:10px 14px; border-bottom:1px solid var(--line); font-size:13px; position:sticky; top:0; background:var(--bg); }
+  td { padding:12px 14px; border-bottom:1px solid #1b1f33; white-space:nowrap; }
+  tbody tr:nth-child(even) td { background:#141829; }
+  tr.sel td { background:var(--sel) !important; color:#fff; }
+  .n { text-align:right; font-variant-numeric:tabular-nums; }
+  .w-pill { display:inline-block; background:var(--sel); border-radius:12px; padding:2px 10px; font-size:13px; color:#b7bbd6; }
+  .w-detail { width:360px; flex-shrink:0; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:20px; overflow:auto; }
+  .w-detail h2 { font-size:20px; color:#fff; margin-bottom:6px; }
+  .w-kpis { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:16px 0; }
+  .w-kpis div { background:var(--field); border-radius:8px; padding:10px 12px; } .w-kpis span { color:var(--muted); font-size:12px; display:block; }
+  .w-kpis b { font-size:20px; color:#fff; }
+  .w-sub { color:var(--muted); font-size:13px; margin:16px 0 8px; display:flex; justify-content:space-between; align-items:center; }
+  .w-foot { display:flex; justify-content:space-between; color:var(--muted); padding-top:12px; font-size:13px; }
+  .w-switch { position:fixed; right:16px; bottom:16px; background:#000a; border:1px solid var(--line); border-radius:10px; padding:6px; display:flex; gap:6px; z-index:5; }
+  .w-switch button { background:var(--field); color:var(--text); border:1px solid #2f3452; border-radius:8px; padding:8px 14px; font:inherit; cursor:pointer; }
+  .w-switch button.on { background:var(--accent); color:#10130a; border-color:var(--accent); font-weight:600; }
+
+  .chart { position:relative; width:100%; }
+  .chart svg { display:block; width:100%; }
+  .chart .tip { position:absolute; pointer-events:none; background:#000d; border:1px solid #3a3f63; border-radius:8px; padding:8px 12px; font-size:13px; white-space:nowrap; transform:translate(-50%, -115%); }
+  .chart .tip b { display:block; font-size:15px; color:#fff; } .chart .tip span { color:var(--muted); }
+  #viewB tbody tr:not(.exp):hover td { background:var(--sel) !important; cursor:pointer; }
+
+  .w-page { display:flex; flex-direction:column; flex:1; min-height:0; }
+  .w-nav a { cursor:pointer; }
+  .w-chip { cursor:pointer; } .w-chip.on { background:var(--sel); color:#fff; border-color:var(--accent); }
+  .w-tag { display:inline-block; border-radius:6px; padding:2px 10px; font-size:13px; font-weight:600; }
+  .w-tag.hdv { background:#1d3a52; color:#8cc8ff; } .w-tag.brk { background:#4a3319; color:#ffc27a; } .w-tag.pet { background:#2f2c55; color:#b9b3ff; }
+  .w-live { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:13px; }
+  .w-cards { display:grid; grid-template-columns:repeat(auto-fill, minmax(380px, 1fr)); gap:18px; align-content:start; overflow:auto; }
+  .w-card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:20px; display:flex; flex-direction:column; gap:10px; }
+  .w-card h3 { font-size:16px; color:#fff; } .w-card p { color:var(--muted); font-size:13px; }
+  .w-card .w-kv { font-size:14px; padding:4px 0; border-bottom:1px solid #1b1f33; }
+  .w-act { align-self:flex-start; cursor:pointer; margin-top:4px; }
+  .w-path { background:var(--field); border-radius:8px; padding:9px 12px; font:12px Consolas, monospace; color:#b7bbd6; word-break:break-all; }
+  .w-update { display:flex; align-items:center; gap:8px; color:var(--accent); font-weight:600; }
+
+  .w-seg { display:inline-flex; flex-wrap:wrap; background:var(--field); border:1px solid #2f3452; border-radius:8px; padding:3px; gap:2px; }
+  .w-seg span { padding:6px 14px; border-radius:6px; color:#b7bbd6; cursor:pointer; }
+  .w-seg span.on { background:var(--accent); color:#10130a; font-weight:600; }
+
+  th.sorted { color:var(--accent); }
+  th.sorted-soft { color:#d8dbe8; }
+  .w-bar2 { display:inline-block; vertical-align:middle; width:90px; height:8px; background:var(--field); border-radius:4px; margin-right:10px; overflow:hidden; }
+  .w-bar2 i { display:block; height:100%; background:var(--accent); }
+  .w-ratio { display:inline-block; min-width:44px; text-align:right; }
+  .up b, .up { color:#8fd13f; } .down b, .down { color:#ff7a7a; }
+  .hidden { display:none !important; }
+  .w-hist { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; padding:6px 0; }
+  .w-hist div span { color:var(--muted); font-size:12px; display:block; } .w-hist div b { font-size:16px; }
+  .w-hist div i { font-style:normal; color:var(--muted); font-size:12px; display:block; }
+  tr.exp td { background:var(--panel) !important; white-space:normal; padding:16px 18px; }
+  @media (max-width:1100px) { .w-body { flex-direction:column; overflow:auto; } .w-detail { width:auto; } }
+  @media (max-width:760px) { .w-app { grid-template-columns:1fr; grid-template-rows:auto 1fr; } .w-side { flex-direction:row; align-items:center; padding:8px 12px; } .w-brand { padding:0 12px 0 0; } .w-nav { display:flex; } .w-status { display:none; } }
+</style></head>
+<body>
+<div class="w-app">
+  <aside class="w-side">
+    <div class="w-brand">OpenDofusData</div>
+    <nav class="w-nav"><a class="on" data-page="Hdv">HDV</a><a data-page="Brk">Brisage</a><a data-page="Pet">Familiers</a><a data-page="Logs">Logs</a><a data-page="Settings">Réglages</a></nav>
+    <div class="w-status">
+      <div class="w-state"><span class="w-dot"></span>Capture active</div>
+      <div class="w-kv"><span>Serveur</span><b>Brial</b></div>
+      <div class="w-kv"><span>Prix</span><b>1 284</b></div><div class="w-kv"><span>Brisages</span><b>7</b></div><div class="w-kv"><span>Familiers</span><b>3</b></div>
+      <div class="w-kv"><span>Dernier relevé</span><b>18:42</b></div>
+    </div>
+  </aside>
+
+  <main class="w-main"><section id="pageHdv" class="w-page">
+    <div class="w-head"><h1>HDV</h1><span id="count">128 objets</span></div>
+    <div class="w-bar">
+      <div class="w-field w-search">Rechercher un objet…</div>
+      
+      <div class="w-field">Lot : tous ▾</div>
+      <div class="w-seg"><span>Dernière heure</span><span>6 heures</span><span class="on">Aujourd'hui</span><span>7 jours</span><span>30 jours</span><span>Tout</span><span>Personnalisé</span></div>
+    </div>
+
+    <!-- A : tableau + fiche -->
+    <div class="w-body" id="viewA">
+      <div class="w-table"><table>
+        <thead><tr><th>Objet</th><th>Type</th><th class="n">Dernier prix ×1</th><th class="n">Médian 24 h</th><th class="n">Vendus 24 h</th><th>Dernier relevé</th></tr></thead>
+        <tbody>
+          <tr class="sel"><td>Salikrone</td><td>Plante</td><td class="n">557</td><td class="n">612</td><td class="n">515</td><td title="12/11 18:42">il y a 5 h</td></tr>
+          <tr><td>Viande Frelatée</td><td>Viande</td><td class="n">13</td><td class="n">11</td><td class="n">6 232</td><td title="12/11 18:42">il y a 5 h</td></tr>
+          <tr><td>Œil de Feutôme</td><td>Œil</td><td class="n">4 375</td><td class="n">4 293</td><td class="n">615</td><td title="12/11 18:17">il y a 5 h</td></tr>
+          <tr><td>Flèche du Chafer Archer</td><td>Ressource diverse</td><td class="n">1</td><td class="n">0</td><td class="n">108</td><td title="12/11 14:05">il y a 9 h</td></tr>
+          <tr><td>Os de Chafer</td><td>Os</td><td class="n">4</td><td class="n">3</td><td class="n">2 140</td><td title="12/11 09:12">il y a 14 h</td></tr>
+          <tr><td>Boue du Boo</td><td>Liquide</td><td class="n">9</td><td class="n">8</td><td class="n">3 870</td><td title="12/11 08:47">il y a 15 h</td></tr>
+          <tr><td>Tissu Invisible</td><td>Tissu</td><td class="n">61</td><td class="n">58</td><td class="n">940</td><td title="11/11 23:30">il y a 1 j</td></tr>
+          <tr><td>Œil de Truchtine</td><td>Œil</td><td class="n">218</td><td class="n">221</td><td class="n">410</td><td title="11/11 22:05">il y a 1 j</td></tr>
+          <tr><td>Plume de Gélikan</td><td>Plume</td><td class="n">85</td><td class="n">80</td><td class="n">1 215</td><td title="11/11 21:40">il y a 1 j</td></tr>
+          <tr><td>Patte de Gruche</td><td>Patte</td><td class="n">240</td><td class="n">236</td><td class="n">520</td><td title="11/11 20:12">il y a 1 j</td></tr>
+          <tr><td>Rune Ga Pa</td><td>Rune de forgemagie</td><td class="n">11 200</td><td class="n">10 900</td><td class="n">64</td><td title="11/11 19:58">il y a 1 j</td></tr>
+          <tr><td>Brûlâme encapsulé</td><td>Ressource diverse</td><td class="n">9 400</td><td class="n">9 150</td><td class="n">31</td><td title="11/11 19:20">il y a 1 j</td></tr>
+        </tbody></table>
+        <div class="w-foot"><span>Tri : dernier relevé, le plus récent</span><span>Page 1 sur 11</span></div>
+      </div>
+      <aside class="w-detail">
+        <h2>Salikrone</h2><span class="w-pill">Niveau 200</span> <span class="w-pill">Plante</span>
+        <div class="w-kpis"><div><span>Médian</span><b>612</b></div><div><span>Moyen</span><b>598</b></div><div><span>Vendus</span><b>515</b></div></div>
+        <div class="w-sub"><span>Prix sur 24 h</span><span><span class="w-pill">24 h</span> <span class="w-pill" style="opacity:.5">7 j</span> <span class="w-pill" style="opacity:.5">30 j</span></span></div>
+        <div class="chart" data-series="hdv" data-height="210"></div>
+        <div class="w-sub"><span>Prix par lot, dernier relevé</span></div>
+        <div class="w-kv" style="font-size:15px"><span>×1</span><b>557</b></div>
+        <div class="w-kv" style="font-size:15px"><span>×10</span><b>5 410</b></div>
+        <div class="w-kv" style="font-size:15px"><span>×100</span><b>52 300</b></div>
+      </aside>
+    </div>
+
+</section>
+
+    <section id="pageBrk" class="w-page hidden">
+      <div class="w-head"><h1>Brisage</h1><span>7 objets brisés</span></div>
+      <div class="w-bar"><div class="w-field w-search">Rechercher un objet…</div><div class="w-seg"><span>Dernière heure</span><span>6 heures</span><span class="on">Aujourd'hui</span><span>7 jours</span><span>30 jours</span><span>Tout</span><span>Personnalisé</span></div></div>
+      <div class="w-body">
+        <div class="w-table"><table>
+          <thead><tr><th>Il y a</th><th>Objet</th><th class="n">Quantité</th><th class="n">Coefficient</th><th class="n">Valeur estimée de l'objet</th><th class="n">Valeur HDV de l'objet</th><th class="n">Valeur estimée des runes</th><th class="n sorted">Plus-value</th></tr></thead>
+          <tbody>
+            <tr class="sel"><td title="12/11 00:24">il y a 23 h</td><td>Cape Maj'Hic</td><td class="n">1</td><td class="n">44 %</td><td class="n">19 400</td><td class="n">20 000</td><td class="n w-cost">35 880</td><td class="n up"><b>+15 880</b></td></tr>
+            <tr><td title="10/11 19:30">il y a 2 j</td><td>Cape Maj'Hic</td><td class="n">1</td><td class="n">44 %</td><td class="n">21 000</td><td class="n">21 500</td><td class="n w-cost">35 880</td><td class="n up"><b>+14 380</b></td></tr>
+            <tr><td title="11/11 19:27">il y a 1 j</td><td>Lisseur</td><td class="n">1</td><td class="n">50 %</td><td class="n">850</td><td class="n">900</td><td class="n w-cost">1 800</td><td class="n up"><b>+900</b></td></tr>
+            <tr><td title="12/11 00:22">il y a 23 h</td><td>Sac-Cawotte</td><td class="n">1</td><td class="n">26 %</td><td class="n">1 400</td><td class="n">1 500</td><td class="n w-cost">240</td><td class="n down"><b>-1 260</b></td></tr>
+            <tr><td title="11/11 19:27">il y a 1 j</td><td>Volkorne d'Orchidée</td><td class="n">2</td><td class="n">36 %</td><td class="n">3 400</td><td class="n">3 600</td><td class="n w-cost">2 100</td><td class="n down"><b>-1 500</b></td></tr>
+            <tr><td title="11/11 20:40">il y a 1 j</td><td>Cape Maj'Hic</td><td class="n">1</td><td class="n">41 %</td><td class="n">19 400</td><td class="n">20 000</td><td class="n w-cost">7 100</td><td class="n down"><b>-12 900</b></td></tr>
+            <tr><td title="11/11 00:05">il y a 1 j</td><td>Cape Maj'Hic</td><td class="n">1</td><td class="n">31 %</td><td class="n">19 400</td><td class="n">20 000</td><td class="n w-cost">3 200</td><td class="n down"><b>-16 800</b></td></tr>
+          </tbody></table>
+          <div class="w-foot"><span>Tri : plus-value, la plus haute en premier</span><span>Valeur : prix HDV de chaque rune</span></div>
+        </div>
+        <aside class="w-detail">
+          <h2>Cape Maj'Hic</h2><span class="w-pill">Niveau 200</span> <span class="w-pill">Cape</span>
+          <div class="w-kpis"><div><span>Dernier</span><b>44 %</b></div><div><span>Moyen</span><b>40 %</b></div><div><span>Brisages</span><b>4</b></div></div>
+          <div class="w-sub"><span>Coefficient dans le temps</span></div>
+          <div class="chart" data-series="brk" data-height="210"></div>
+          <div class="w-sub"><span>Runes du dernier brisage</span><span>valeur estimée</span></div>
+          <div class="w-kv" style="font-size:15px"><span>Rune Ga Pa ×3</span><b>33 600</b></div>
+          <div class="w-kv" style="font-size:15px"><span>Rune Ine ×12</span><b>1 200</b></div>
+          <div class="w-kv" style="font-size:15px"><span>Rune Fo ×9</span><b>1 080</b></div>
+          <div class="w-kv" style="font-size:16px; margin-top:10px; border-top:1px solid #2a2e45; padding-top:10px"><span>Valeur estimée du dernier brisage</span><b>35 880 kamas</b></div>
+          <div class="w-kv" style="font-size:15px"><span>Valeur estimée de l'objet</span><b>19 400 kamas</b></div>
+          <div class="w-kv" style="font-size:15px"><span>Valeur HDV de l'objet</span><b>20 000 kamas</b></div>
+          <div class="w-kv up" style="font-size:16px"><span>Plus-value du dernier brisage</span><b>+15 880 kamas</b></div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="pagePet" class="w-page hidden">
+      <div class="w-head"><h1>Familiers</h1><span>Valeurs d'exemple, seuls Boue du Boo (9 pour +1) et Patte de Gruche (1 pour +2) sont réels</span></div>
+      <div class="w-bar"><div class="w-field w-search">Rechercher une ressource…</div><div class="w-seg"><span>Dernière heure</span><span>6 heures</span><span class="on">Aujourd'hui</span><span>7 jours</span><span>30 jours</span><span>Tout</span><span>Personnalisé</span></div></div>
+      <div class="w-body">
+        <div class="w-table"><table>
+          <thead><tr><th>Ressource</th><th>Type</th><th class="n">Prix d'1 ressource</th><th class="n">XP pour 1 ressource</th><th class="n sorted">Kamas par XP</th><th class="n">Observations</th><th>Dernier relevé</th><th class="n">Coût pour monter un familier</th></tr></thead>
+          <tbody>
+            <tr><td>Plume de Gélikan</td><td>Plume</td><td class="n">85</td><td class="n">+7,17</td><td class="n"><span class="w-bar2"><i style="width:100%"></i></span><b class="w-ratio">11,9</b></td><td class="n">6</td><td title="12/11 23:51">il y a 4 min</td><td class="n w-cost">2 129 043</td></tr>
+            <tr><td>Œil de Truchtine</td><td>Œil</td><td class="n">218</td><td class="n">+11,00</td><td class="n"><span class="w-bar2"><i style="width:60%"></i></span><b class="w-ratio">19,8</b></td><td class="n">2</td><td title="11/11 22:05">il y a 1 j</td><td class="n w-cost">3 559 167</td></tr>
+            <tr><td>Brûlâme encapsulé</td><td>Ressource diverse</td><td class="n">9 400</td><td class="n">+120,00</td><td class="n"><span class="w-bar2"><i style="width:15%"></i></span><b class="w-ratio">78,3</b></td><td class="n">1</td><td title="11/11 19:20">il y a 1 j</td><td class="n w-cost">14 067 962</td></tr>
+            <tr><td>Os de Chafer</td><td>Os</td><td class="n">4</td><td class="n">+0,05</td><td class="n"><span class="w-bar2"><i style="width:15%"></i></span><b class="w-ratio">80,0</b></td><td class="n">31</td><td title="12/11 23:50">il y a 5 min</td><td class="n w-cost">14 367 280</td></tr>
+            <tr><td>Boue du Boo</td><td>Liquide</td><td class="n">9</td><td class="n">+0,11</td><td class="n"><span class="w-bar2"><i style="width:14%"></i></span><b class="w-ratio">81,8</b></td><td class="n">14</td><td title="12/11 22:40">il y a 1 h</td><td class="n w-cost">14 693 809</td></tr>
+            <tr class="sel"><td>Patte de Gruche</td><td>Patte</td><td class="n">240</td><td class="n">+2,00</td><td class="n"><span class="w-bar2"><i style="width:10%"></i></span><b class="w-ratio">120,0</b></td><td class="n">3</td><td title="12/11 21:12">il y a 2 h</td><td class="n w-cost">21 550 920</td></tr>
+            <tr><td>Rune Pod</td><td>Rune de forgemagie</td><td class="n">Inconnu</td><td class="n">+0,50</td><td class="n">Inconnu</td><td class="n">2</td><td title="10/11 18:30">il y a 2 j</td><td class="n w-cost">Inconnu</td></tr>
+          </tbody></table>
+          <div class="w-foot"><span>Tri : le moins de kamas par XP en premier</span><span>Coût : kamas par XP multiplié par 179 591 XP. Prix : médian HDV sur 24 h</span></div>
+        </div>
+        <aside class="w-detail">
+          <h2>Patte de Gruche</h2><span class="w-pill">Niveau 122</span> <span class="w-pill">Patte</span>
+          <div class="w-kpis"><div><span>XP pour 1 ressource</span><b>+2</b></div><div><span>Prix d'1 ressource</span><b>240</b></div><div><span>Kamas par XP</span><b>120</b></div></div>
+          <div class="w-kv" style="font-size:15px; margin-top:12px"><span>Coût pour monter un familier</span><b>21 550 920 kamas</b></div>
+          <div class="w-sub"><span>Kamas par XP dans le temps</span></div>
+          <div class="chart" data-series="pet" data-height="210"></div>
+          <div class="w-sub"><span>Améliorations observées</span></div>
+          <div class="w-kv" style="font-size:15px"><span>12/11 21:12</span><b>×1, +2 XP</b></div>
+          <div class="w-kv" style="font-size:15px"><span>11/11 19:00</span><b>×2, +4 XP</b></div>
+          <div class="w-kv" style="font-size:15px"><span>10/11 20:00</span><b>×1, +2 XP</b></div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="pageLogs" class="w-page hidden">
+      <div class="w-head"><h1>Logs</h1><span class="w-live"><span class="w-dot"></span>En direct, 200 dernières lignes</span></div>
+      <div class="w-bar">
+        <div class="w-field w-search">Rechercher un objet…</div>
+        <div class="w-field w-chip on">Tout</div><div class="w-field w-chip">HDV</div><div class="w-field w-chip">Brisage</div><div class="w-field w-chip">Familier</div>
+        <div class="w-seg"><span>Dernière heure</span><span>6 heures</span><span class="on">Aujourd'hui</span><span>7 jours</span><span>30 jours</span><span>Tout</span><span>Personnalisé</span></div>
+        <div class="w-field">Vider</div>
+      </div>
+      <div class="w-table"><table>
+        <thead><tr><th style="width:110px">Heure</th><th style="width:120px">Type</th><th>Objet</th><th>Détail</th><th class="n">Valeur</th></tr></thead>
+        <tbody>
+          <tr><td>18:42:11</td><td><span class="w-tag hdv">HDV</span></td><td>Salikrone</td><td>Lot de 1</td><td class="n">557</td></tr>
+          <tr><td>18:42:09</td><td><span class="w-tag hdv">HDV</span></td><td>Viande Frelatée</td><td>Lot de 100</td><td class="n">1 300</td></tr>
+          <tr><td>18:42:09</td><td><span class="w-tag hdv">HDV</span></td><td>Viande Frelatée</td><td>Médian 24 h</td><td class="n">11</td></tr>
+          <tr><td>00:24:28</td><td><span class="w-tag brk">Brisage</span></td><td>Cape Maj'Hic ×1</td><td>Coefficient 44 %</td><td class="n">24 runes</td></tr>
+          <tr><td>00:22:28</td><td><span class="w-tag brk">Brisage</span></td><td>Sac-Cawotte ×1</td><td>Coefficient 26 %</td><td class="n">2 runes</td></tr>
+          <tr><td>23:51:40</td><td><span class="w-tag pet">Familier</span></td><td>Plume de Gélikan ×6</td><td>Niveau 12</td><td class="n">+43 XP</td></tr>
+          <tr><td>23:50:02</td><td><span class="w-tag pet">Familier</span></td><td>Os de Chafer ×100</td><td>Niveau 12</td><td class="n">+5 XP</td></tr>
+          <tr><td>18:17:30</td><td><span class="w-tag hdv">HDV</span></td><td>Œil de Feutôme</td><td>Lot de 1</td><td class="n">4 375</td></tr>
+        </tbody></table></div>
+    </section>
+
+    <section id="pageSettings" class="w-page hidden">
+      <div class="w-head"><h1>Réglages</h1></div>
+      <div class="w-cards">
+        <div class="w-card"><h3>Serveur de jeu</h3><p>Le trafic ne permet pas de deviner ton serveur. La capture redémarre avec ce choix.</p>
+          <div class="w-field">Brial ▾</div></div>
+        <div class="w-card"><h3>Base de données</h3><p>Toutes tes données restent sur ton ordinateur.</p>
+          <div class="w-path">C:\Users\toi\AppData\Roaming\OpenDofusData\prices.db</div><div class="w-field w-act">Changer l'emplacement</div></div>
+        <div class="w-card"><h3>Noms d'objets</h3><p>Noms, niveaux et types téléchargés depuis DofusDB. Une seule fois, environ 2 minutes.</p>
+          <div class="w-kv"><span>Objets connus</span><b>21 622</b></div><div class="w-kv"><span>Dernier téléchargement</span><b>12/11 17:50</b></div>
+          <div class="w-field w-act">Télécharger les noms</div></div>
+        <div class="w-card"><h3>Prix utilisé pour les estimations</h3><p>Prix d'une ressource (familiers) ou d'une rune (brisage).</p><div class="w-field">Dernier prix HDV ▾</div></div>
+        <div class="w-card"><h3>Mises à jour</h3><p>Jamais automatiques : tu choisis quand installer.</p>
+          <div class="w-kv"><span>Version installée</span><b>1.1.0</b></div>
+          <div class="w-update"><span class="w-dot"></span>La version 1.2.0 est disponible</div>
+          <div class="w-btn w-act">Mettre à jour et relancer</div></div>
+        <div class="w-card"><h3>À propos</h3>
+          <div class="w-kv"><span>Données collectées</span><b>Prix HDV, brisage, familiers</b></div>
+          <div class="w-kv"><span>Envoi à un serveur</span><b>Aucun pour l'instant</b></div>
+          <div class="w-kv"><span>Licence</span><b>Tous droits réservés</b></div></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+
+  // Données d'exemple: prix HDV réels de la capture (Salikrone), le reste est fictif; heures d'exemple.
+  const SERIES = {
+    hdv: { unit: 'kamas', step: 50, detail: n => n + ' objets vendus', points: [[612,55,'11/11 19:05'],[616,56,'11/11 20:10'],[629,36,'11/11 21:25'],
+      [647,40,'11/11 22:35'],[592,40,'11/11 23:30'],[627,36,'12/11 00:40'],[581,11,'12/11 01:50'],[579,30,'12/11 02:40'],[584,15,'12/11 03:30'],
+      [500,3,'12/11 07:20'],[595,1,'12/11 09:00'],[595,1,'12/11 09:40'],[644,13,'12/11 10:50'],[812,3,'12/11 12:10'],[617,24,'12/11 13:20'],
+      [513,30,'12/11 14:50'],[677,22,'12/11 15:55'],[536,53,'12/11 17:30'],[557,46,'12/11 18:42']] },
+    brk: { unit: '%', step: 5, detail: n => n + ' runes obtenues', points: [[44,24,'10/11 19:30'],[31,8,'11/11 00:05'],[41,19,'11/11 20:40'],[44,24,'12/11 00:24']] },
+    pet: { unit: 'kamas par XP', step: 5, detail: n => 'Prix : ' + n + ' kamas l\'unité', points: [[127,254,'10/11 20:00'],[124,248,'11/11 19:00'],[120,240,'12/11 21:12']] }
+  };
+  function minutes(label) { const [d, h] = label.split(' '); const [hh, mm] = h.split(':').map(Number); return Number(d.split('/')[0]) * 1440 + hh * 60 + mm; }
+  function dateLabel(m) { return String(Math.floor(m / 1440)).padStart(2, '0') + '/11'; }
+  function drawChart(host) {
+    const series = SERIES[host.dataset.series], points = series.points;
+    const width = host.clientWidth || 320, height = +host.dataset.height, left = 52, right = 14, top = 14, bottom = 28;
+    const values = points.map(p => p[0]); let low = Math.floor(Math.min(...values) / series.step) * series.step, high = Math.ceil(Math.max(...values) / series.step) * series.step;
+    if (low === high) high += series.step;
+    const t0 = minutes(points[0][2]) - 30, t1 = minutes(points[points.length - 1][2]) + 30, span = t1 - t0, stepMinutes = span > 2880 ? 1440 : 240;
+    const x = m => left + (m - t0) / span * (width - left - right), y = v => top + (high - v) / (high - low) * (height - top - bottom);
+    let svg = '<svg width="' + width + '" height="' + height + '">';
+    for (let i = 0; i <= 4; i++) { const v = low + (high - low) * i / 4, py = y(v);
+      svg += '<line x1="' + left + '" x2="' + (width - right) + '" y1="' + py + '" y2="' + py + '" stroke="#2a2e45"/><text x="' + (left - 8) + '" y="' + (py + 4) + '" text-anchor="end" fill="#7b80a3" font-size="11">' + (Number.isInteger(series.step) ? Math.round(v) : v.toFixed(2)) + '</text>'; }
+    for (let m = Math.ceil(t0 / stepMinutes) * stepMinutes; m <= t1; m += stepMinutes) { const px = x(m), hh = Math.floor(m / 60) % 24;
+      const label = (stepMinutes === 1440 || hh === 0) ? dateLabel(m) : String(hh).padStart(2, '0') + ':00';
+      svg += '<line x1="' + px + '" x2="' + px + '" y1="' + top + '" y2="' + (height - bottom) + '" stroke="#1f2338"/><text x="' + px + '" y="' + (height - 8) + '" text-anchor="middle" fill="#7b80a3" font-size="11">' + label + '</text>'; }
+    const line = points.map(p => x(minutes(p[2])) + ',' + y(p[0])).join(' ');
+    svg += '<polygon points="' + line + ' ' + x(minutes(points[points.length - 1][2])) + ',' + (height - bottom) + ' ' + x(minutes(points[0][2])) + ',' + (height - bottom) + '" fill="rgba(143,209,63,.12)"/>';
+    svg += '<polyline points="' + line + '" fill="none" stroke="#8fd13f" stroke-width="2"/>';
+    points.forEach(p => { svg += '<circle cx="' + x(minutes(p[2])) + '" cy="' + y(p[0]) + '" r="3.5" fill="#8fd13f"/>'; });
+    host.innerHTML = svg + '</svg><div class="tip hidden"></div>';
+    const tip = host.querySelector('.tip');
+    host.onmousemove = e => { const mx = e.clientX - host.getBoundingClientRect().left;
+      const best = points.reduce((a, p) => Math.abs(x(minutes(p[2])) - mx) < Math.abs(x(minutes(a[2])) - mx) ? p : a);
+      tip.classList.remove('hidden'); tip.style.left = x(minutes(best[2])) + 'px'; tip.style.top = y(best[0]) + 'px';
+      tip.innerHTML = '<span>' + best[2] + '</span><b>' + best[0].toLocaleString('fr-FR') + ' ' + series.unit + '</b><span>' + series.detail(best[1]) + '</span>'; };
+    host.onmouseleave = () => tip.classList.add('hidden');
+  }
+  function drawAll() { document.querySelectorAll('.chart').forEach(h => { if (h.offsetParent !== null) drawChart(h); }); }
+
+  document.querySelectorAll('.w-nav a').forEach(link => link.addEventListener('click', () => {
+    document.querySelectorAll('.w-nav a').forEach(other => other.classList.toggle('on', other === link));
+    ['Hdv', 'Brk', 'Pet', 'Logs', 'Settings'].forEach(name => document.getElementById('page' + name).classList.toggle('hidden', name !== link.dataset.page));
+    drawAll();
+  }));
+  document.querySelectorAll('.w-chip').forEach(chip => chip.addEventListener('click', () => {
+    document.querySelectorAll('.w-chip').forEach(other => other.classList.toggle('on', other === chip));
+  }));
+
+  document.querySelectorAll('.w-seg').forEach(group => group.addEventListener('click', event => {
+    if (event.target.tagName !== 'SPAN') return;
+    group.querySelectorAll('span').forEach(option => option.classList.toggle('on', option === event.target));
+  }));
+  window.addEventListener('resize', drawAll); window.addEventListener('load', drawAll);
+  function show(which) {
+    document.getElementById('viewA').classList.toggle('hidden', which !== 'A');
+    document.getElementById('viewB').classList.toggle('hidden', which !== 'B');
+    document.getElementById('btnA').classList.toggle('on', which === 'A');
+    document.getElementById('btnB').classList.toggle('on', which === 'B');
+  }
+</script>
+</body></html>

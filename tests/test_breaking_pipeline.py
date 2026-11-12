@@ -20,7 +20,7 @@ from tests.test_breaking import (
     AGE, EBONY_STACK, FIFTY_THREE, GA_PA, INE, ORCHID_STACK, VOLKORNE_EBONY, VOLKORNE_ORCHID,
     break_request, broken, outcome,
 )
-from tests.test_recycling import added
+from tests.window_messages import added
 
 MOMENT = datetime(2026, 11, 11, 19, 27, 56, tzinfo=timezone.utc)
 CLIENT_KEY = (FLOW_KEY[2], FLOW_KEY[3], FLOW_KEY[0], FLOW_KEY[1])

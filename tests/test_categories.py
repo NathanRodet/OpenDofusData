@@ -47,7 +47,7 @@ def test_set_enabled_round_trips_through_config() -> None:
 
 def test_every_category_has_a_decoder_now() -> None:
     assert all(category.available for category in CATEGORIES)
-    assert [category.key for category in CATEGORIES] == ["hdv", "recycling", "breaking", "pets"]
+    assert [category.key for category in CATEGORIES] == ["hdv", "breaking", "pets"]
 
 
 def test_filtering_writer_drops_records_when_hdv_disabled() -> None:

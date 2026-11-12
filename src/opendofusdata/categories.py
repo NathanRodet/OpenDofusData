@@ -6,14 +6,13 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
 from opendofusdata.records import (
-    BrokenItem, LotPrice, MarketStats, PetFeeding, Record, RecyclingEvent,
+    BrokenItem, LotPrice, MarketStats, PetFeeding, Record,
 )
 
 logger = logging.getLogger(__name__)
 from opendofusdata.session_counters import RecordSink
 
 CATEGORY_HDV = "hdv"
-CATEGORY_RECYCLING = "recycling"
 CATEGORY_BREAKING = "breaking"
 CATEGORY_PETS = "pets"
 ENABLED_KEY = "enabled_categories"
@@ -30,7 +29,6 @@ class DataCategory:
 
 CATEGORIES = (
     DataCategory(CATEGORY_HDV, "HDV", True),
-    DataCategory(CATEGORY_RECYCLING, "Recyclage des ressources (bêta)", True),
     DataCategory(CATEGORY_BREAKING, "Brisage (bêta)", True),
     DataCategory(CATEGORY_PETS, "Expérience des pets (bêta)", True),
 )
@@ -80,7 +78,6 @@ def config_with_categories(config: Mapping[str, object], settings: CategorySetti
 CATEGORY_BY_TYPE: dict[type, str] = {
     LotPrice: CATEGORY_HDV,
     MarketStats: CATEGORY_HDV,
-    RecyclingEvent: CATEGORY_RECYCLING,
     PetFeeding: CATEGORY_PETS,
     BrokenItem: CATEGORY_BREAKING,
 }

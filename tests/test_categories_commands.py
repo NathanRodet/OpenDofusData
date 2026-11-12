@@ -20,7 +20,7 @@ def saved_config() -> dict[str, object]:
 def test_listing_shows_the_four_categories_and_their_state(capsys) -> None:
     assert run() == EXIT_OK
     output = capsys.readouterr().out
-    for label in ("HDV", "Recyclage des ressources", "Brisage", "Expérience des pets"):
+    for label in ("HDV", "Brisage", "Expérience des pets"):
         assert label in output
     assert "activée" in output
     assert "désactivée" in output

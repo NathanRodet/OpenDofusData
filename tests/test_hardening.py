@@ -13,7 +13,7 @@ from tests.envelopes import bytes_field, int_field
 from tests.test_pets import (
     BONE, BONE_STACK, MOMENT, SERVER, feed, inventory, pet_entry, stack_entry, updated,
 )
-from tests.test_recycling import added, updated as window_updated
+from tests.window_messages import added, updated as window_updated
 
 EMPTY_STATE = PetState(None, None, None, None)
 

@@ -18,7 +18,7 @@ POINT_ITEM_FIELD = 2
 POINT_TIMESTAMP_FIELD = 3
 POINT_QUANTITY_FIELD = 4
 
-# Recycling (see docs/protocol-notes.md, structure seen in two captures of 2026-11-11).
+# Item window shared with breaking (see docs/protocol-notes.md); the recycling result only empties it.
 RECYCLING_ADD_TYPE = "kch"  # server -> client: an item was added to the window
 RECYCLING_UPDATE_TYPE = "kdr"  # server -> client: same shape, the new TOTAL quantity of an entry
 RECYCLING_ADD_ENTRY_FIELD = 3
@@ -27,9 +27,7 @@ RECYCLING_QUANTITY_FIELD = 3
 RECYCLING_ITEM_FIELD = 4  # DofusDB item id
 RECYCLING_INSTANCE_FIELD = 5  # the stack the item comes from
 RECYCLING_CLEAR_TYPE = "kiq"  # client -> server: the window is closed (it forgets its items)
-RECYCLING_REQUEST_TYPE = "kba"  # client -> server: the player clicked Recycler
 RECYCLING_RESULT_TYPE = "kdd"  # server -> client: the result
-RECYCLING_NUGGETS_FIELD = 3  # nuggets obtained; absent when the result is 0
 
 # Pets (see docs/protocol-notes.md, captures of 2026-11-11). Objects are identified by an
 # instance id that changes with each connection; the inventory maps it to the DofusDB item id.
