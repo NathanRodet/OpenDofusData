@@ -9,15 +9,13 @@ from opendofusdata.capture_session import CaptureStatus
 from opendofusdata.run_pipeline import utc_now
 from opendofusdata.ui_theme import (
     ACCENT_COLOR, APPEARANCE_MODE, BUTTON_HEIGHT, COLOR_THEME, COMPACT_BREAKPOINT, CORNER_RADIUS, DEFAULT_HEIGHT,
-    DEFAULT_WIDTH, DOT_SIZE, ERROR_COLOR, MENU_BUTTON_WIDTH, MENU_TITLE_SIZE, MIN_HEIGHT, MIN_WIDTH, MUTED_COLOR,
-    OFF_COLOR, PADDING, SELECTED_COLOR, SIDEBAR_COLOR, SIDEBAR_WIDTH, SMALL_PADDING, SUCCESS_COLOR, TEXT_COLOR,
-    TINY_PADDING, TRANSPARENT, WINDOW_COLOR,
+    DEFAULT_WIDTH, MENU_BUTTON_WIDTH, MENU_TITLE_SIZE, MIN_HEIGHT, MIN_WIDTH, PADDING, SELECTED_COLOR,
+    SIDEBAR_COLOR, SIDEBAR_WIDTH, SMALL_PADDING, TEXT_COLOR, TRANSPARENT, WINDOW_COLOR,
 )
 from opendofusdata.ui_widgets import Page, make_button, make_label
 from opendofusdata.window_context import WindowContext
-from opendofusdata.window_format import (
-    button_enabled, button_label, error_detail_text, headline_text, status_rows,
-)
+from opendofusdata.window_format import button_enabled, button_label
+from opendofusdata.window_status import StatusBlock
 from opendofusdata.window_pages import PAGE_NAMES, SETTINGS_PAGE, build_pages
 
 logger = logging.getLogger(__name__)
@@ -28,13 +26,6 @@ UPDATE_BADGE = "  ●"  # the notification sign shown after the menu entry when 
 SCREEN_MARGIN = 80
 MENU_SIDE = "side"
 MENU_TOP = "top"
-DOT = "●"
-STATUS_COLORS = {
-    CaptureStatus.RUNNING: SUCCESS_COLOR,
-    CaptureStatus.STOPPING: OFF_COLOR,
-    CaptureStatus.STOPPED: OFF_COLOR,
-    CaptureStatus.ERROR: ERROR_COLOR,
-}
 __all__ = ["CaptureWindow", "PAGE_NAMES"]
 
 
@@ -73,8 +64,7 @@ class CaptureWindow:
         self.title_label = make_label(self.menu, APP_NAME, MENU_TITLE_SIZE, bold=True)
         for name in PAGE_NAMES:
             self.menu_buttons[name] = self._menu_button(name)
-        self.status_frame = customtkinter.CTkFrame(self.menu, fg_color=TRANSPARENT)
-        self._build_status()
+        self.status_frame = StatusBlock(self.menu)
         self.toggle_button = make_button(self.menu, "", self._toggle_capture, MENU_BUTTON_WIDTH)
 
     def _menu_button(self, name: str) -> customtkinter.CTkButton:
@@ -82,24 +72,6 @@ class CaptureWindow:
             self.menu, text=name, anchor="w", width=MENU_BUTTON_WIDTH, height=BUTTON_HEIGHT,
             corner_radius=CORNER_RADIUS, fg_color=TRANSPARENT, text_color=TEXT_COLOR,
             hover_color=SELECTED_COLOR, command=lambda: self.show_page(name))
-
-    def _build_status(self) -> None:
-        head = customtkinter.CTkFrame(self.status_frame, fg_color=TRANSPARENT)
-        head.pack(fill="x")
-        self.dot_label = make_label(head, DOT, DOT_SIZE // 2)
-        self.dot_label.pack(side="left")
-        self.status_label = make_label(head, "", bold=True)
-        self.status_label.pack(side="left", padx=SMALL_PADDING)
-        self.error_label = make_label(self.status_frame, "", color=ERROR_COLOR, anchor="w", justify="left",
-                                      wraplength=SIDEBAR_WIDTH - 2 * PADDING)
-        self.error_label.pack(fill="x")
-        self.status_values: dict[str, customtkinter.CTkLabel] = {}
-        for caption in ("Serveur", "Prix", "Brisages", "Familiers", "Dernier relevé"):
-            row = customtkinter.CTkFrame(self.status_frame, fg_color=TRANSPARENT)
-            row.pack(fill="x", pady=TINY_PADDING)
-            make_label(row, caption, color=MUTED_COLOR).pack(side="left")
-            self.status_values[caption] = make_label(row, "")
-            self.status_values[caption].pack(side="right")
 
     def relayout(self, width: int) -> None:
         """Menu on the left, or as a top bar when the window is narrower than COMPACT_BREAKPOINT."""
@@ -165,11 +137,7 @@ class CaptureWindow:
         snapshot = self._context.session.snapshot()
         self.toggle_button.configure(text=button_label(snapshot),
                                     state="normal" if button_enabled(snapshot) else "disabled")
-        self.dot_label.configure(text_color=STATUS_COLORS[snapshot.status])
-        self.status_label.configure(text=headline_text(snapshot))
-        self.error_label.configure(text=error_detail_text(snapshot))
-        for caption, value in status_rows(snapshot, utc_now()):
-            self.status_values[caption].configure(text=value)
+        self.status_frame.render(snapshot, utc_now())
         self.pages[self.current_page].render(snapshot)
         self._update_badge()
         if self._context.updates.take_restart_request():

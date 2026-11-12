@@ -46,8 +46,8 @@ def test_status_block_shows_server_counters_and_last_record(root, tmp_path) -> N
     window, session = build(root, tmp_path)
     window.start()
     window.render()
-    assert window.status_label.cget("text") == "Capture active"
-    values = {caption: label.cget("text") for caption, label in window.status_values.items()}
+    assert window.status_frame.status_label.cget("text") == "Capture active"
+    values = {caption: label.cget("text") for caption, label in window.status_frame.values.items()}
     assert values["Serveur"] == "Brial"
     assert (values["Prix"], values["Brisages"], values["Familiers"]) == ("0", "0", "0")
     assert window.toggle_button.cget("text") == "Arrêter"
@@ -112,4 +112,4 @@ def test_every_page_renders_while_the_session_is_in_error(root, tmp_path) -> Non
     for name in PAGE_NAMES:
         window.show_page(name)
     assert session.snapshot().status is CaptureStatus.ERROR
-    assert "disk full" in window.error_label.cget("text")
+    assert "disk full" in window.status_frame.error_label.cget("text")

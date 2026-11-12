@@ -63,6 +63,14 @@ class SettingsPage:
         self.message_label.pack(fill="x", padx=PADDING)
         self._body = customtkinter.CTkScrollableFrame(self.frame, fg_color=TRANSPARENT)
         self._body.pack(fill="both", expand=True, padx=PADDING, pady=PADDING)
+        self._build_cards(refresh, open_page)
+        self._cards = self._body.pack_slaves()
+        self._columns = 0
+        self.frame.bind("<Configure>", lambda event: self.reflow(event.width))
+        self.reflow(CARD_MIN_WIDTH)
+
+    def _build_cards(self, refresh: Refresh, open_page: Callable[[str], None]) -> None:
+        context = self._context
         self.server_menu = self._add_server_row(self._body)
         self.database_label = self._add_database_card(self._body)
         self.names_card = NamesCard(self._body, context, refresh)
@@ -70,10 +78,6 @@ class SettingsPage:
         self.update_switch = self._add_update_row(self._body)
         self.updates_card = UpdatesCard(self._body, context, open_page)
         self.about_card = AboutCard(self._body, open_page)
-        self._cards = self._body.pack_slaves()
-        self._columns = 0
-        self.frame.bind("<Configure>", lambda event: self.reflow(event.width))
-        self.reflow(CARD_MIN_WIDTH)
 
     def reflow(self, width: int) -> None:
         """Lay the cards out in as many columns of at least CARD_MIN_WIDTH as fit."""
