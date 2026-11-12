@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from datetime import datetime, time, timedelta, timezone, tzinfo
 
-from opendofusdata.timeutil import parse_server_timestamp
+from opendofusdata.timeutil import format_utc, parse_server_timestamp
 
 PERIOD_LAST_HOUR = "Dernière heure"
 PERIOD_SIX_HOURS = "6 heures"
@@ -72,3 +72,13 @@ def local_text(moment: datetime, local_zone: tzinfo | None = None) -> str:
 def parse_stored(text: str) -> datetime:
     """Parse a stored UTC timestamp into an aware datetime."""
     return parse_server_timestamp(text)
+
+
+STORED_MINIMUM = ""
+STORED_MAXIMUM = "9999-12-31T23:59:59Z"
+
+
+def stored_bounds(window: Window) -> tuple[str, str]:
+    """The window as stored-timestamp text bounds, usable in a SQL BETWEEN."""
+    start, end = window
+    return (format_utc(start) if start else STORED_MINIMUM, format_utc(end) if end else STORED_MAXIMUM)

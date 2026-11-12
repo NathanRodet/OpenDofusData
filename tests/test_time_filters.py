@@ -62,3 +62,12 @@ def test_local_text_and_parse_stored() -> None:
     moment = parse_stored("2026-11-12T17:42:09Z")
     assert moment == datetime(2026, 11, 12, 17, 42, 9, tzinfo=UTC)
     assert local_text(moment, timezone(timedelta(hours=1))) == "12/11 18:42"
+
+
+def test_stored_bounds_are_sortable_text() -> None:
+    from opendofusdata.time_filters import stored_bounds
+
+    start = datetime(2026, 11, 12, 9, 5, tzinfo=UTC)
+    assert stored_bounds((start, None))[0] == "2026-11-12T09:05:00Z"
+    low, high = stored_bounds((None, None))
+    assert low < "2026-11-12T09:05:00Z" < high
