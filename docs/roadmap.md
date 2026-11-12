@@ -32,7 +32,7 @@ Les quatre catégories sont décodées: HDV (validée en jeu), et en **bêta, d�
 - Recyclage: confirmer qu'un recyclage de plusieurs objets différents est complet.
 - Brisage: concasser plusieurs exemplaires d'un même équipement (quantité > 1) et des objets de niveaux variés.
 - Familiers: lancer l'outil avant la connexion, faire plusieurs améliorations (dont une montée de niveau) et comparer l'état avant et après.
-- Recyclage: le coefficient attendu est calculé à partir de `recyclingNuggets` (DofusDB), affiché « att. 0,07 » dans les Logs et comparé au résultat réel par la vue `recycling_yields` de la base. Le facteur 0,6 est la part fixe du joueur (60 % joueur, 40 % prisme depuis la mise à jour 3.3), il ne dépend pas du personnage. Reste à estimer les rendements réels (Pépites obtenues / attendues) sur de nombreux recyclages. Brisage (coefficients) et familiers (expérience par ressource) se déduisent des enregistrements cumulés.
+- Recyclage: le coefficient attendu est calculé à partir de `recyclingNuggets` (DofusDB), affiché « att. 0,07 » dans les Logs et comparé au résultat réel par la vue `recycling_yields` de la base. Le facteur 0,6 est la part fixe du joueur (60 % joueur, 40 % prisme depuis la mise à jour 3.3), il ne dépend pas du personnage. Le résultat est l'arrondi de la somme des coefficients (déterministe): un écart entre « att. » et le résultat signalerait un changement de règle du jeu. Brisage (coefficients) et familiers (expérience par ressource) se déduisent des enregistrements cumulés.
 
 Le guide pour capturer de nouveaux cas: [docs/new-categories.md](new-categories.md).
 
