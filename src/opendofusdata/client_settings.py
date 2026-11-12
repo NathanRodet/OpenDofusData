@@ -5,10 +5,12 @@ from collections.abc import Mapping
 
 from opendofusdata.app_config import default_config_path
 from opendofusdata.game_servers import DEFAULT_SERVERS_PATH, available_servers
+from opendofusdata.price_rules import PRICE_LAST, PRICE_MODES
 from opendofusdata.server_choice import SERVER_KEY
 
 DATABASE_KEY = "database_path"
 UPDATE_CHECK_KEY = "check_updates"
+PRICE_MODE_KEY = "price_mode"
 DEFAULT_DATABASE = "prices.db"
 
 
@@ -55,3 +57,14 @@ def config_with_update_check(config: Mapping[str, object], enabled: bool) -> dic
 def server_names() -> list[str]:
     """Names of the selectable game servers, sorted without regard to case."""
     return sorted((server.name for server in available_servers(DEFAULT_SERVERS_PATH)), key=str.casefold)
+
+
+def price_mode_from_config(config: Mapping[str, object]) -> str:
+    """The saved price mode; a missing or unknown value gives the last HDV price."""
+    saved = config.get(PRICE_MODE_KEY)
+    return saved if isinstance(saved, str) and saved in PRICE_MODES else PRICE_LAST
+
+
+def config_with_price_mode(config: Mapping[str, object], mode: str) -> dict[str, object]:
+    """Copy of the config with the price mode set."""
+    return {**config, PRICE_MODE_KEY: mode}

@@ -3,7 +3,7 @@
 import sys
 
 from opendofusdata.client_settings import (
-    DATABASE_KEY, DEFAULT_DATABASE, UPDATE_CHECK_KEY, choose_database_path, config_with_database,
+    DATABASE_KEY, PRICE_MODE_KEY, config_with_price_mode, price_mode_from_config, DEFAULT_DATABASE, UPDATE_CHECK_KEY, choose_database_path, config_with_database,
     config_with_server, config_with_update_check, database_from_config, default_database_path,
     server_names, update_check_enabled,
 )
@@ -67,3 +67,9 @@ def test_the_default_database_is_used_when_nothing_else_is_set() -> None:
     assert choose_database_path(None, {}, "C:/data/prices.db") == "C:/data/prices.db"
     assert choose_database_path("cli.db", {}, "C:/data/prices.db") == "cli.db"
     assert choose_database_path(None, {DATABASE_KEY: "saved.db"}, "C:/data/prices.db") == "saved.db"
+
+
+def test_price_mode_defaults_to_last_and_ignores_garbage() -> None:
+    for config in ({}, {PRICE_MODE_KEY: "nonsense"}, {PRICE_MODE_KEY: 3}):
+        assert price_mode_from_config(config) == "last"
+    assert price_mode_from_config(config_with_price_mode({SERVER_KEY: "Brial"}, "median")) == "median"
