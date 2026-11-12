@@ -17,8 +17,10 @@ from opendofusdata.records import RecyclingEvent
 logger = logging.getLogger(__name__)
 
 NO_NUGGETS = 0
-# The "Personnage" column of the game: yield shown = quantity x DofusDB recyclingNuggets x this factor
-# (0.6 on every capture of 2026-11-11; whether it depends on the character is not known).
+# The "Personnage" column of the game: yield shown = quantity x DofusDB recyclingNuggets x this factor.
+# It is the player's share of the recycling: since update 3.3 (2025-09-22) recycling is done at one neutral
+# prism of the temple of the alliances, with a fixed rate of 60 % for the player and 40 % for the prism
+# (source: dofuspourlesnoobs.com/mise-a-jour-303.html); it does not depend on the character.
 PERSONAL_FACTOR = 0.6
 
 
