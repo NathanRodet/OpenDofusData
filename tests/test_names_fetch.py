@@ -62,10 +62,10 @@ def test_download_writes_sorted_csv_with_header(tmp_path: Path) -> None:
     output = tmp_path / "data" / "items.csv"
     summary = run_download(output, FakeApi())
     rows = read_rows(output)
-    assert rows[0] == ["id", "name_fr", "level", "type_fr"]
-    assert rows[1:] == [["5", "English only", "3", "Amulette"], ["7", "Faux nom", "4", ""],
-                        ["307", "Ailes de Moskito", "1", "Amulette"],
-                        ["376", "Aile du Tofu Maléfique", "20", "Arc"]]
+    assert rows[0] == ["id", "name_fr", "level", "type_fr", "recycling_nuggets"]
+    assert rows[1:] == [["5", "English only", "3", "Amulette", ""], ["7", "Faux nom", "4", "", ""],
+                        ["307", "Ailes de Moskito", "1", "Amulette", ""],
+                        ["376", "Aile du Tofu Maléfique", "20", "Arc", ""]]
     assert (summary.rows, summary.skipped, summary.path) == (4, 1, output)
     assert summary.size_bytes == output.stat().st_size
 

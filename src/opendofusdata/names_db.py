@@ -7,7 +7,9 @@ from dataclasses import dataclass
 from opendofusdata.game_servers import GameServer
 from opendofusdata.item_names import ItemEntry
 
-INSERT_ITEM_SQL = "INSERT INTO items (item_id, name_fr, level, type_fr) VALUES (?, ?, ?, ?)"
+INSERT_ITEM_SQL = ("INSERT INTO items (item_id, name_fr, level, type_fr, recycling_nuggets) "
+                   "VALUES (?, ?, ?, ?, ?)")
+RATE_COLUMN = "recycling_nuggets"
 INSERT_SERVER_SQL = ("INSERT INTO servers (server_id, name_fr, game_type_id, game_type_fr, "
                      "community_id) VALUES (?, ?, ?, ?, ?)")
 
@@ -38,13 +40,20 @@ def _replace_servers(connection: sqlite3.Connection, servers: Iterable[GameServe
 def replace_items(connection: sqlite3.Connection, entries: Iterable[ItemEntry],
                   servers: Iterable[GameServer] | None = None) -> int:
     """Replace items (and servers, when given) in one transaction; roll back on any error."""
-    rows = ((entry.item_id, entry.name, entry.level, entry.type_name) for entry in entries)
+    rows = ((entry.item_id, entry.name, entry.level, entry.type_name, entry.recycling_nuggets) for entry in entries)
     with connection:
         connection.execute("DELETE FROM items")
         connection.executemany(INSERT_ITEM_SQL, rows)
         if servers is not None:
             _replace_servers(connection, servers)
         return connection.execute("SELECT COUNT(*) FROM items").fetchone()[0]
+
+
+def ensure_rate_column(connection: sqlite3.Connection) -> None:
+    """Add the recycling-rate column to an items table created before it existed."""
+    columns = {row[1] for row in connection.execute("PRAGMA table_info(items)")}
+    if columns and RATE_COLUMN not in columns:
+        connection.execute(f"ALTER TABLE items ADD COLUMN {RATE_COLUMN} REAL")
 
 
 def count_servers(connection: sqlite3.Connection) -> int:

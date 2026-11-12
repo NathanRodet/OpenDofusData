@@ -1,5 +1,6 @@
 """Turns raw DofusDB items into sanitised index entries and writes the CSV: no network."""
 
+import math
 import csv
 import os
 import tempfile
@@ -60,6 +61,13 @@ def _level_of(raw: dict) -> int | None:
     return level if isinstance(level, int) and not isinstance(level, bool) else None
 
 
+def _recycling_rate_of(raw: dict) -> float | None:
+    """The recyclingNuggets of an item when it is a finite, non-negative number."""
+    rate = raw.get("recyclingNuggets")
+    valid = isinstance(rate, (int, float)) and not isinstance(rate, bool) and math.isfinite(rate) and rate >= 0
+    return float(rate) if valid else None
+
+
 def _type_name_of(raw: dict, type_names: dict[int, str]) -> str:
     type_id = raw.get("typeId")
     return type_names.get(type_id, "") if isinstance(type_id, int) else ""
@@ -78,7 +86,7 @@ def build_entries(raw_items: list[object], type_names: dict[int, str]) -> BuildR
             skipped += 1
         else:
             entries[identifier] = ItemEntry(identifier, name, _level_of(raw),
-                                            _type_name_of(raw, type_names))
+                                            _type_name_of(raw, type_names), _recycling_rate_of(raw))
     return BuildResult([entries[key] for key in sorted(entries)], skipped, duplicates)
 
 
@@ -115,6 +123,6 @@ def write_csv_atomically(header: Sequence[str], rows: Iterable[Sequence[object]]
 
 def write_items_csv(entries: list[ItemEntry], path: Path) -> None:
     """Write the item index CSV atomically."""
-    rows = [(entry.item_id, entry.name, "" if entry.level is None else entry.level,
-             entry.type_name) for entry in entries]
+    rows = [(entry.item_id, entry.name, "" if entry.level is None else entry.level, entry.type_name,
+             "" if entry.recycling_nuggets is None else repr(entry.recycling_nuggets)) for entry in entries]
     write_csv_atomically(ITEMS_CSV_HEADER, rows, path)

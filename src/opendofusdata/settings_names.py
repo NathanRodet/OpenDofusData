@@ -7,7 +7,7 @@ from pathlib import Path
 import customtkinter
 
 from opendofusdata.background import BackgroundTask, TaskState
-from opendofusdata.item_labels import item_labeler_for_database
+from opendofusdata.item_labels import item_labeler_for_database, rates_for_database
 from opendofusdata.names_fetch import NamesFetchError, TransientFetchError
 from opendofusdata.names_refresh import RefreshResult, loaded_item_count
 from opendofusdata.ui_theme import ERROR_COLOR, MUTED_COLOR, PADDING, TINY_PADDING, WRAP_LENGTH
@@ -49,6 +49,7 @@ class NamesCard:
         result = self._refresh(self._context.session.database_path, self._context.data_directory)
         self._count = result.items
         self._context.name_of = item_labeler_for_database(self._context.session.database_path)
+        self._context.nuggets_of = rates_for_database(self._context.session.database_path)
         return DONE_TEXT.format(items=result.items, servers=result.servers)
 
     def _status_text(self) -> tuple[str, str]:

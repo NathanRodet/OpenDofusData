@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from opendofusdata.categories import CATEGORY_HDV, CATEGORY_LABELS
+from opendofusdata.recycling import expected_nuggets
 from opendofusdata.records import (
     MARKET_PERIODS, BrokenItem, LotPrice, PetFeeding, PetState, Record, RecyclingEvent,
 )
@@ -20,6 +21,8 @@ HDV_LABEL = CATEGORY_LABELS[CATEGORY_HDV]
 RECYCLING_LABEL = "Recyclage"
 PET_LABEL = "Familier"
 NOTICE_DETAIL = "ignorée"
+EXPECTED_FORMAT = "att. {value}"
+RateLookup = Callable[[int], float | None]
 NOTICE_VALUE = "reconnecte"
 BREAKING_LABEL = "Brisage"
 PERCENT = 100
@@ -104,7 +107,15 @@ def entry_from_record(record: Record, moment: datetime) -> LogEntry:
     return LogEntry(moment, HDV_LABEL, record.item_id, detail, format_number(record.median))
 
 
-def format_log_row(entry: LogEntry, name_of: NameLookup) -> tuple[str, str, str, str, str]:
+def _detail_of(entry: LogEntry, rate_of: RateLookup | None) -> str:
+    """The detail cell; a recycling shows the yield the game announced when every rate is known."""
+    if entry.category != RECYCLING_LABEL or rate_of is None:
+        return entry.detail
+    expected = expected_nuggets(entry.items, rate_of)
+    return entry.detail if expected is None else EXPECTED_FORMAT.format(value=f"{expected:.2f}".replace(".", ","))
+
+
+def format_log_row(entry: LogEntry, name_of: NameLookup, rate_of: RateLookup | None = None) -> tuple[str, str, str, str, str]:
     """The five displayed cells: time (local), type, item name, detail, value."""
     shown_time = entry.moment.astimezone().strftime(TIME_FORMAT)
     if entry.label:
@@ -113,7 +124,7 @@ def format_log_row(entry: LogEntry, name_of: NameLookup) -> tuple[str, str, str,
         name = ITEM_SEPARATOR.join(f"{name_of(item_id)} ×{quantity}" for item_id, quantity in entry.items)
     else:
         name = name_of(entry.item_id)
-    return shown_time, entry.category, name, entry.detail, entry.value
+    return shown_time, entry.category, name, _detail_of(entry, rate_of), entry.value
 
 
 class LogFeed:

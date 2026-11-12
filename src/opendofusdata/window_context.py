@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from opendofusdata.capture_session import CaptureSession
+from opendofusdata.item_labels import NuggetRates
 from opendofusdata.log_feed import NameLookup
 from opendofusdata.names_refresh import default_data_directory
 from opendofusdata.update_controller import UpdateController
@@ -26,3 +27,4 @@ class WindowContext:
     updates: UpdateController = field(default_factory=UpdateController.inert)
     data_directory: Path = field(default_factory=default_data_directory)
     restart_capture: Callable[[], None] = field(default=lambda: None)
+    nuggets_of: NuggetRates = field(default=lambda item_id: None)

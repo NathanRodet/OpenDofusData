@@ -104,7 +104,8 @@ def test_category_and_filter() -> None:
     assert (off.records, on.records) == ([], [ORCHID])
 
 
-def run_session(tmp_path, categories: CategorySettings, feed: LogFeed | None = None) -> CaptureSession:
+def run_session(tmp_path, categories: CategorySettings, feed: LogFeed | None = None,
+                wait_for: int = 2) -> CaptureSession:
     done = threading.Event()
 
     def capture(pipeline, interface, stop) -> None:
@@ -117,7 +118,7 @@ def run_session(tmp_path, categories: CategorySettings, feed: LogFeed | None = N
     session.start()
     assert done.wait(5.0)
     for _ in range(300):
-        if session.snapshot().breaking_count >= 2:
+        if session.snapshot().breaking_count >= wait_for:
             break
         threading.Event().wait(0.01)
     session.stop()
@@ -138,7 +139,7 @@ def test_an_enabled_breaking_counts_stores_and_logs_one_line_per_object(tmp_path
 
 
 def test_a_disabled_breaking_is_neither_counted_nor_stored(tmp_path) -> None:
-    session = run_session(tmp_path, CategorySettings([CATEGORY_HDV]))
+    session = run_session(tmp_path, CategorySettings([CATEGORY_HDV]), wait_for=0)
     assert session.snapshot().breaking_count == 0
     store = PriceStore(str(tmp_path / "s.db"))
     try:

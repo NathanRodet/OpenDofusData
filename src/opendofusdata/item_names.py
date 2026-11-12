@@ -9,7 +9,7 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 DEFAULT_NAMES_PATH = "data/items.csv"
-ITEMS_CSV_HEADER = ("id", "name_fr", "level", "type_fr")
+ITEMS_CSV_HEADER = ("id", "name_fr", "level", "type_fr", "recycling_nuggets")
 
 
 @dataclass(frozen=True)
@@ -20,13 +20,15 @@ class ItemEntry:
     name: str
     level: int | None
     type_name: str
+    recycling_nuggets: float | None = None  # nuggets per unit recycled (DofusDB recyclingNuggets)
 
 
 def _parse_row(row: list[str]) -> ItemEntry:
-    item_id, name, level, type_name = row
+    item_id, name, level, type_name, *rest = row  # an older file has no recycling column
     if not name.strip():
         raise ValueError("nom vide")
-    return ItemEntry(int(item_id), name, int(level) if level else None, type_name)
+    nuggets = float(rest[0]) if rest and rest[0] else None
+    return ItemEntry(int(item_id), name, int(level) if level else None, type_name, nuggets)
 
 
 def _read_entries(path: Path) -> list[ItemEntry]:

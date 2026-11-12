@@ -3,7 +3,7 @@
 NAMES_SCHEMA_STATEMENTS = (
     """CREATE TABLE IF NOT EXISTS items (
         item_id INTEGER PRIMARY KEY, name_fr TEXT NOT NULL, level INTEGER,
-        type_fr TEXT NOT NULL DEFAULT '')""",
+        type_fr TEXT NOT NULL DEFAULT '', recycling_nuggets REAL)""",
     """CREATE TABLE IF NOT EXISTS servers (
         server_id INTEGER PRIMARY KEY, name_fr TEXT NOT NULL, game_type_id INTEGER,
         game_type_fr TEXT NOT NULL DEFAULT '', community_id INTEGER)""",

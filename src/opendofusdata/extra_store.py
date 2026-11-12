@@ -3,6 +3,7 @@
 import sqlite3
 from collections.abc import Callable
 
+from opendofusdata.names_db import ensure_rate_column
 from opendofusdata.breaking_store import BREAKING_SCHEMA_STATEMENTS, migrate_breaking_batches, save_broken_item
 from opendofusdata.pets_store import PETS_SCHEMA_STATEMENTS, save_pet_feeding
 from opendofusdata.records import BrokenItem, PetFeeding, Record, RecyclingEvent
@@ -21,3 +22,4 @@ def prepare_extra_tables(connection: sqlite3.Connection) -> None:
     for statement in EXTRA_SCHEMA_STATEMENTS:
         connection.execute(statement)
     migrate_breaking_batches(connection)
+    ensure_rate_column(connection)

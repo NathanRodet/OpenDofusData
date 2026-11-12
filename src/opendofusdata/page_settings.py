@@ -11,7 +11,7 @@ from opendofusdata.capture_session import CaptureStatus, SessionSnapshot
 from opendofusdata.client_settings import (
     config_with_database, config_with_server, config_with_update_check, update_check_enabled,
 )
-from opendofusdata.item_labels import item_labeler_for_database
+from opendofusdata.item_labels import item_labeler_for_database, rates_for_database
 from opendofusdata.names_refresh import refresh_reference_data
 from opendofusdata.settings_names import NamesCard, Refresh
 from opendofusdata.ui_theme import (
@@ -115,6 +115,7 @@ class SettingsPage:
             session.apply_settings(path, session.server)
             self.database_label.configure(text=path)
             self._context.name_of = item_labeler_for_database(path)
+            self._context.nuggets_of = rates_for_database(path)
             self._applied()
 
     def _save(self, update: ConfigUpdate, value: object) -> bool:

@@ -41,7 +41,7 @@ Thème sombre, menu à gauche, cinq pages. Elle est redimensionnable (minimum 64
 |---|---|
 | Accueil | État (Capture active, arrêtée ou erreur avec un message clair, par exemple Npcap absent ou droits insuffisants), serveur, enregistrements de la session, heure du dernier relevé, « Voir les prix en ligne » (adresse provisoire tant que le serveur n'existe pas) |
 | Données | Une ligne par catégorie (HDV, recyclage, brisage, pets) avec un interrupteur. L'HDV est décodé; recyclage, brisage et familiers le sont aussi, en bêta et désactivés par défaut. Désactiver une catégorie arrête de l'enregistrer tout de suite |
-| Logs | Interrupteur « Afficher les logs », désactivé par défaut. Activé, il affiche en colonnes (heure, type, objet, détail, valeur) les 200 dernières données captées. Désactivé, rien n'est affiché ni gardé |
+| Logs | Interrupteur « Afficher les logs », désactivé par défaut. Activé, il affiche en colonnes (heure, type, objet, détail, valeur) les 200 dernières données captées, **une ligne par objet** pour le brisage (coefficient et runes) et, pour un recyclage, le rendement annoncé par le jeu (« att. 0,07 ») à côté du résultat réel (« 0 Pépite »). Le rendement annoncé demande les taux de recyclage: clique sur « Télécharger les noms » dans Réglages (à refaire si tu l'avais déjà fait avant cette version). Désactivé, rien n'est affiché ni gardé |
 | Réglages | Serveur de jeu, emplacement de la base de données (un changement relance la capture), téléchargement des noms d'objets, vérification des mises à jour au démarrage |
 | À propos | Version, mises à jour, ce qui est collecté, lien vers le dépôt |
 

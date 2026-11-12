@@ -62,7 +62,7 @@ def test_views_give_na_for_unknown_ids_and_the_name_otherwise(tmp_path: Path) ->
     path = tmp_path / "p.db"
     fill(path)
     with closing(sqlite3.connect(path)) as connection, connection:
-        connection.execute("INSERT INTO items VALUES (10, 'Chose', 12, 'Type')")
+        connection.execute("INSERT INTO items (item_id, name_fr, level, type_fr) VALUES (10, 'Chose', 12, 'Type')")
     rows = query(path, "SELECT item_id, item_name, item_level, item_type FROM lot_prices_named ORDER BY id")
     assert rows == [(10, "Chose", 12, "Type"), (10, "Chose", 12, "Type"), (20, "N/A", None, None)]
     stats = query(path, "SELECT item_id, item_name, period FROM market_stats_named ORDER BY item_id")
@@ -75,7 +75,7 @@ def test_unknown_items_counts_and_first_last_seen(tmp_path: Path) -> None:
     path = tmp_path / "p.db"
     fill(path)
     with closing(sqlite3.connect(path)) as connection, connection:
-        connection.execute("INSERT INTO items VALUES (10, 'Chose', NULL, '')")
+        connection.execute("INSERT INTO items (item_id, name_fr, level, type_fr) VALUES (10, 'Chose', NULL, '')")
     assert query(path, "SELECT * FROM unknown_items") == [
         (20, 1, 1, "2026-11-02T00:00:00Z", "2026-11-05T00:00:00Z"),
         (30, 0, 1, "2026-11-04T00:00:00Z", "2026-11-04T00:00:00Z"),

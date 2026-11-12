@@ -4,12 +4,22 @@ import json
 import sqlite3
 
 from opendofusdata.records import RecyclingEvent
+from opendofusdata.recycling import PERSONAL_FACTOR
 
 RECYCLING_SCHEMA_STATEMENTS = (
     """CREATE TABLE IF NOT EXISTS recycling_events (
         id INTEGER PRIMARY KEY AUTOINCREMENT, server TEXT NOT NULL, captured_at TEXT NOT NULL,
         nuggets INTEGER NOT NULL, items_json TEXT NOT NULL)""",
     "CREATE INDEX IF NOT EXISTS idx_recycling_events_time ON recycling_events (captured_at, id)",
+    # Each recycling next to the yield the game announced for it (an item without a known rate counts as 0).
+    f"""CREATE VIEW IF NOT EXISTS recycling_yields AS
+        SELECT event.id, event.server, event.captured_at, event.nuggets AS obtained,
+               ROUND({PERSONAL_FACTOR} * SUM(json_extract(entry.value, '$[1]')
+                     * COALESCE(item.recycling_nuggets, 0)), 4) AS expected
+        FROM recycling_events AS event
+        JOIN json_each(event.items_json) AS entry
+        LEFT JOIN items AS item ON item.item_id = json_extract(entry.value, '$[0]')
+        GROUP BY event.id""",
 )
 INSERT_RECYCLING_SQL = ("INSERT INTO recycling_events (server, captured_at, nuggets, items_json) "
                         "VALUES (?, ?, ?, ?)")

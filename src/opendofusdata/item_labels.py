@@ -28,6 +28,22 @@ def load_item_labelers(connection: sqlite3.Connection) -> tuple[ItemLabeler, Ite
             lambda item_id: types.get(item_id, UNKNOWN_ITEM_TYPE))
 
 
+NuggetRates = Callable[[int], float | None]
+RATES_SQL = "SELECT item_id, recycling_nuggets FROM items WHERE recycling_nuggets IS NOT NULL"
+
+
+def rates_for_database(path: str) -> NuggetRates:
+    """item id -> recycling rate (nuggets per unit); None for an unknown item or when there is no data."""
+    rates: dict[int, float] = {}
+    if Path(path).is_file():
+        try:
+            with closing(sqlite3.connect(read_only_uri(path), uri=True)) as connection:
+                rates = dict(connection.execute(RATES_SQL).fetchall())
+        except sqlite3.Error as error:
+            logger.info("taux de recyclage illisibles dans %s (%s)", path, error)
+    return rates.get
+
+
 def read_only_uri(path: str) -> str:
     """The SQLite URI that opens an existing database file read-only."""
     return Path(path).resolve().as_uri() + "?mode=ro"

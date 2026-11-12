@@ -24,7 +24,7 @@ class LogsPage:
     def __init__(self, parent: customtkinter.CTkBaseClass, context: WindowContext) -> None:
         self._context = context
         self._shown: list[LogEntry] = []
-        self._names_used = context.name_of
+        self._names_used, self._rates_used = context.name_of, context.nuggets_of
         self.frame, body = make_page(parent, LOGS_PAGE_MAX_WIDTH)
         add_title(body, TITLE, SUBTITLE)
         self.switch = self._add_switch_row(body)
@@ -79,8 +79,10 @@ class LogsPage:
         """Rewrite the table only when the feed changed."""
         entries = self._context.session.feed.entries()
         names = self._context.name_of
-        if not self.switch.get() or (entries == self._shown and names is self._names_used):
+        rates = self._context.nuggets_of
+        if not self.switch.get() or (entries == self._shown and names is self._names_used
+                                     and rates is self._rates_used):
             return
-        lines = (format_log_line(format_log_row(entry, names)) for entry in entries)
+        lines = (format_log_line(format_log_row(entry, names, rates)) for entry in entries)
         self._set_text(LINE_BREAK.join(lines))
-        self._shown, self._names_used = entries, names
+        self._shown, self._names_used, self._rates_used = entries, names, rates

@@ -14,7 +14,7 @@ from opendofusdata.categories import categories_from_config
 from opendofusdata.client_settings import (
     choose_database_path, default_database_path, server_names, update_check_enabled,
 )
-from opendofusdata.item_labels import item_labeler_for_database
+from opendofusdata.item_labels import item_labeler_for_database, rates_for_database
 from opendofusdata.names_fetch import http_get_json
 from opendofusdata.run_pipeline import Clock, utc_now
 from opendofusdata.server_choice_commands import resolve_run_server
@@ -85,7 +85,8 @@ def window_command(
                              categories=categories_from_config(config))
     return show_window(WindowContext(session, open_online_prices, config_path, server_names(),
                                      item_labeler_for_database(database),
-                                     build_update_controller(config)))
+                                     build_update_controller(config),
+                                     nuggets_of=rates_for_database(database)))
 
 
 WINDOW_COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {"window": window_command}

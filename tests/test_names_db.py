@@ -35,7 +35,7 @@ def make_names(path: Path, rows: list[str]) -> Path:
 
 def items_of(path: Path) -> list[tuple]:
     with closing(sqlite3.connect(path)) as connection:
-        return connection.execute("SELECT * FROM items ORDER BY item_id").fetchall()
+        return connection.execute("SELECT item_id, name_fr, level, type_fr FROM items ORDER BY item_id").fetchall()
 
 
 def do_import(database: Path, names: Path) -> int:

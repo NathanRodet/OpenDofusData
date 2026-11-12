@@ -1,6 +1,7 @@
 """Recycling tracker: builds one event per recycling from the window messages (pure logic)."""
 
 import logging
+from collections.abc import Callable
 
 from opendofusdata.crafting_window import CraftingWindow, read_varint_field
 from opendofusdata.framing import Envelope
@@ -16,6 +17,20 @@ from opendofusdata.records import RecyclingEvent
 logger = logging.getLogger(__name__)
 
 NO_NUGGETS = 0
+# The "Personnage" column of the game: yield shown = quantity x DofusDB recyclingNuggets x this factor
+# (0.6 on every capture of 2026-11-11; whether it depends on the character is not known).
+PERSONAL_FACTOR = 0.6
+
+
+def expected_nuggets(items: tuple[tuple[int, int], ...], rate_of: Callable[[int], float | None]) -> float | None:
+    """The yield the game announces for these items; None when there is none or a rate is unknown."""
+    total = 0.0
+    for item_id, quantity in items:
+        rate = rate_of(item_id)
+        if rate is None:
+            return None
+        total += rate * quantity
+    return total * PERSONAL_FACTOR if items else None
 
 
 class RecyclingTracker:

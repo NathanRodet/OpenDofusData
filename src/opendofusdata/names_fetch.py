@@ -23,7 +23,7 @@ USER_AGENT = "OpenDofusData/1 (local price tool)"
 ITEM_TYPES_PATH = "/item-types"
 ITEMS_PATH = "/items"
 TYPES_SELECT = "&$select[]=id&$select[]=name"
-ITEMS_SELECT = "&$select[]=id&$select[]=name&$select[]=level&$select[]=typeId"
+ITEMS_SELECT = "&$select[]=id&$select[]=name&$select[]=level&$select[]=typeId&$select[]=recyclingNuggets"
 PAGE_SIZE = 50
 REQUEST_DELAY_SECONDS = 0.15
 REQUEST_TIMEOUT_SECONDS = 30
