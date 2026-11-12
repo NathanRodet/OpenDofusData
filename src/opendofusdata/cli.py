@@ -24,6 +24,7 @@ from opendofusdata.discovery import DiscoveryLogger, LogSizeLimitReached
 from opendofusdata.framing import Envelope
 from opendofusdata.names_db_commands import names_gaps_command, names_import_command
 from opendofusdata.names_commands import add_names_commands, names_update_command
+from opendofusdata.reset_commands import RESET_COMMANDS, add_reset_command
 from opendofusdata.run_pipeline import Clock, run_command, utc_now
 from opendofusdata.server_choice_commands import CHOICE_COMMANDS, add_server_command, resolve_run_server
 from opendofusdata.servers_commands import SERVER_COMMANDS, add_servers_commands
@@ -57,6 +58,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_servers_commands(commands)
     add_server_command(commands)
     add_analyze_command(commands)
+    add_reset_command(commands)
     add_window_command(commands, DEFAULT_DATABASE)
     return parser
 
@@ -162,6 +164,7 @@ READ_COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {
     **CHOICE_COMMANDS,
     **ANALYZE_COMMANDS,
     **WINDOW_COMMANDS,
+    **RESET_COMMANDS,
 }
 
 
