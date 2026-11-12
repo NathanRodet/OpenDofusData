@@ -71,3 +71,15 @@ def test_stored_bounds_are_sortable_text() -> None:
     assert stored_bounds((start, None))[0] == "2026-11-12T09:05:00Z"
     low, high = stored_bounds((None, None))
     assert low < "2026-11-12T09:05:00Z" < high
+
+
+def test_custom_range_includes_the_end_day_and_rejects_bad_input() -> None:
+    import pytest
+
+    from opendofusdata.time_filters import parse_custom_range
+
+    start, end = parse_custom_range("10/11/2026", "12/11/2026")
+    assert end - start == timedelta(days=3)
+    for bad in (("31/02/2026", "01/03/2026"), ("abc", "01/03/2026"), ("12/11/2026", "10/11/2026")):
+        with pytest.raises(ValueError):
+            parse_custom_range(*bad)

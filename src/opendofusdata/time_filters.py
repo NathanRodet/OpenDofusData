@@ -82,3 +82,15 @@ def stored_bounds(window: Window) -> tuple[str, str]:
     """The window as stored-timestamp text bounds, usable in a SQL BETWEEN."""
     start, end = window
     return (format_utc(start) if start else STORED_MINIMUM, format_utc(end) if end else STORED_MAXIMUM)
+
+
+CUSTOM_DATE_FORMAT = "%d/%m/%Y"
+
+
+def parse_custom_range(start_text: str, end_text: str) -> tuple[datetime, datetime]:
+    """Two JJ/MM/AAAA local days into UTC bounds (the end day included); ValueError when invalid."""
+    start = datetime.strptime(start_text.strip(), CUSTOM_DATE_FORMAT).astimezone()
+    end = datetime.strptime(end_text.strip(), CUSTOM_DATE_FORMAT).astimezone() + timedelta(days=1)
+    if end <= start:
+        raise ValueError("the end day is before the start day")
+    return start.astimezone(timezone.utc), end.astimezone(timezone.utc)
