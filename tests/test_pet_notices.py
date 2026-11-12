@@ -51,11 +51,8 @@ def test_the_inventory_flag_turns_on_with_the_inventory_list_only() -> None:
     assert tracker.inventory_seen is True
 
 
-def test_a_note_is_kept_only_while_the_feed_is_visible_and_shown_in_the_name_column() -> None:
+def test_a_note_is_shown_in_the_name_column() -> None:
     feed_log = LogFeed()
-    feed_log.add_note("Familier", "ressource inconnue #5", NOW, "ignorée", "reconnecte")
-    assert feed_log.entries() == []
-    feed_log.set_visible(True)
     feed_log.add_note("Familier", "ressource inconnue #5", NOW, "ignorée", "reconnecte")
     row = format_log_row(feed_log.entries()[0], lambda item_id: "never used")
     assert row[1:] == ("Familier", "ressource inconnue #5", "ignorée", "reconnecte")
@@ -63,7 +60,6 @@ def test_a_note_is_kept_only_while_the_feed_is_visible_and_shown_in_the_name_col
 
 def run_unknown_feeding(tmp_path) -> tuple[CaptureSession, LogFeed]:
     feed_log = LogFeed()
-    feed_log.set_visible(True)
     done = threading.Event()
 
     def capture(pipeline, interface, stop) -> None:

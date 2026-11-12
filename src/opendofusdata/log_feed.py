@@ -112,36 +112,26 @@ def format_log_row(entry: LogEntry, name_of: NameLookup) -> tuple[str, str, str,
 
 
 class LogFeed:
-    """The last records captured; accumulates only while visible, newest first."""
+    """The last records captured, newest first (always on)."""
 
     def __init__(self, capacity: int = MAX_LOG_LINES) -> None:
         self._lock = threading.Lock()
         self._entries: deque[LogEntry] = deque(maxlen=capacity)
-        self._visible = False
-
-    def set_visible(self, visible: bool) -> None:
-        """Show or hide the feed; changing the state empties it."""
-        with self._lock:
-            if visible != self._visible:
-                self._entries.clear()
-            self._visible = visible
-
-    def is_visible(self) -> bool:
-        """True while the player wants the logs displayed."""
-        with self._lock:
-            return self._visible
 
     def add(self, record: Record, moment: datetime) -> None:
-        """Remember a record when the feed is visible; ignore it otherwise."""
+        """Remember a record."""
         with self._lock:
-            if self._visible:
-                self._entries.appendleft(entry_from_record(record, moment))
+            self._entries.appendleft(entry_from_record(record, moment))
 
     def add_note(self, category: str, label: str, moment: datetime, detail: str, value: str) -> None:
-        """Remember a free-text line (why something was not recorded) when the feed is visible."""
+        """Remember a free-text line (why something was not recorded)."""
         with self._lock:
-            if self._visible:
-                self._entries.appendleft(LogEntry(moment, category, 0, detail, value, label=label))
+            self._entries.appendleft(LogEntry(moment, category, 0, detail, value, label=label))
+
+    def clear(self) -> None:
+        """Forget every entry (the database is not touched)."""
+        with self._lock:
+            self._entries.clear()
 
     def entries(self) -> list[LogEntry]:
         """The remembered entries, newest first."""

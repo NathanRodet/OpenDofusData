@@ -78,7 +78,6 @@ def test_category() -> None:
 
 def test_a_pet_upgrade_is_counted_stored_and_logged(tmp_path) -> None:
     feed_log = LogFeed()
-    feed_log.set_visible(True)
 
     def capture(pipeline, interface, stop) -> None:
         play(lambda envelope, key: pipeline.on_envelope(envelope, key))

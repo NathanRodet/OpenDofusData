@@ -20,15 +20,7 @@ def stats(period: str = "7d", median: int = 46) -> MarketStats:
 
 
 def shown_feed(capacity: int = 200) -> LogFeed:
-    feed = LogFeed(capacity)
-    feed.set_visible(True)
-    return feed
-
-
-def test_hidden_feed_accumulates_nothing() -> None:
-    feed = LogFeed()
-    feed.add(lot(), MOMENT)
-    assert feed.entries() == []
+    return LogFeed(capacity)
 
 
 def test_shown_feed_keeps_newest_first() -> None:
@@ -45,11 +37,10 @@ def test_capacity_is_bounded() -> None:
     assert [entry.item_id for entry in feed.entries()] == [4, 3, 2]
 
 
-def test_showing_again_starts_empty() -> None:
+def test_clear_empties_the_feed() -> None:
     feed = shown_feed()
     feed.add(lot(), MOMENT)
-    feed.set_visible(False)
-    feed.set_visible(True)
+    feed.clear()
     assert feed.entries() == []
 
 

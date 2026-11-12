@@ -120,7 +120,6 @@ def run_session(tmp_path, feed: LogFeed | None = None, wait_for: int = 2) -> Cap
 
 def test_a_breaking_counts_stores_and_logs_one_line_per_object(tmp_path) -> None:
     feed = LogFeed()
-    feed.set_visible(True)
     session = run_session(tmp_path, feed)
     assert session.snapshot().breaking_count == 2
     store = PriceStore(str(tmp_path / "s.db"))

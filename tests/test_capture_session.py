@@ -193,9 +193,8 @@ def feeding_capture_once(pipeline: PacketPipeline) -> None:
     pipeline.on_envelope(stats_envelope(), FLOW_KEY)
 
 
-def test_enabled_records_reach_the_feed_when_visible(tmp_path) -> None:
+def test_records_reach_the_feed(tmp_path) -> None:
     feed = LogFeed()
-    feed.set_visible(True)
     session = CaptureSession(str(tmp_path / "test.db"), "Brial", None, feeding_capture, fixed_now, feed=feed)
     session.start()
     wait_for(lambda: len(feed.entries()) > 0)
