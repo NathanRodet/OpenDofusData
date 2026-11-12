@@ -1,12 +1,10 @@
 """The window command: server resolution, then the player window (GUI loaded lazily)."""
 
 import argparse
-import webbrowser
 from collections.abc import Callable
 
 from opendofusdata import __version__
 from opendofusdata.app_config import default_config_path, load_config
-from opendofusdata.app_links import SAAS_URL
 from opendofusdata.capture_errors import EXIT_OK, fail
 from opendofusdata.capture_session import CaptureSession
 from opendofusdata.capture_stoppable import StoppableCapture, run_stoppable_capture
@@ -34,11 +32,6 @@ def add_window_command(commands: argparse._SubParsersAction, default_database: s
     parser.add_argument("--server", default=None, help="nom du serveur de jeu (sans mémorisation)")
     parser.add_argument("--choose-server", action="store_true",
                         help="redemande le serveur même si un serveur est mémorisé")
-
-
-def open_online_prices() -> None:
-    """Open the online price site in the default browser."""
-    webbrowser.open(SAAS_URL)
 
 
 def _display_error() -> type[Exception]:
@@ -82,7 +75,7 @@ def window_command(
     database = choose_database_path(arguments.db, config, default_database_path())
     session = CaptureSession(database, arguments.server, arguments.interface, capture, now)
     name_of, type_of = item_labelers_for_database(database)
-    return show_window(WindowContext(session, open_online_prices, config_path, server_names(), name_of,
+    return show_window(WindowContext(session, config_path, server_names(), name_of,
                                      build_update_controller(config), type_of=type_of))
 
 

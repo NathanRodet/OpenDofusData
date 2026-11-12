@@ -8,8 +8,7 @@ import customtkinter
 from opendofusdata.capture_session import SessionSnapshot
 from opendofusdata.ui_theme import (
     ACCENT_COLOR, ACCENT_HOVER_COLOR, BODY_SIZE, BUTTON_HEIGHT, CARD_COLOR, CORNER_RADIUS,
-    MUTED_COLOR, PADDING, PAGE_BUTTON_WIDTH, PAGE_MAX_WIDTH, SMALL_PADDING, TEXT_COLOR,
-    TINY_PADDING, TITLE_SIZE, TRANSPARENT,
+    PAGE_BUTTON_WIDTH, SMALL_PADDING, TEXT_COLOR,
 )
 
 
@@ -45,26 +44,3 @@ def make_card(parent: customtkinter.CTkBaseClass) -> customtkinter.CTkFrame:
     card = customtkinter.CTkFrame(parent, fg_color=CARD_COLOR, corner_radius=CORNER_RADIUS)
     card.pack(fill="x", pady=(0, SMALL_PADDING))
     return card
-
-
-def make_page(
-    parent: customtkinter.CTkBaseClass, max_width: int = PAGE_MAX_WIDTH, scrollable: bool = False,
-) -> tuple[customtkinter.CTkFrame, customtkinter.CTkFrame]:
-    """Return (page frame, centred body column of at most `max_width`, scrolling if asked)."""
-    frame = customtkinter.CTkFrame(parent, fg_color=TRANSPARENT, corner_radius=0)
-    if scrollable:
-        body = customtkinter.CTkScrollableFrame(frame, width=max_width, fg_color=TRANSPARENT)
-        body.pack(fill="y", expand=True, padx=PADDING, pady=PADDING)
-        return frame, body
-    body = customtkinter.CTkFrame(frame, width=max_width, fg_color=TRANSPARENT)
-    body.pack_propagate(False)
-    body.pack(fill="y", expand=True, padx=PADDING, pady=PADDING)
-    return frame, body
-
-
-def add_title(body: customtkinter.CTkFrame, title: str, subtitle: str = "") -> None:
-    """The page title and an optional muted line under it."""
-    make_label(body, title, TITLE_SIZE, bold=True, anchor="w").pack(fill="x")
-    if subtitle:
-        make_label(body, subtitle, color=MUTED_COLOR, anchor="w", justify="left",
-                   wraplength=PAGE_MAX_WIDTH).pack(fill="x", pady=(TINY_PADDING, PADDING))

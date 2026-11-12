@@ -12,7 +12,7 @@ pytest.importorskip("customtkinter")
 from opendofusdata.capture_session import CaptureSession, CaptureStatus
 from opendofusdata.names_fetch import NamesFetchError
 from opendofusdata.names_refresh import RefreshResult
-from opendofusdata.page_about import AboutPage
+from opendofusdata.settings_about import UpdatesCard
 from opendofusdata.page_settings import SettingsPage
 from opendofusdata.update_controller import UpdateController
 from opendofusdata.updates import UpdateInfo
@@ -32,7 +32,7 @@ def idle_capture(pipeline, interface, stop: threading.Event) -> None:
 
 def make_context(tmp_path, updates=None) -> WindowContext:
     session = CaptureSession(str(tmp_path / "u.db"), "Brial", None, idle_capture, lambda: MOMENT)
-    return WindowContext(session, lambda: None, tmp_path / "config.json", ["Brial", "Kourial"],
+    return WindowContext(session, tmp_path / "config.json", ["Brial", "Kourial"],
                          lambda item_id: "N/A", updates or UpdateController.inert(), tmp_path / "ref")
 
 
@@ -54,18 +54,20 @@ def pump(root, until, seconds: float = WAIT_SECONDS) -> None:
     assert until()
 
 
-def build_about(root, context, opened=None) -> AboutPage:
-    return AboutPage(root, context, (opened if opened is not None else []).append)
+def build_about(root, context, opened=None) -> UpdatesCard:
+    import customtkinter
+
+    return UpdatesCard(customtkinter.CTkFrame(root), context, (opened if opened is not None else []).append)
 
 
 def test_about_offers_a_manual_check_when_nothing_is_known(root, tmp_path) -> None:
     context = make_context(tmp_path, updates_finding(INSTALLABLE))
     page = build_about(root, context)
-    page.render(context.session.snapshot())
+    page.render()
     assert page.action_button.cget("text") == "Rechercher les mises à jour"
     page.action_button.invoke()
     assert context.updates.wait_for_check(WAIT_SECONDS)
-    page.render(context.session.snapshot())
+    page.render()
     assert "1.1.0" in page.update_label.cget("text")
     assert page.action_button.cget("text") == "Mettre à jour et relancer"
 
@@ -75,7 +77,7 @@ def test_an_up_to_date_check_says_so(root, tmp_path) -> None:
     page = build_about(root, context)
     page.action_button.invoke()
     assert context.updates.wait_for_check(WAIT_SECONDS)
-    page.render(context.session.snapshot())
+    page.render()
     assert "dernière version" in page.update_label.cget("text")
     assert page.action_button.cget("text") == "Rechercher les mises à jour"
 
@@ -84,7 +86,7 @@ def test_an_update_that_cannot_self_install_opens_its_page(root, tmp_path) -> No
     opened: list[str] = []
     context = make_context(tmp_path, checked(updates_finding(INSTALLABLE, can_self_update=False)))
     page = build_about(root, context, opened)
-    page.render(context.session.snapshot())
+    page.render()
     assert page.action_button.cget("text") == "Voir la version"
     page.action_button.invoke()
     assert opened == [PAGE_URL]
@@ -94,7 +96,7 @@ def test_an_update_without_files_opens_its_page(root, tmp_path) -> None:
     opened: list[str] = []
     context = make_context(tmp_path, checked(updates_finding(PAGE_ONLY)))
     page = build_about(root, context, opened)
-    page.render(context.session.snapshot())
+    page.render()
     page.action_button.invoke()
     assert opened == [PAGE_URL]
 
@@ -103,10 +105,10 @@ def test_one_click_installs_and_announces_the_restart(root, tmp_path) -> None:
     installs: list[UpdateInfo] = []
     context = make_context(tmp_path, checked(updates_finding(INSTALLABLE, installs)))
     page = build_about(root, context)
-    page.render(context.session.snapshot())
+    page.render()
     page.action_button.invoke()
     assert context.updates.wait_for_install(WAIT_SECONDS)
-    page.render(context.session.snapshot())
+    page.render()
     assert installs == [INSTALLABLE]
     assert "Redémarrage" in page.update_label.cget("text")
 
@@ -120,22 +122,22 @@ def test_a_failed_install_shows_the_error_and_allows_retrying(root, tmp_path) ->
     page = build_about(root, context)
     page.action_button.invoke()
     assert updates.wait_for_install(WAIT_SECONDS)
-    page.render(context.session.snapshot())
+    page.render()
     assert "réseau coupé" in page.update_label.cget("text")
     assert page.action_button.cget("state") == "normal"
 
 
-def test_the_menu_shows_a_badge_on_a_propos_when_an_update_exists(root, tmp_path) -> None:
+def test_the_menu_shows_a_badge_on_reglages_when_an_update_exists(root, tmp_path) -> None:
     context = make_context(tmp_path, checked(updates_finding(INSTALLABLE)))
     window = CaptureWindow(root, context)
     window.render()
-    assert window.menu_buttons["À propos"].cget("text") == "À propos  ●"
+    assert window.menu_buttons["Réglages"].cget("text") == "Réglages  ●"
 
 
 def test_the_menu_has_no_badge_without_an_update(root, tmp_path) -> None:
     window = CaptureWindow(root, make_context(tmp_path, checked(updates_finding(None))))
     window.render()
-    assert window.menu_buttons["À propos"].cget("text") == "À propos"
+    assert window.menu_buttons["Réglages"].cget("text") == "Réglages"
 
 
 def test_starting_the_window_runs_the_automatic_check(root, tmp_path) -> None:

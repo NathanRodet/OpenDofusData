@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from opendofusdata.app_links import APP_NAME, SAAS_URL
+from opendofusdata.app_links import APP_NAME
 from opendofusdata.capture_session import CaptureStatus, SessionSnapshot
 from opendofusdata.window_format import (
     button_enabled, button_label, counts_text, error_detail_text, headline_text, last_record_text,
@@ -40,7 +40,7 @@ def test_button_label_follows_status() -> None:
 
 
 def test_product_constants() -> None:
-    assert APP_NAME == "OpenDofusData" and SAAS_URL.startswith("https://")
+    assert APP_NAME == "OpenDofusData"
 
 
 def test_stopping_state_texts_and_disabled_button() -> None:

@@ -1,4 +1,4 @@
-"""The player window: dark side menu, five pages, and the Arrêter / Relancer button."""
+"""The player window: a side menu with the capture status, and five pages filling the rest."""
 
 import logging
 
@@ -6,39 +6,54 @@ import customtkinter
 
 from opendofusdata.app_links import APP_NAME
 from opendofusdata.capture_session import CaptureStatus
+from opendofusdata.run_pipeline import utc_now
 from opendofusdata.ui_theme import (
-    ACCENT_COLOR, APPEARANCE_MODE, BUTTON_HEIGHT, COLOR_THEME, CORNER_RADIUS, DEFAULT_HEIGHT,
-    DEFAULT_WIDTH, MENU_BUTTON_WIDTH, MENU_TITLE_SIZE, MIN_HEIGHT, MIN_WIDTH, PADDING, SELECTED_COLOR,
-    SIDEBAR_COLOR, SIDEBAR_WIDTH, SMALL_PADDING, TEXT_COLOR, TRANSPARENT, WINDOW_COLOR,
+    ACCENT_COLOR, APPEARANCE_MODE, BUTTON_HEIGHT, COLOR_THEME, COMPACT_BREAKPOINT, CORNER_RADIUS, DEFAULT_HEIGHT,
+    DEFAULT_WIDTH, DOT_SIZE, ERROR_COLOR, MENU_BUTTON_WIDTH, MENU_TITLE_SIZE, MIN_HEIGHT, MIN_WIDTH, MUTED_COLOR,
+    OFF_COLOR, PADDING, SELECTED_COLOR, SIDEBAR_COLOR, SIDEBAR_WIDTH, SMALL_PADDING, SUCCESS_COLOR, TEXT_COLOR,
+    TINY_PADDING, TRANSPARENT, WINDOW_COLOR,
 )
 from opendofusdata.ui_widgets import Page, make_button, make_label
 from opendofusdata.window_context import WindowContext
-from opendofusdata.window_format import button_enabled, button_label
-from opendofusdata.window_pages import PAGE_NAMES, build_pages
+from opendofusdata.window_format import (
+    button_enabled, button_label, error_detail_text, headline_text, status_rows,
+)
+from opendofusdata.window_pages import PAGE_NAMES, SETTINGS_PAGE, build_pages
 
 logger = logging.getLogger(__name__)
 
 REFRESH_MILLISECONDS = 500
 CLOSE_POLL_MILLISECONDS = 100
-ABOUT_PAGE = "À propos"
 UPDATE_BADGE = "  ●"  # the notification sign shown after the menu entry when an update exists
+SCREEN_MARGIN = 80
+MENU_SIDE = "side"
+MENU_TOP = "top"
+DOT = "●"
+STATUS_COLORS = {
+    CaptureStatus.RUNNING: SUCCESS_COLOR,
+    CaptureStatus.STOPPING: OFF_COLOR,
+    CaptureStatus.STOPPED: OFF_COLOR,
+    CaptureStatus.ERROR: ERROR_COLOR,
+}
 __all__ = ["CaptureWindow", "PAGE_NAMES"]
 
 
 class CaptureWindow:
-    """Side menu + pages; reads session snapshots, never touches the capture thread."""
+    """Menu + status block + pages; reads session snapshots, never touches the capture thread."""
 
     def __init__(self, root: customtkinter.CTk, context: WindowContext) -> None:
         self._root, self._context = root, context
         self._closing = False
+        self.menu_mode = ""
         context.restart_capture = self.restart_capture
         self._configure_root()
         self.menu_buttons: dict[str, customtkinter.CTkButton] = {}
-        self.toggle_button = self._build_sidebar()
+        self._build_menu()
         self.content = customtkinter.CTkFrame(root, fg_color=WINDOW_COLOR, corner_radius=0)
-        self.content.grid(row=0, column=1, sticky="nsew")
         self.pages: dict[str, Page] = build_pages(self.content, context)
         self.current_page = PAGE_NAMES[0]
+        self.relayout(DEFAULT_WIDTH)
+        root.bind("<Configure>", lambda event: self._root_resized(event.widget, event.width))
         self.show_page(self.current_page)
 
     def _configure_root(self) -> None:
@@ -46,30 +61,80 @@ class CaptureWindow:
         customtkinter.set_default_color_theme(COLOR_THEME)
         self._root.title(APP_NAME)
         self._root.minsize(MIN_WIDTH, MIN_HEIGHT)
-        self._root.geometry(f"{DEFAULT_WIDTH}x{DEFAULT_HEIGHT}")
+        width = min(DEFAULT_WIDTH, max(MIN_WIDTH, self._root.winfo_screenwidth() - SCREEN_MARGIN))
+        height = min(DEFAULT_HEIGHT, max(MIN_HEIGHT, self._root.winfo_screenheight() - SCREEN_MARGIN))
+        self._root.geometry(f"{width}x{height}")
         self._root.protocol("WM_DELETE_WINDOW", self.close)
         self._root.grid_columnconfigure(1, weight=1)
-        self._root.grid_rowconfigure(0, weight=1)
+        self._root.grid_rowconfigure(1, weight=1)
 
-    def _build_sidebar(self) -> customtkinter.CTkButton:
-        sidebar = customtkinter.CTkFrame(self._root, width=SIDEBAR_WIDTH, fg_color=SIDEBAR_COLOR,
-                                         corner_radius=0)
-        sidebar.grid(row=0, column=0, sticky="ns")
-        sidebar.pack_propagate(False)
-        make_label(sidebar, APP_NAME, MENU_TITLE_SIZE, bold=True).pack(pady=PADDING)
+    def _build_menu(self) -> None:
+        self.menu = customtkinter.CTkFrame(self._root, width=SIDEBAR_WIDTH, fg_color=SIDEBAR_COLOR, corner_radius=0)
+        self.title_label = make_label(self.menu, APP_NAME, MENU_TITLE_SIZE, bold=True)
         for name in PAGE_NAMES:
-            self.menu_buttons[name] = self._menu_button(sidebar, name)
-        toggle = make_button(sidebar, "", self._toggle_capture, MENU_BUTTON_WIDTH)
-        toggle.pack(side="bottom", pady=PADDING)
-        return toggle
+            self.menu_buttons[name] = self._menu_button(name)
+        self.status_frame = customtkinter.CTkFrame(self.menu, fg_color=TRANSPARENT)
+        self._build_status()
+        self.toggle_button = make_button(self.menu, "", self._toggle_capture, MENU_BUTTON_WIDTH)
 
-    def _menu_button(self, sidebar: customtkinter.CTkFrame, name: str) -> customtkinter.CTkButton:
-        button = customtkinter.CTkButton(
-            sidebar, text=name, anchor="w", width=MENU_BUTTON_WIDTH, height=BUTTON_HEIGHT,
+    def _menu_button(self, name: str) -> customtkinter.CTkButton:
+        return customtkinter.CTkButton(
+            self.menu, text=name, anchor="w", width=MENU_BUTTON_WIDTH, height=BUTTON_HEIGHT,
             corner_radius=CORNER_RADIUS, fg_color=TRANSPARENT, text_color=TEXT_COLOR,
             hover_color=SELECTED_COLOR, command=lambda: self.show_page(name))
-        button.pack(pady=(0, SMALL_PADDING))
-        return button
+
+    def _build_status(self) -> None:
+        head = customtkinter.CTkFrame(self.status_frame, fg_color=TRANSPARENT)
+        head.pack(fill="x")
+        self.dot_label = make_label(head, DOT, DOT_SIZE // 2)
+        self.dot_label.pack(side="left")
+        self.status_label = make_label(head, "", bold=True)
+        self.status_label.pack(side="left", padx=SMALL_PADDING)
+        self.error_label = make_label(self.status_frame, "", color=ERROR_COLOR, anchor="w", justify="left",
+                                      wraplength=SIDEBAR_WIDTH - 2 * PADDING)
+        self.error_label.pack(fill="x")
+        self.status_values: dict[str, customtkinter.CTkLabel] = {}
+        for caption in ("Serveur", "Prix", "Brisages", "Familiers", "Dernier relevé"):
+            row = customtkinter.CTkFrame(self.status_frame, fg_color=TRANSPARENT)
+            row.pack(fill="x", pady=TINY_PADDING)
+            make_label(row, caption, color=MUTED_COLOR).pack(side="left")
+            self.status_values[caption] = make_label(row, "")
+            self.status_values[caption].pack(side="right")
+
+    def relayout(self, width: int) -> None:
+        """Menu on the left, or as a top bar when the window is narrower than COMPACT_BREAKPOINT."""
+        mode = MENU_TOP if width < COMPACT_BREAKPOINT else MENU_SIDE
+        if mode == self.menu_mode:
+            return
+        self.menu_mode = mode
+        for widget in (self.title_label, *self.menu_buttons.values(), self.status_frame, self.toggle_button):
+            widget.pack_forget()
+        if mode == MENU_SIDE:
+            self._place_side()
+        else:
+            self._place_top()
+
+    def _place_side(self) -> None:
+        self.menu.grid(row=0, column=0, rowspan=2, columnspan=1, sticky="ns")
+        self.content.grid(row=0, column=1, rowspan=2, columnspan=1, sticky="nsew")
+        self.menu.pack_propagate(False)
+        self.title_label.pack(pady=PADDING)
+        for button in self.menu_buttons.values():
+            button.pack(padx=PADDING, pady=(0, SMALL_PADDING))
+        self.toggle_button.pack(side="bottom", pady=PADDING)
+        self.status_frame.pack(side="bottom", fill="x", padx=PADDING)
+
+    def _place_top(self) -> None:
+        self.menu.grid(row=0, column=0, rowspan=1, columnspan=2, sticky="ew")
+        self.content.grid(row=1, column=0, rowspan=1, columnspan=2, sticky="nsew")
+        self.menu.pack_propagate(True)
+        for button in self.menu_buttons.values():
+            button.pack(side="left", padx=SMALL_PADDING, pady=SMALL_PADDING)
+        self.toggle_button.pack(side="right", padx=PADDING)
+
+    def _root_resized(self, widget: object, width: int) -> None:
+        if widget is self._root:
+            self.relayout(width)
 
     def show_page(self, name: str) -> None:
         """Display one page and highlight its menu entry."""
@@ -96,20 +161,25 @@ class CaptureWindow:
             self._root.after(REFRESH_MILLISECONDS, self._poll)
 
     def render(self) -> None:
-        """Show the current session state on the toggle button and the visible page."""
+        """Show the session state in the menu and refresh the visible page only."""
         snapshot = self._context.session.snapshot()
         self.toggle_button.configure(text=button_label(snapshot),
                                     state="normal" if button_enabled(snapshot) else "disabled")
+        self.dot_label.configure(text_color=STATUS_COLORS[snapshot.status])
+        self.status_label.configure(text=headline_text(snapshot))
+        self.error_label.configure(text=error_detail_text(snapshot))
+        for caption, value in status_rows(snapshot, utc_now()):
+            self.status_values[caption].configure(text=value)
         self.pages[self.current_page].render(snapshot)
         self._update_badge()
         if self._context.updates.take_restart_request():
             self.close()
 
     def _update_badge(self) -> None:
-        """Show the notification sign on the À propos entry while a newer version exists."""
+        """Show the notification sign on the Réglages entry while a newer version exists."""
         available = self._context.updates.available() is not None
-        self.menu_buttons[ABOUT_PAGE].configure(
-            text=ABOUT_PAGE + (UPDATE_BADGE if available else ""),
+        self.menu_buttons[SETTINGS_PAGE].configure(
+            text=SETTINGS_PAGE + (UPDATE_BADGE if available else ""),
             text_color=ACCENT_COLOR if available else TEXT_COLOR)
 
     def restart_capture(self) -> None:

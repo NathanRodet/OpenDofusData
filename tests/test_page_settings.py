@@ -10,7 +10,7 @@ pytest.importorskip("customtkinter")
 
 from opendofusdata import __version__
 from opendofusdata.capture_session import CaptureSession
-from opendofusdata.page_about import AboutPage
+from opendofusdata.settings_about import AboutCard, UpdatesCard
 from opendofusdata.page_settings import SettingsPage
 from opendofusdata.window_context import WindowContext
 
@@ -23,7 +23,7 @@ def idle_capture(pipeline, interface, stop: threading.Event) -> None:
 
 def make_context(tmp_path, config_path=None) -> WindowContext:
     session = CaptureSession(str(tmp_path / "old.db"), "Brial", None, idle_capture, lambda: MOMENT)
-    return WindowContext(session, lambda: None, config_path or tmp_path / "config.json",
+    return WindowContext(session, config_path or tmp_path / "config.json",
                          ["Brial", "Kourial"], lambda item_id: "N/A")
 
 
@@ -82,14 +82,18 @@ def test_unwritable_config_reports_an_error_and_keeps_the_state(root, tmp_path) 
 
 def test_current_server_missing_from_the_list_is_still_shown(root, tmp_path) -> None:
     session = CaptureSession(str(tmp_path / "x.db"), "Inconnu", None, idle_capture, lambda: MOMENT)
-    context = WindowContext(session, lambda: None, tmp_path / "config.json", ["Brial"], lambda item_id: "N/A")
+    context = WindowContext(session, tmp_path / "config.json", ["Brial"], lambda item_id: "N/A")
     assert SettingsPage(root, context, lambda current: None).server_menu.get() == "Inconnu"
 
 
 def test_about_page_names_the_app_and_says_nothing_is_sent(root, tmp_path) -> None:
-    page = AboutPage(root, make_context(tmp_path), lambda url: None)
-    assert "Rien n'est envoyé" in page.summary_label.cget("text")
-    assert page.version_label.cget("text") == f"Version {__version__}"
+    import customtkinter
+
+    card = AboutCard(customtkinter.CTkFrame(root), lambda url: None)
+    assert "Rien n'est envoyé" in card.summary_label.cget("text")
+    assert "Envoi de données : aucun pour l'instant" in card.summary_label.cget("text")
+    updates = UpdatesCard(customtkinter.CTkFrame(root), make_context(tmp_path))
+    assert updates.version_label.cget("text") == f"Version {__version__}"
 
 
 def test_changing_the_database_keeps_the_server_chosen_before(root, tmp_path) -> None:
@@ -109,3 +113,18 @@ def test_changing_the_database_replaces_the_name_lookup(root, tmp_path) -> None:
     before = context.name_of
     SettingsPage(root, context, lambda current: str(tmp_path / "chosen.db")).change_database()
     assert context.name_of is not before
+
+
+def test_price_mode_choice_is_saved_to_the_config(root, tmp_path) -> None:
+    page = SettingsPage(root, make_context(tmp_path), lambda current: None)
+    assert page.prices_card.menu.get() == "Dernier prix HDV"
+    page.prices_card.choose("Médian 24 h")
+    saved = json.loads((tmp_path / "config.json").read_text(encoding="utf-8"))
+    assert saved["price_mode"] == "median"
+
+
+def test_no_online_prices_button_remains(root, tmp_path) -> None:
+    import opendofusdata.window_pages as pages
+
+    assert not hasattr(pages, "HomePage")
+    assert "Accueil" not in pages.PAGE_NAMES and "À propos" not in pages.PAGE_NAMES

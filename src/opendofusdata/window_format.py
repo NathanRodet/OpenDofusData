@@ -1,8 +1,11 @@
 """French texts of the capture window (pure functions, no tkinter)."""
 
+from datetime import datetime
+
 from opendofusdata.capture_session import CaptureStatus, SessionSnapshot
 from opendofusdata.game_servers import UNKNOWN_SERVER
 from opendofusdata.log_feed import TIME_FORMAT
+from opendofusdata.time_filters import elapsed_text
 
 NO_RECORD_TEXT = "aucun pour l'instant"
 UNCHOSEN_SERVER_TEXT = "Serveur : non choisi (à régler dans Réglages)"
@@ -72,3 +75,14 @@ def button_label(snapshot: SessionSnapshot) -> str:
 def button_enabled(snapshot: SessionSnapshot) -> bool:
     """The button is disabled while the capture is stopping."""
     return snapshot.status is not CaptureStatus.STOPPING
+
+
+def status_rows(snapshot: SessionSnapshot, now: datetime) -> list[tuple[str, str]]:
+    """The labelled lines of the menu status block."""
+    unchosen = snapshot.server == UNKNOWN_SERVER
+    last = NO_RECORD_TEXT if snapshot.last_record_at is None else elapsed_text(snapshot.last_record_at, now)
+    return [("Serveur", "non choisi" if unchosen else snapshot.server),
+            ("Prix", str(total_records(snapshot))),
+            ("Brisages", str(snapshot.breaking_count)),
+            ("Familiers", str(snapshot.pet_count)),
+            ("Dernier relevé", last)]

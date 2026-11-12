@@ -12,7 +12,7 @@ customtkinter = pytest.importorskip("customtkinter")
 from opendofusdata.capture_session import CaptureSession, CaptureStatus
 from opendofusdata.ui_theme import MIN_HEIGHT, MIN_WIDTH
 from opendofusdata.window_context import WindowContext
-from opendofusdata.window_view import PAGE_NAMES, CaptureWindow
+from opendofusdata.window_view import MENU_SIDE, MENU_TOP, PAGE_NAMES, CaptureWindow
 
 WAIT_SECONDS = 5.0
 
@@ -21,44 +21,41 @@ def idle_capture(pipeline, interface, stop: threading.Event) -> None:
     stop.wait(WAIT_SECONDS)
 
 
-def build(root, tmp_path, opened: list[int]) -> tuple[CaptureWindow, CaptureSession]:
+def build(root, tmp_path) -> tuple[CaptureWindow, CaptureSession]:
     session = CaptureSession(str(tmp_path / "w.db"), "Brial", None, idle_capture,
                              lambda: datetime.now(timezone.utc))
-    context = WindowContext(session, lambda: opened.append(1), tmp_path / "config.json",
-                            ["Brial", "Kourial"], lambda item_id: "N/A")
+    context = WindowContext(session, tmp_path / "config.json", ["Brial", "Kourial"], lambda item_id: "N/A")
     return CaptureWindow(root, context), session
 
 
-def test_minimum_size_is_at_least_640_by_400(root, tmp_path) -> None:
-    build(root, tmp_path, [])
-    width, height = root.wm_minsize()
-    assert width >= MIN_WIDTH
-    assert height >= MIN_HEIGHT
+def test_minimum_size_is_760_by_480(root, tmp_path) -> None:
+    build(root, tmp_path)
+    assert root.wm_minsize() == (MIN_WIDTH, MIN_HEIGHT) == (760, 480)
 
 
-def test_menu_has_the_four_pages_and_switches(root, tmp_path) -> None:
-    window, _ = build(root, tmp_path, [])
-    assert list(window.pages) == list(PAGE_NAMES) == ["Accueil", "Logs", "Réglages", "À propos"]
+def test_menu_has_the_five_entries_in_order(root, tmp_path) -> None:
+    window, _ = build(root, tmp_path)
+    assert list(window.pages) == list(PAGE_NAMES) == ["HDV", "Brisage", "Familiers", "Logs", "Réglages"]
     window.show_page("Logs")
     assert window.current_page == "Logs"
     assert window.pages["Logs"].frame.winfo_manager() == "pack"
-    assert window.pages["Accueil"].frame.winfo_manager() == ""
+    assert window.pages["HDV"].frame.winfo_manager() == ""
 
 
-def test_home_shows_status_and_counts(root, tmp_path) -> None:
-    window, session = build(root, tmp_path, [])
+def test_status_block_shows_server_counters_and_last_record(root, tmp_path) -> None:
+    window, session = build(root, tmp_path)
     window.start()
     window.render()
-    home = window.pages["Accueil"]
-    assert home.status_label.cget("text") == "Capture active"
-    assert home.server_label.cget("text") == "Serveur : Brial"
-    assert "Prix enregistrés : 0" in home.counts_label.cget("text")
+    assert window.status_label.cget("text") == "Capture active"
+    values = {caption: label.cget("text") for caption, label in window.status_values.items()}
+    assert values["Serveur"] == "Brial"
+    assert (values["Prix"], values["Brisages"], values["Familiers"]) == ("0", "0", "0")
     assert window.toggle_button.cget("text") == "Arrêter"
     session.stop()
 
 
 def test_stop_button_then_restart(root, tmp_path) -> None:
-    window, session = build(root, tmp_path, [])
+    window, session = build(root, tmp_path)
     window.start()
     window.toggle_button.invoke()
     assert window.toggle_button.cget("text") == "Arrêt en cours..."
@@ -69,15 +66,29 @@ def test_stop_button_then_restart(root, tmp_path) -> None:
     session.stop()
 
 
-def test_online_button_calls_the_opener(root, tmp_path) -> None:
-    opened: list[int] = []
-    window, _ = build(root, tmp_path, opened)
-    window.pages["Accueil"].online_button.invoke()
-    assert opened == [1]
+def test_narrow_window_moves_the_menu_to_the_top(root, tmp_path) -> None:
+    window, _ = build(root, tmp_path)
+    assert window.menu_mode == MENU_SIDE
+    window.relayout(700)
+    assert window.menu_mode == MENU_TOP
+    assert int(window.menu.grid_info()["columnspan"]) == 2
+    window.relayout(1280)
+    assert window.menu_mode == MENU_SIDE
+
+
+def test_only_the_visible_page_renders(root, tmp_path) -> None:
+    window, _ = build(root, tmp_path)
+    calls: list[str] = []
+    for name, page in window.pages.items():
+        page.render = lambda snapshot, name=name: calls.append(name)
+    window.show_page("Brisage")
+    calls.clear()
+    window.render()
+    assert calls == ["Brisage"]
 
 
 def test_close_stops_the_session_and_destroys_the_window(root, tmp_path) -> None:
-    window, session = build(root, tmp_path, [])
+    window, session = build(root, tmp_path)
     window.start()
     window.close()
     deadline = time.monotonic() + WAIT_SECONDS
@@ -95,11 +106,10 @@ def failing_writer(path: str):
 def test_every_page_renders_while_the_session_is_in_error(root, tmp_path) -> None:
     session = CaptureSession(str(tmp_path / "e.db"), "Brial", None, idle_capture,
                              lambda: datetime.now(timezone.utc), writer_factory=failing_writer)
-    context = WindowContext(session, lambda: None, tmp_path / "config.json", ["Brial"], lambda item_id: "N/A")
+    context = WindowContext(session, tmp_path / "config.json", ["Brial"], lambda item_id: "N/A")
     window = CaptureWindow(root, context)
     window.start()
     for name in PAGE_NAMES:
         window.show_page(name)
-    window.show_page("Accueil")
     assert session.snapshot().status is CaptureStatus.ERROR
-    assert "disk full" in window.pages["Accueil"].error_label.cget("text")
+    assert "disk full" in window.error_label.cget("text")

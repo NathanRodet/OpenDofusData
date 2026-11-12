@@ -14,7 +14,7 @@ def make_context(tmp_path, names: dict[int, str] | None = None) -> WindowContext
     names = names or {}
     session = CaptureSession(str(tmp_path / "p.db"), SERVER, None, lambda pipeline, interface, stop: stop.wait(1.0),
                              lambda: NOW)
-    return WindowContext(session, lambda: None, tmp_path / "config.json", [SERVER, "Kourial"],
+    return WindowContext(session, tmp_path / "config.json", [SERVER, "Kourial"],
                          lambda item_id: names.get(item_id, "N/A"), type_of=lambda item_id: "Ressource")
 
 

@@ -13,14 +13,13 @@ from opendofusdata.update_controller import UpdateController
 
 @dataclass
 class WindowContext:
-    """The session, the opener, the config file, the selectable servers and the name lookup.
+    """The session, the config file, the selectable servers and the name lookup.
 
     `restart_capture` is filled in by the window; `updates` and `data_directory` have
-    harmless defaults so a context can be built with the first five fields only.
+    harmless defaults so a context can be built with the first four fields only.
     """
 
     session: CaptureSession
-    open_online: Callable[[], None]
     config_path: Path
     server_names: list[str]
     name_of: NameLookup

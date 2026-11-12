@@ -1,4 +1,4 @@
-"""The Réglages page: server, database, item names and update check."""
+"""The Réglages page: cards for server, database, item names, price mode, updates and about."""
 
 import logging
 from collections.abc import Callable
@@ -12,17 +12,21 @@ from opendofusdata.client_settings import (
     config_with_database, config_with_server, config_with_update_check, update_check_enabled,
 )
 from opendofusdata.names_refresh import refresh_reference_data
+from opendofusdata.settings_about import AboutCard, UpdatesCard, open_url
 from opendofusdata.settings_names import NamesCard, Refresh
+from opendofusdata.settings_prices import PricesCard
 from opendofusdata.ui_theme import (
-    ACCENT_COLOR, ERROR_COLOR, MUTED_COLOR, PADDING, SWITCH_WIDTH, TINY_PADDING, WRAP_LENGTH,
+    ACCENT_COLOR, CARD_MIN_WIDTH, ERROR_COLOR, MUTED_COLOR, PADDING, SWITCH_WIDTH, TINY_PADDING, TITLE_SIZE,
+    TRANSPARENT, WRAP_LENGTH,
 )
-from opendofusdata.ui_widgets import add_title, make_button, make_card, make_label, make_page
+from opendofusdata.ui_widgets import make_button, make_card, make_label
 from opendofusdata.window_context import WindowContext
 
 logger = logging.getLogger(__name__)
 
 TITLE = "Réglages"
 SUBTITLE = "Un changement de serveur ou de base relance la capture."
+CARD_GAP = 6
 SERVER_LABEL = "Serveur de jeu"
 DATABASE_LABEL = "Base de données"
 UPDATE_LABEL = "Vérifier les mises à jour au démarrage"
@@ -50,16 +54,39 @@ class SettingsPage:
 
     def __init__(self, parent: customtkinter.CTkBaseClass, context: WindowContext,
                  choose_database: ChooseDatabase = ask_database_path,
-                 refresh: Refresh = refresh_reference_data) -> None:
+                 refresh: Refresh = refresh_reference_data,
+                 open_page: Callable[[str], None] = open_url) -> None:
         self._context, self._choose_database = context, choose_database
-        self.frame, body = make_page(parent, scrollable=True)
-        add_title(body, TITLE, SUBTITLE)
-        self.server_menu = self._add_server_row(body)
-        self.database_label = self._add_database_card(body)
-        self.names_card = NamesCard(body, context, refresh)
-        self.update_switch = self._add_update_row(body)
-        self.message_label = make_label(body, "", color=MUTED_COLOR, wraplength=WRAP_LENGTH)
-        self.message_label.pack()
+        self.frame = customtkinter.CTkFrame(parent, fg_color=TRANSPARENT, corner_radius=0)
+        make_label(self.frame, TITLE, TITLE_SIZE, bold=True, anchor="w").pack(fill="x", padx=PADDING, pady=PADDING)
+        self.message_label = make_label(self.frame, SUBTITLE, color=MUTED_COLOR, anchor="w", wraplength=WRAP_LENGTH)
+        self.message_label.pack(fill="x", padx=PADDING)
+        self._body = customtkinter.CTkScrollableFrame(self.frame, fg_color=TRANSPARENT)
+        self._body.pack(fill="both", expand=True, padx=PADDING, pady=PADDING)
+        self.server_menu = self._add_server_row(self._body)
+        self.database_label = self._add_database_card(self._body)
+        self.names_card = NamesCard(self._body, context, refresh)
+        self.prices_card = PricesCard(self._body, context, self._save)
+        self.update_switch = self._add_update_row(self._body)
+        self.updates_card = UpdatesCard(self._body, context, open_page)
+        self.about_card = AboutCard(self._body, open_page)
+        self._cards = self._body.pack_slaves()
+        self._columns = 0
+        self.frame.bind("<Configure>", lambda event: self.reflow(event.width))
+        self.reflow(CARD_MIN_WIDTH)
+
+    def reflow(self, width: int) -> None:
+        """Lay the cards out in as many columns of at least CARD_MIN_WIDTH as fit."""
+        columns = max(1, width // CARD_MIN_WIDTH)
+        if columns == self._columns:
+            return
+        self._columns = columns
+        for index in range(columns):
+            self._body.grid_columnconfigure(index, weight=1, uniform="cards")
+        for card in self._cards:
+            card.pack_forget()
+        for index, card in enumerate(self._cards):
+            card.grid(row=index // columns, column=index % columns, sticky="new", padx=CARD_GAP, pady=CARD_GAP)
 
     def _add_server_row(self, body: customtkinter.CTkFrame) -> customtkinter.CTkOptionMenu:
         current = self._context.session.server
@@ -135,5 +162,6 @@ class SettingsPage:
                                      text_color=MUTED_COLOR)
 
     def render(self, snapshot: SessionSnapshot) -> None:
-        """Refresh the item-names card (the other settings only change on user actions)."""
+        """Refresh the names and updates cards (the other settings only change on user actions)."""
         self.names_card.render()
+        self.updates_card.render()

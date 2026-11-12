@@ -20,7 +20,7 @@ LAZY_TKINTER_SCRIPT = (
 
 
 def make_context(session) -> module.WindowContext:
-    return module.WindowContext(session, lambda: None, Path("config.json"), [], lambda item_id: "N/A")
+    return module.WindowContext(session, Path("config.json"), [], lambda item_id: "N/A")
 
 
 class FakeSession:
@@ -59,13 +59,6 @@ def test_session_is_stopped_after_the_main_loop(monkeypatch) -> None:
     session = FakeSession()
     assert module.show_window(make_context(session)) == EXIT_OK
     assert events == ["start", "mainloop"] and session.stop_calls == 1
-
-
-def test_open_online_prices_uses_the_saas_url(monkeypatch) -> None:
-    opened: list[str] = []
-    monkeypatch.setattr(module.webbrowser, "open", opened.append)
-    module.open_online_prices()
-    assert opened == [module.SAAS_URL]
 
 
 def run_window_command(monkeypatch, tmp_path, db: str | None, config_text: str | None) -> module.WindowContext:
