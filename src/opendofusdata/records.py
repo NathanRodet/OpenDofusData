@@ -68,19 +68,12 @@ class PetFeeding:
 class BrokenItem:
     """One object broken at the Concasseur: its coefficient (0.5 = 50 %) and the runes obtained."""
 
+    server: str
     item_id: int
     quantity: int
     coefficient: float
     runes: tuple[tuple[int, int], ...]
-
-
-@dataclass(frozen=True)
-class BreakingEvent:
-    """One breaking (a batch of objects destroyed together)."""
-
-    server: str
-    items: tuple[BrokenItem, ...]
     captured_at: str
 
 
-Record = LotPrice | MarketStats | RecyclingEvent | PetFeeding | BreakingEvent
+Record = LotPrice | MarketStats | RecyclingEvent | PetFeeding | BrokenItem

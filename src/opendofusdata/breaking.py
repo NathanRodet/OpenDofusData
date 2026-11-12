@@ -23,7 +23,7 @@ from opendofusdata.protobuf import (
     decode_fields,
     first_field,
 )
-from opendofusdata.records import BreakingEvent, BrokenItem
+from opendofusdata.records import BrokenItem
 
 logger = logging.getLogger(__name__)
 
@@ -59,15 +59,15 @@ class BreakingTracker:
         self._server = server
         self._window = CraftingWindow()
 
-    def feed(self, envelope: Envelope, from_server: bool, captured_at: str) -> BreakingEvent | None:
-        """Update the window state; return the event when a breaking result arrives."""
+    def feed(self, envelope: Envelope, from_server: bool, captured_at: str) -> list[BrokenItem]:
+        """Update the window state; return one record per object when a breaking result arrives."""
         try:
             return self._handle(envelope, from_server, captured_at)
         except DecodeError as error:
             logger.warning("unreadable %s message: %s", envelope.type_name, error)
-            return None
+            return []
 
-    def _handle(self, envelope: Envelope, from_server: bool, captured_at: str) -> BreakingEvent | None:
+    def _handle(self, envelope: Envelope, from_server: bool, captured_at: str) -> list[BrokenItem]:
         kind = envelope.type_name
         if from_server and kind == BREAKING_RESULT_TYPE:
             return self._complete(envelope.payload, captured_at)
@@ -75,14 +75,14 @@ class BreakingTracker:
             self._window.reset()  # the window was used for a recycling: its items are gone
         else:
             self._window.handle(envelope, from_server)
-        return None
+        return []
 
-    def _complete(self, payload: bytes, captured_at: str) -> BreakingEvent | None:
+    def _complete(self, payload: bytes, captured_at: str) -> list[BrokenItem]:
         items = []
         for outcome in _messages(decode_fields(payload), BREAKING_RESULT_ENTRY_FIELD):
             known = self._window.entries.get(read_varint_field(outcome, BREAKING_OBJECT_FIELD) or 0)
             coefficient = _coefficient(outcome)
             if known is not None and coefficient is not None:
-                items.append(BrokenItem(known[0], known[1], coefficient, _runes(outcome)))
+                items.append(BrokenItem(self._server, known[0], known[1], coefficient, _runes(outcome), captured_at))
         self._window.reset()
-        return BreakingEvent(self._server, tuple(items), captured_at) if items else None
+        return items

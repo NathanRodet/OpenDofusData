@@ -8,7 +8,7 @@ from opendofusdata.crafting_window import CraftingWindow
 from opendofusdata.framing import Envelope
 from opendofusdata.log_feed import entry_from_record
 from opendofusdata.pets import PetTracker
-from opendofusdata.records import BreakingEvent, LotPrice, PetFeeding, PetState
+from opendofusdata.records import BrokenItem, LotPrice, PetFeeding, PetState
 from tests.envelopes import bytes_field, int_field
 from tests.test_pets import (
     BONE, BONE_STACK, MOMENT, SERVER, feed, inventory, pet_entry, stack_entry, updated,
@@ -67,9 +67,9 @@ def test_a_pet_feeding_without_resources_can_be_logged() -> None:
     assert entry_from_record(feeding, MOMENT_DATETIME).item_id == 0
 
 
-def test_a_breaking_without_items_can_be_logged() -> None:
-    entry = entry_from_record(BreakingEvent(SERVER, (), "t"), MOMENT_DATETIME)
-    assert (entry.item_id, entry.detail) == (0, "-")
+def test_a_broken_object_without_rune_can_be_logged() -> None:
+    entry = entry_from_record(BrokenItem(SERVER, 942, 1, 0.5, (), "t"), MOMENT_DATETIME)
+    assert (entry.item_id, entry.detail, entry.value) == (942, "50 %", "0 rune")
 
 
 def test_an_unknown_record_type_has_no_category_and_is_dropped_and_logged(caplog) -> None:

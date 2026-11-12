@@ -1,10 +1,10 @@
-"""Tests of the breaking (concassage) tracker, built on the structure seen in the capture of 2026-11-11."""
+"""Tests of the breaking (concassage) tracker: one record per destroyed object, built on real captures."""
 
 import struct
 
 from opendofusdata.breaking import BreakingTracker
 from opendofusdata.framing import Envelope
-from opendofusdata.records import BreakingEvent, BrokenItem
+from opendofusdata.records import BrokenItem
 from tests.envelopes import bytes_field, int_field, varint
 from tests.test_recycling import added, cleared, request, result, updated
 
@@ -35,7 +35,15 @@ def break_request(count: int = 1) -> Envelope:
     return Envelope("jxy", int_field(1, count) + int_field(3, 1))
 
 
-def play(tracker: BreakingTracker, *steps: tuple[Envelope, bool]) -> list[BreakingEvent | None]:
+def float_bits(value: float) -> int:
+    return struct.unpack("<I", struct.pack("<f", value))[0]
+
+
+def item(item_id: int, quantity: int, coefficient: float, runes: tuple[tuple[int, int], ...]) -> BrokenItem:
+    return BrokenItem(SERVER, item_id, quantity, coefficient, runes, MOMENT)
+
+
+def play(tracker: BreakingTracker, *steps: tuple[Envelope, bool]) -> list[list[BrokenItem]]:
     return [tracker.feed(envelope, from_server, MOMENT) for envelope, from_server in steps]
 
 
@@ -43,70 +51,69 @@ def tracker() -> BreakingTracker:
     return BreakingTracker(SERVER)
 
 
-def test_the_real_concassage_of_two_volkornes_gives_one_event_with_coefficients_and_runes() -> None:
+def test_the_real_concassage_of_two_volkornes_gives_one_record_per_object() -> None:
     outcomes = play(tracker(),
                     (added(1, VOLKORNE_ORCHID, ORCHID_STACK), True), (added(1, VOLKORNE_EBONY, EBONY_STACK), True),
                     (break_request(2), False),
                     (broken(outcome(ORCHID_STACK, ((1, GA_PA), (38, INE))), outcome(EBONY_STACK, ((38, AGE),))), True))
-    assert outcomes[:-1] == [None] * 3
-    assert outcomes[-1] == BreakingEvent(SERVER, (
-        BrokenItem(VOLKORNE_ORCHID, 1, 0.5, ((GA_PA, 1), (INE, 38))),
-        BrokenItem(VOLKORNE_EBONY, 1, 0.5, ((AGE, 38),))), MOMENT)
+    assert outcomes[:-1] == [[]] * 3
+    assert outcomes[-1] == [item(VOLKORNE_ORCHID, 1, 0.5, ((GA_PA, 1), (INE, 38))),
+                            item(VOLKORNE_EBONY, 1, 0.5, ((AGE, 38),))]
 
 
 def test_an_item_that_gives_no_rune_is_still_recorded_with_its_coefficient() -> None:
     outcomes = play(tracker(), (added(1, LISSEUR, LISSEUR_STACK), True), (break_request(1), False),
                     (broken(outcome(LISSEUR_STACK, (), FIFTY_THREE_BITS)), True))
-    assert outcomes[-1].items == (BrokenItem(LISSEUR, 1, FIFTY_THREE, ()),)
-    assert round(outcomes[-1].items[0].coefficient * 100) == 53
+    assert outcomes[-1] == [item(LISSEUR, 1, FIFTY_THREE, ())]
+    assert round(outcomes[-1][0].coefficient * 100) == 53
 
 
 def test_the_quantity_comes_from_the_window_and_follows_updates() -> None:
     outcomes = play(tracker(), (added(5, LISSEUR, LISSEUR_STACK), True), (updated(3, LISSEUR, LISSEUR_STACK), True),
                     (broken(outcome(LISSEUR_STACK, ((2, FO),))), True))
-    assert outcomes[-1].items == (BrokenItem(LISSEUR, 3, 0.5, ((FO, 2),)),)
+    assert outcomes[-1] == [item(LISSEUR, 3, 0.5, ((FO, 2),))]
 
 
 def test_a_result_for_an_unknown_object_is_skipped_but_known_ones_are_kept() -> None:
     outcomes = play(tracker(), (added(1, LISSEUR, LISSEUR_STACK), True),
                     (broken(outcome(999, ((1, FO),)), outcome(LISSEUR_STACK, ())), True))
-    assert outcomes[-1].items == (BrokenItem(LISSEUR, 1, 0.5, ()),)
+    assert outcomes[-1] == [item(LISSEUR, 1, 0.5, ())]
 
 
-def test_a_result_with_no_known_object_gives_no_event() -> None:
-    assert play(tracker(), (broken(outcome(999, ((1, FO),))), True)) == [None]
+def test_a_result_with_no_known_object_gives_nothing() -> None:
+    assert play(tracker(), (broken(outcome(999, ((1, FO),))), True)) == [[]]
 
 
 def test_the_window_is_empty_after_a_result() -> None:
     breaking = tracker()
     play(breaking, (added(1, LISSEUR, LISSEUR_STACK), True), (broken(outcome(LISSEUR_STACK, ())), True))
-    assert play(breaking, (broken(outcome(LISSEUR_STACK, ())), True)) == [None]
+    assert play(breaking, (broken(outcome(LISSEUR_STACK, ())), True)) == [[]]
 
 
 def test_closing_the_window_forgets_its_objects() -> None:
     outcomes = play(tracker(), (added(1, LISSEUR, LISSEUR_STACK), True), (cleared(), False),
                     (broken(outcome(LISSEUR_STACK, ())), True))
-    assert outcomes[-1] is None
+    assert outcomes[-1] == []
 
 
 def test_a_recycling_result_empties_the_window_so_its_objects_are_not_broken_later() -> None:
     outcomes = play(tracker(), (added(1, LISSEUR, LISSEUR_STACK), True), (request(), False), (result(0), True),
                     (broken(outcome(LISSEUR_STACK, ())), True))
-    assert outcomes[-1] is None
+    assert outcomes[-1] == []
 
 
 def test_messages_in_the_wrong_direction_are_ignored() -> None:
     outcomes = play(tracker(), (added(1, LISSEUR, LISSEUR_STACK), True),
                     (broken(outcome(LISSEUR_STACK, ())), False))
-    assert outcomes[-1] is None
+    assert outcomes[-1] == []
 
 
 def test_unreadable_payloads_are_ignored_without_raising() -> None:
-    assert play(tracker(), (Envelope("kag", b"\xff\xff\xff"), True), (Envelope("kag", b"\x0a\x05\x08"), True)) == [None, None]
+    assert play(tracker(), (Envelope("kag", b"\xff\xff\xff"), True), (Envelope("kag", b"\x0a\x05\x08"), True)) == [[], []]
 
 
 def test_unrelated_messages_do_nothing() -> None:
-    assert play(tracker(), (Envelope("jzs", b""), True), (break_request(), False)) == [None, None]
+    assert play(tracker(), (Envelope("jzs", b""), True), (break_request(), False)) == [[], []]
 
 
 SANDALS, SANDAL_STACKS = 8228, (6493110, 5121498, 4907810)
@@ -119,19 +126,15 @@ def test_the_real_concassage_of_three_identical_sandals_keeps_each_object_and_it
     steps.append((break_request(3), False))
     steps.append((broken(*(outcome(stack, ((quantity, AGE),), bits) for stack, quantity, bits
                            in zip(SANDAL_STACKS, SANDAL_RUNES, SANDAL_COEFFICIENT_BITS))), True))
-    event = play(tracker(), *steps)[-1]
-    assert [item.item_id for item in event.items] == [SANDALS] * 3
-    assert [item.runes for item in event.items] == [((AGE, 2),), ((AGE, 2),), ((AGE, 1),)]
-    assert [round(item.coefficient * 100) for item in event.items] == [36, 36, 36]
-    assert event.items[0].coefficient > event.items[1].coefficient > event.items[2].coefficient
+    records = play(tracker(), *steps)[-1]
+    assert [record.item_id for record in records] == [SANDALS] * 3
+    assert [record.runes for record in records] == [((AGE, 2),), ((AGE, 2),), ((AGE, 1),)]
+    assert [round(record.coefficient * 100) for record in records] == [36, 36, 36]
+    assert records[0].coefficient > records[1].coefficient > records[2].coefficient
 
 
 MIXED_SHOWN_PERCENT = (44, 26, 98, 16, 16, 35)
 MIXED_COEFFICIENTS = (0.43649, 0.26309, 0.97543, 0.15774, 0.15771, 0.35488)  # seen in game
-
-
-def float_bits(value: float) -> int:
-    return struct.unpack("<I", struct.pack("<f", value))[0]
 
 
 def test_six_objects_of_the_real_capture_round_to_the_percentages_the_game_showed() -> None:
@@ -140,6 +143,6 @@ def test_six_objects_of_the_real_capture_round_to_the_percentages_the_game_showe
     steps.append((updated(2, 905, stacks[5]), True))  # the last object is a stack of two
     steps.append((broken(*(outcome(stack, ((1, AGE),), float_bits(coefficient))
                            for stack, coefficient in zip(stacks, MIXED_COEFFICIENTS))), True))
-    event = play(tracker(), *steps)[-1]
-    assert [round(item.coefficient * 100) for item in event.items] == list(MIXED_SHOWN_PERCENT)
-    assert [item.quantity for item in event.items] == [1, 1, 1, 1, 1, 2]
+    records = play(tracker(), *steps)[-1]
+    assert [round(record.coefficient * 100) for record in records] == list(MIXED_SHOWN_PERCENT)
+    assert [record.quantity for record in records] == [1, 1, 1, 1, 1, 2]

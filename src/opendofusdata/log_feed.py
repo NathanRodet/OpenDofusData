@@ -8,7 +8,7 @@ from datetime import datetime
 
 from opendofusdata.categories import CATEGORY_HDV, CATEGORY_LABELS
 from opendofusdata.records import (
-    MARKET_PERIODS, BreakingEvent, LotPrice, PetFeeding, PetState, Record, RecyclingEvent,
+    MARKET_PERIODS, BrokenItem, LotPrice, PetFeeding, PetState, Record, RecyclingEvent,
 )
 from opendofusdata.session_counters import RecordSink
 
@@ -22,7 +22,6 @@ PET_LABEL = "Familier"
 NOTICE_DETAIL = "ignorée"
 NOTICE_VALUE = "reconnecte"
 BREAKING_LABEL = "Brisage"
-UNKNOWN_COEFFICIENT = "-"
 PERCENT = 100
 UNKNOWN = "?"
 ITEM_SEPARATOR = ", "
@@ -78,20 +77,16 @@ def _pet_gain(before: PetState, after: PetState) -> str:
     return f"+{after.experience - before.experience} XP"
 
 
-def _breaking_entry(record: BreakingEvent, moment: datetime) -> LogEntry:
-    percents = [round(item.coefficient * PERCENT) for item in record.items]
-    shown = UNKNOWN_COEFFICIENT
-    if percents:
-        shown = f"{min(percents)} %" if min(percents) == max(percents) else f"{min(percents)}-{max(percents)} %"
-    runes = sum(quantity for item in record.items for _, quantity in item.runes)
-    first = record.items[0].item_id if record.items else 0
-    return LogEntry(moment, BREAKING_LABEL, first, shown, _plural(runes, "rune"),
-                    tuple((item.item_id, item.quantity) for item in record.items))
+def _breaking_entry(record: BrokenItem, moment: datetime) -> LogEntry:
+    """One line per destroyed object: its coefficient and the number of runes it gave."""
+    runes = sum(quantity for _, quantity in record.runes)
+    return LogEntry(moment, BREAKING_LABEL, record.item_id, f"{round(record.coefficient * PERCENT)} %",
+                    _plural(runes, "rune"), ((record.item_id, record.quantity),))
 
 
 def entry_from_record(record: Record, moment: datetime) -> LogEntry:
     """Summarise a lot price (price of the lot), market stats (median) or a recycling."""
-    if isinstance(record, BreakingEvent):
+    if isinstance(record, BrokenItem):
         return _breaking_entry(record, moment)
     if isinstance(record, PetFeeding):
         level = UNKNOWN if record.after.level is None else record.after.level

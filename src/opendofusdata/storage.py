@@ -8,7 +8,7 @@ import threading
 from collections.abc import Iterator
 
 from opendofusdata.names_schema import NAMES_SCHEMA_STATEMENTS
-from opendofusdata.extra_store import EXTRA_SAVERS, EXTRA_SCHEMA_STATEMENTS
+from opendofusdata.extra_store import EXTRA_SAVERS, prepare_extra_tables
 from opendofusdata.records import LOT_SIZES, MARKET_PERIODS, LotPrice, MarketStats, Record
 
 logger = logging.getLogger(__name__)
@@ -49,8 +49,9 @@ class PriceStore:
     def __init__(self, path: str) -> None:
         connection = sqlite3.connect(path, timeout=BUSY_TIMEOUT_SECONDS)
         try:
-            for statement in (*SCHEMA_STATEMENTS, *NAMES_SCHEMA_STATEMENTS, *EXTRA_SCHEMA_STATEMENTS):
+            for statement in (*SCHEMA_STATEMENTS, *NAMES_SCHEMA_STATEMENTS):
                 connection.execute(statement)
+            prepare_extra_tables(connection)
             connection.commit()
         except sqlite3.Error:
             connection.close()

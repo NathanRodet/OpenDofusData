@@ -58,10 +58,10 @@ class EnvelopeHandler:
         stats = decode_market_stats(envelope, self._server, captured_at)
         self._log(lots, stats)
         from_server = direction_of(key) == DIRECTION_TO_CLIENT
-        others = [self._recycling.feed(envelope, from_server, captured_at),
-                  self._pets.feed(envelope, from_server, captured_at),
-                  self._breaking.feed(envelope, from_server, captured_at)]
-        for record in [*lots, *stats, *(record for record in others if record)]:
+        singles = [self._recycling.feed(envelope, from_server, captured_at),
+                   self._pets.feed(envelope, from_server, captured_at)]
+        broken = self._breaking.feed(envelope, from_server, captured_at)
+        for record in [*lots, *stats, *(record for record in singles if record), *broken]:
             self._writer.submit(record)
             self.submitted_count += 1
         self._show(lots, stats)

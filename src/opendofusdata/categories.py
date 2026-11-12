@@ -6,7 +6,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
 from opendofusdata.records import (
-    BreakingEvent, LotPrice, MarketStats, PetFeeding, Record, RecyclingEvent,
+    BrokenItem, LotPrice, MarketStats, PetFeeding, Record, RecyclingEvent,
 )
 
 logger = logging.getLogger(__name__)
@@ -82,7 +82,7 @@ CATEGORY_BY_TYPE: dict[type, str] = {
     MarketStats: CATEGORY_HDV,
     RecyclingEvent: CATEGORY_RECYCLING,
     PetFeeding: CATEGORY_PETS,
-    BreakingEvent: CATEGORY_BREAKING,
+    BrokenItem: CATEGORY_BREAKING,
 }
 
 

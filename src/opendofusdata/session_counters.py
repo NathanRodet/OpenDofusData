@@ -5,7 +5,7 @@ from collections.abc import Callable
 from datetime import datetime
 from typing import Protocol
 
-from opendofusdata.records import BreakingEvent, LotPrice, PetFeeding, Record, RecyclingEvent
+from opendofusdata.records import BrokenItem, LotPrice, PetFeeding, Record, RecyclingEvent
 
 
 class RecordSink(Protocol):
@@ -35,7 +35,7 @@ class SessionCounters:
                 self._recycling_count += 1
             elif isinstance(record, PetFeeding):
                 self._pet_count += 1
-            elif isinstance(record, BreakingEvent):
+            elif isinstance(record, BrokenItem):
                 self._breaking_count += 1
             else:
                 self._stats_count += 1
