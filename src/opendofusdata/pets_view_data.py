@@ -12,6 +12,7 @@ from opendofusdata.pet_economy import (
 )
 from opendofusdata.pets_store import pet_feedings
 from opendofusdata.price_book import PriceBook
+from opendofusdata.price_rules import bulk_unit_price
 from opendofusdata.records import PetFeeding
 from opendofusdata.time_filters import Window, parse_stored, stored_bounds
 
@@ -70,7 +71,8 @@ def _with_manual(totals: Mapping[int, ResourceExperience],
 
 def _row_of(item_id: int, stats: ResourceExperience | None, last_seen: datetime | None, name_of: ItemLabeler,
             type_of: ItemTyper, book: PriceBook, mode: str, manual: bool = False) -> PetRow:
-    price = book.unit_price(item_id, mode)
+    bulk = bulk_unit_price(book.prices_of(item_id))
+    price = bulk if bulk is not None else book.unit_price(item_id, mode)
     per_unit = experience_per_unit(stats) if stats else None
     ratio = kamas_per_experience(price, per_unit)
     return PetRow(item_id, name_of(item_id), type_of(item_id), price, per_unit, ratio,

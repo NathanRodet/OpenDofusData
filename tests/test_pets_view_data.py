@@ -80,3 +80,11 @@ def test_the_server_is_respected_and_an_unused_resource_has_no_detail(store) -> 
 
 def test_empty_database(store) -> None:
     assert rows_of(store)[0] == []
+
+
+def test_bulk_price_is_the_cheapest_unit_price_of_the_x100_and_x1000_lots() -> None:
+    from opendofusdata.price_rules import ItemPrices, bulk_unit_price
+
+    assert bulk_unit_price(ItemPrices({1: 900, 100: 80_000, 1000: 700_000}, None, None)) == 700.0
+    assert bulk_unit_price(ItemPrices({1: 900, 10: 8_000}, None, None)) is None
+    assert bulk_unit_price(None) is None

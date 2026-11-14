@@ -9,6 +9,7 @@ PRICE_MEAN = "mean"
 PRICE_MODES = (PRICE_LAST, PRICE_MEDIAN, PRICE_MEAN)
 PRICE_MODE_LABELS = {PRICE_LAST: "Dernier prix HDV", PRICE_MEDIAN: "Médian 24 h", PRICE_MEAN: "Moyen 24 h"}
 SINGLE_UNIT_LOT = 1
+BULK_LOT_SIZES = (100, 1000)
 
 
 @dataclass(frozen=True)
@@ -50,3 +51,11 @@ def best_lot_unit_price(prices: ItemPrices | None) -> float | None:
     if prices is None or not prices.lots:
         return None
     return min(price / size for size, price in prices.lots.items())
+
+
+def bulk_unit_price(prices: ItemPrices | None) -> float | None:
+    """The cheapest price per unit among the x100 and x1000 lots (what pet feeding buys); None when neither is known."""
+    if prices is None:
+        return None
+    known = [prices.lots[size] / size for size in BULK_LOT_SIZES if size in prices.lots]
+    return min(known) if known else None
