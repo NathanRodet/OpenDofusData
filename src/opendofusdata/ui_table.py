@@ -47,8 +47,10 @@ class DataTable(customtkinter.CTkFrame):
     """Rows of text with clickable headers; the page replaces the rows, the table re-applies the sort."""
 
     def __init__(self, parent: tkinter.Misc, columns: Sequence[Column], on_select: Callable[[object | None], None],
-                 default_sort: tuple[int, bool]) -> None:
+                 default_sort: tuple[int, bool], editable: Sequence[int] = (),
+                 on_edit: Callable[[object, int, str], None] | None = None) -> None:
         super().__init__(parent, fg_color=TRANSPARENT, corner_radius=0)
+        self._editable, self._on_edit = set(editable), on_edit
         self._columns = list(columns)
         self._on_select = on_select
         self._sort = default_sort
@@ -69,6 +71,7 @@ class DataTable(customtkinter.CTkFrame):
         tree.tag_configure(TAG_UP, foreground=UP_COLOR)
         tree.tag_configure(TAG_DOWN, foreground=DOWN_COLOR)
         tree.bind("<<TreeviewSelect>>", self._selection_changed)
+        tree.bind("<Double-1>", self._begin_edit)
         scrollbar = customtkinter.CTkScrollbar(self, width=SCROLLBAR_WIDTH, command=tree.yview)
         tree.configure(yscrollcommand=scrollbar.set)
         scrollbar.pack(side="right", fill="y")
@@ -89,6 +92,31 @@ class DataTable(customtkinter.CTkFrame):
     def _selection_changed(self, _event: object) -> None:
         if not self._silent:
             self._on_select(self.selected_key())
+
+    def _begin_edit(self, event: tkinter.Event) -> None:
+        """Double-click on an editable cell: a small entry opens on it; Enter saves, Escape cancels."""
+        item = self._tree.identify_row(event.y)
+        column = int(self._tree.identify_column(event.x)[1:]) - 1
+        if not item or column not in self._editable or self._on_edit is None:
+            return
+        x, y, width, height = self._tree.bbox(item, f"#{column + 1}")
+        entry = tkinter.Entry(self._tree, justify="center", bg=HEADER_COLOR, fg=TEXT_COLOR,
+                              insertbackground=TEXT_COLOR, relief="flat")
+        entry.insert(0, self._tree.set(item, str(column)))
+        entry.select_range(0, "end")
+        entry.place(x=x, y=y, width=width, height=height)
+        entry.focus_set()
+        entry.bind("<Return>", lambda _event: self._finish_edit(entry, item, column, True))
+        entry.bind("<Escape>", lambda _event: self._finish_edit(entry, item, column, False))
+        entry.bind("<FocusOut>", lambda _event: self._finish_edit(entry, item, column, False))
+
+    def _finish_edit(self, entry: tkinter.Entry, item: str, column: int, save: bool) -> None:
+        if not entry.winfo_exists():
+            return
+        text = entry.get()
+        entry.destroy()
+        if save and self._on_edit is not None:
+            self._on_edit(self._shown[int(item)].key, column, text)
 
     def sort_by(self, column: int, descending: bool) -> None:
         """Sort by a column and redraw the rows."""
