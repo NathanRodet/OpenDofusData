@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 HDV_OVERRIDES_KEY = "hdv_price_overrides"
 PURCHASE_PRICES_KEY = "purchase_prices"
+THEORY_COEFFICIENTS_KEY = "theory_coefficients"
 SUFFIX_FACTORS = {"k": 1_000, "m": 1_000_000}
 SEPARATORS = (" ", " ", " ")
 
