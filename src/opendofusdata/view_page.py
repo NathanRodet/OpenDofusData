@@ -35,8 +35,7 @@ class ViewPage:
     def __init__(self, parent: customtkinter.CTkBaseClass, context: WindowContext, title: str,
                  columns: Sequence[Column], default_sort: tuple[int, bool], name_column: int,
                  monotonic: Callable[[], float] = time.monotonic, clock: Callable[[], datetime] = utc_now,
-                 editable: Sequence[int] = (), on_edit: Callable[[object, int, str], None] | None = None,
-                 grouped: bool = False) -> None:
+                 editable: Sequence[int] = (), on_edit: Callable[[object, int, str], None] | None = None) -> None:
         self._context, self._name_column = context, name_column
         self._monotonic, self._clock = monotonic, clock
         self._rows: list[TableRow] = []
@@ -47,8 +46,7 @@ class ViewPage:
         self._build_header(title)
         self.split = SplitLayout(self.frame)
         self.split.pack(fill="both", expand=True, padx=PADDING, pady=(0, PADDING))
-        self.table = DataTable(self.split.main, columns, self._selection_changed, default_sort, editable, on_edit,
-                               grouped)
+        self.table = DataTable(self.split.main, columns, self._selection_changed, default_sort, editable, on_edit)
         self.notice = make_label(self.split.main, "", color=MUTED_COLOR, anchor="w")
         self.notice.pack(side="bottom", fill="x")
         self.table.pack(fill="both", expand=True)

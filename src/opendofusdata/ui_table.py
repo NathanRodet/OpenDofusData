@@ -20,7 +20,6 @@ TAG_STRIPE = "stripe"
 ASCENDING_MARK = " ▲"
 DESCENDING_MARK = " ▼"
 SCROLLBAR_WIDTH = 14
-FOLD_COLUMN_WIDTH = 28
 
 
 @dataclass(frozen=True)
@@ -49,7 +48,7 @@ class DataTable(customtkinter.CTkFrame):
 
     def __init__(self, parent: tkinter.Misc, columns: Sequence[Column], on_select: Callable[[object | None], None],
                  default_sort: tuple[int, bool], editable: Sequence[int] = (),
-                 on_edit: Callable[[object, int, str], None] | None = None, grouped: bool = False) -> None:
+                 on_edit: Callable[[object, int, str], None] | None = None) -> None:
         super().__init__(parent, fg_color=TRANSPARENT, corner_radius=0)
         self._editable, self._on_edit = set(editable), on_edit
         self._columns = list(columns)
@@ -58,8 +57,6 @@ class DataTable(customtkinter.CTkFrame):
         self._source: list[TableRow] = []
         self._shown: list[TableRow] = []
         self._keys: dict[str, object] = {}
-        self._groups: dict[str, object] = {}
-        self._grouped = grouped
         self._silent = False
         _define_style(self)
         self._tree = self._build_tree()
@@ -67,9 +64,7 @@ class DataTable(customtkinter.CTkFrame):
 
     def _build_tree(self) -> ttk.Treeview:
         names = [str(index) for index in range(len(self._columns))]
-        tree = ttk.Treeview(self, columns=names, show="tree headings" if self._grouped else "headings",
-                            selectmode="browse", style=STYLE_NAME)
-        tree.column("#0", width=FOLD_COLUMN_WIDTH if self._grouped else 0, minwidth=0, stretch=False)
+        tree = ttk.Treeview(self, columns=names, show="headings", selectmode="browse", style=STYLE_NAME)
         for name, column in zip(names, self._columns):
             tree.column(name, width=column.width, minwidth=column.width // 2,
                         anchor="center", stretch=True)
@@ -143,21 +138,15 @@ class DataTable(customtkinter.CTkFrame):
         selection = self._tree.selection()
         return self._keys.get(selection[0]) if selection else None
 
-    def flat_rows(self) -> list[TableRow]:
-        """The shown rows with their folded children, in display order."""
-        return [shown for row in self._shown for shown in (row, *row.children)]
-
     def set_rows(self, rows: Sequence[TableRow]) -> bool:
         """Show the rows sorted by the current column; keep the selection; True when rows were left out."""
         self._source = list(rows)
         previous = self.selected_key()
-        unfolded = {self._groups[item] for item in self._tree.get_children()
-                    if self._tree.item(item, "open") and item in self._groups}
         self._shown, truncated = limit_rows(sort_rows(self._source, *self._sort))
         self._silent = True
         try:
             self._tree.delete(*self._tree.get_children())
-            self._insert_rows(previous, unfolded)
+            self._insert_rows(previous)
         finally:
             self._silent = False
         if previous is not None and self.selected_key() is None:
@@ -169,21 +158,11 @@ class DataTable(customtkinter.CTkFrame):
         stripe = (TAG_STRIPE,) if index % 2 else ()
         return (*stripe, row.tag) if row.tag else stripe
 
-    def _insert_one(self, row: TableRow, position: int, parent: str, iid: str, selected_key: object | None) -> None:
-        self._tree.insert(parent, "end", iid=iid, values=row.cells, tags=self._tags_of(position, row))
-        self._keys[iid] = row.key
-        if selected_key is not None and row.key == selected_key and not self._tree.selection():
-            self._tree.selection_set(iid)
-
-    def _insert_rows(self, selected_key: object | None, unfolded: set[object] = frozenset()) -> None:
-        self._keys, self._groups = {}, {}
-        position = 0
+    def _insert_rows(self, selected_key: object | None) -> None:
+        self._keys = {}
         for index, row in enumerate(self._shown):
-            self._insert_one(row, position, "", str(index), selected_key)
-            position += 1
-            self._groups[str(index)] = row.group if row.group is not None else row.key
-            for child_index, child in enumerate(row.children):
-                self._insert_one(child, position, str(index), f"{index}.{child_index}", selected_key)
-                position += 1
-            if self._groups[str(index)] in unfolded:
-                self._tree.item(str(index), open=True)
+            iid = str(index)
+            self._tree.insert("", "end", iid=iid, values=row.cells, tags=self._tags_of(index, row))
+            self._keys[iid] = row.key
+            if selected_key is not None and row.key == selected_key and not self._tree.selection():
+                self._tree.selection_set(iid)
