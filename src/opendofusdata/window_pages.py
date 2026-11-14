@@ -3,6 +3,7 @@
 import customtkinter
 
 from opendofusdata.page_breaking import BreakingPage
+from opendofusdata.page_craft import CraftPage
 from opendofusdata.page_hdv import HdvPage
 from opendofusdata.page_logs import LogsPage
 from opendofusdata.page_pets import PetsPage
@@ -10,7 +11,7 @@ from opendofusdata.page_settings import SettingsPage
 from opendofusdata.ui_widgets import Page
 from opendofusdata.window_context import WindowContext
 
-PAGE_NAMES = ("HDV", "Brisage", "Familiers", "Logs", "Réglages")
+PAGE_NAMES = ("HDV", "Brisage", "Craft", "Familiers", "Logs", "Réglages")
 SETTINGS_PAGE = "Réglages"
 
 
@@ -19,6 +20,7 @@ def build_pages(parent: customtkinter.CTkBaseClass, context: WindowContext) -> d
     return {
         "HDV": HdvPage(parent, context),
         "Brisage": BreakingPage(parent, context),
+        "Craft": CraftPage(parent, context),
         "Familiers": PetsPage(parent, context),
         "Logs": LogsPage(parent, context),
         SETTINGS_PAGE: SettingsPage(parent, context),

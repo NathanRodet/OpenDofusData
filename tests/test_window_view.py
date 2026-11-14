@@ -33,9 +33,9 @@ def test_minimum_size_is_760_by_480(root, tmp_path) -> None:
     assert root.wm_minsize() == (MIN_WIDTH, MIN_HEIGHT) == (760, 480)
 
 
-def test_menu_has_the_five_entries_in_order(root, tmp_path) -> None:
+def test_menu_has_the_six_entries_in_order(root, tmp_path) -> None:
     window, _ = build(root, tmp_path)
-    assert list(window.pages) == list(PAGE_NAMES) == ["HDV", "Brisage", "Familiers", "Logs", "Réglages"]
+    assert list(window.pages) == list(PAGE_NAMES) == ["HDV", "Brisage", "Craft", "Familiers", "Logs", "Réglages"]
     window.show_page("Logs")
     assert window.current_page == "Logs"
     assert window.pages["Logs"].frame.winfo_manager() == "pack"

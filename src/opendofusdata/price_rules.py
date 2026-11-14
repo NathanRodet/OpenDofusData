@@ -42,3 +42,10 @@ def unit_price(prices: ItemPrices | None, mode: str) -> float | None:
     if mode == PRICE_MEAN:
         return _optional_float(prices.mean_24h)
     return _last_unit_price(prices.lots)
+
+
+def best_lot_unit_price(prices: ItemPrices | None) -> float | None:
+    """The cheapest price per unit over every known lot size (a x100 lot is often cheaper per unit)."""
+    if prices is None or not prices.lots:
+        return None
+    return min(price / size for size, price in prices.lots.items())
