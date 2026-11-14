@@ -1,6 +1,6 @@
 # Feuille de route
 
-État au 2026-11-13: la V2 (refonte de la fenêtre) est développée. Version du produit: 2.0.0 (tag `v1.0.0` publié; `v1.1.0` et `v2.0.0` à publier sur décision du propriétaire).
+État au 2026-11-15: la V2 (refonte de la fenêtre) est publiée. Version du produit: 2.0.0 (tags `v1.0.0` et `v1.1.0` existants; `v2.0.0` publié le 2026-11-15).
 
 ## Validé en jeu
 

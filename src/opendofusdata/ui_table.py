@@ -9,7 +9,7 @@ import customtkinter
 
 from opendofusdata.table_model import TableRow, limit_rows, sort_rows
 from opendofusdata.ui_theme import (
-    ACCENT_COLOR, BODY_SIZE, DOWN_COLOR, HEADER_COLOR, MUTED_COLOR, ROW_HEIGHT, SELECTED_COLOR, TABLE_COLOR,
+    BODY_SIZE, DOWN_COLOR, HEADER_COLOR, MUTED_COLOR, ROW_HEIGHT, SELECTED_COLOR, TABLE_COLOR,
     STRIPE_COLOR, TEXT_COLOR, TRANSPARENT, UP_COLOR,
 )
 

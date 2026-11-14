@@ -1,7 +1,6 @@
 """CLI commands names-import and names-gaps: item names inside the database."""
 
 import argparse
-import sqlite3
 
 from opendofusdata.capture_errors import EXIT_OK, fail
 from opendofusdata.commands import check_database_path, format_table, with_store

@@ -35,7 +35,6 @@ INVENTORY_LIST_TYPE = "irl"  # server -> client at login: every object of the in
 INVENTORY_ENTRY_FIELD = 2  # repeated: {1: object, 4: container}
 INVENTORY_UPDATE_TYPE = "iqx"  # server -> client: object(s) added or changed after login, same entry shape
 OBJECT_FIELD = 1
-OBJECT_QUANTITY_FIELD = 3
 OBJECT_ITEM_FIELD = 4  # DofusDB item id
 OBJECT_INSTANCE_FIELD = 5
 OBJECT_EFFECTS_FIELD = 7  # repeated effects

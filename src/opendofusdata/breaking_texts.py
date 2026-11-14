@@ -1,4 +1,4 @@
-"""Display texts shared by the two Brisage tabs."""
+"""Display texts of the Brisage page."""
 
 from opendofusdata.breaking_view_data import BreakingRow
 from opendofusdata.ui_table import TAG_DOWN, TAG_UP
@@ -6,7 +6,6 @@ from opendofusdata.value_format import UNKNOWN_TEXT, format_kamas
 
 PERCENT = 100
 PARTIAL_SUFFIX = " partielle"
-MODIFIED_SUFFIX = " (modifié)"
 
 
 def coefficient_text(coefficient: float) -> str:
@@ -26,8 +25,3 @@ def plus_value_tag(plus_value: float | None) -> str | None:
     if plus_value is None:
         return None
     return TAG_UP if round(plus_value) >= 0 else TAG_DOWN
-
-
-def price_text(price: float | None, modified: bool) -> str:
-    """A price, marked when the player typed it."""
-    return format_kamas(price) + (MODIFIED_SUFFIX if modified and price is not None else "")

@@ -8,7 +8,9 @@ import re
 import urllib.error
 import urllib.request
 from collections.abc import Callable
+from email.message import Message
 from pathlib import Path
+from typing import IO
 
 from opendofusdata.names_fetch import USER_AGENT
 from opendofusdata.updates import UpdateInfo, is_allowed_url
@@ -17,7 +19,6 @@ MEGABYTE = 1024 * 1024
 MAX_EXE_BYTES = 200 * MEGABYTE
 MAX_CHECKSUM_BYTES = 4096
 REQUEST_TIMEOUT_SECONDS = 60
-CHUNK_BYTES = MEGABYTE
 SHA256_PATTERN = re.compile(r"^[0-9a-fA-F]{64}$")
 TARGET_NAME = "OpenDofusData-{version}.exe.new"
 NOT_INSTALLABLE_MESSAGE = "Cette version n'est pas installable automatiquement (fichier ou somme de contrôle absent)."
@@ -36,7 +37,8 @@ class UpdateError(Exception):
 class AllowedRedirectHandler(urllib.request.HTTPRedirectHandler):
     """Follows redirects (GitHub serves assets from another host) only to allowed hosts."""
 
-    def redirect_request(self, request, file, code, message, headers, new_url):
+    def redirect_request(self, request: urllib.request.Request, file: IO[bytes], code: int, message: str,
+                         headers: Message, new_url: str) -> urllib.request.Request | None:
         if not is_allowed_url(new_url):
             raise UpdateError(REFUSED_URL_MESSAGE.format(url=new_url))
         return super().redirect_request(request, file, code, message, headers, new_url)

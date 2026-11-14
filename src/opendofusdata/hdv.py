@@ -14,7 +14,6 @@ from opendofusdata.protobuf import (
     WIRE_TYPE_LENGTH_DELIMITED,
     WIRE_TYPE_VARINT,
     DecodeError,
-    Field,
     decode_fields,
     first_field,
     read_varint,
@@ -34,14 +33,6 @@ def unpack_varints(data: bytes) -> list[int]:
         value, offset = read_varint(data, offset)
         values.append(value)
     return values
-
-
-def _find_item_id(detail: list[Field], outer: list[Field]) -> int | None:
-    """Item id from the detail message, else from the outer message."""
-    item_id = first_field(detail, LOT_ITEM_FIELD, WIRE_TYPE_VARINT)
-    if item_id is None:
-        item_id = first_field(outer, LOT_FALLBACK_ITEM_FIELD, WIRE_TYPE_VARINT)
-    return item_id if isinstance(item_id, int) else None
 
 
 def _pair_with_sizes(item_id: int, prices: list[int], server: str, captured_at: str) -> list[LotPrice]:

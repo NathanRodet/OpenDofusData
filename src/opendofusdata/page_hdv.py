@@ -12,7 +12,7 @@ from opendofusdata.ui_stats import StatList, StatRow
 from opendofusdata.ui_table import Column
 from opendofusdata.ui_theme import (
     CARD_COLOR, CORNER_RADIUS, LOG_COLOR, MONOSPACE_FONT, MONOSPACE_SIZE, MUTED_COLOR, PADDING, SMALL_PADDING,
-    TITLE_SIZE, TRANSPARENT,
+    TITLE_SIZE,
 )
 from opendofusdata.ui_widgets import make_card_title, make_label
 from opendofusdata.value_format import UNKNOWN_TEXT, format_kamas

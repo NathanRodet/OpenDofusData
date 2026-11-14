@@ -9,6 +9,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
+from typing import TextIO
 
 from opendofusdata.item_names import ITEMS_CSV_HEADER, ItemEntry
 
@@ -90,7 +91,7 @@ def build_entries(raw_items: list[object], type_names: dict[int, str]) -> BuildR
     return BuildResult([entries[key] for key in sorted(entries)], skipped, duplicates)
 
 
-def _write_rows(file, rows: Iterable[Sequence[object]]) -> None:
+def _write_rows(file: TextIO, rows: Iterable[Sequence[object]]) -> None:
     writer = csv.writer(file, lineterminator="\n")
     writer.writerows(rows)
 
