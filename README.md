@@ -1,70 +1,114 @@
+<div align="center">
+
 # OpenDofusData
 
-OpenDofusData est un petit programme Windows qui **écoute passivement le trafic réseau de Dofus 3** pendant que tu joues et range ce qu'il comprend dans une base de données **sur ton ordinateur**. Il transforme ensuite ces données en tableaux pour t'aider à acheter, briser et nourrir tes familiers plus intelligemment.
+**Turn your Dofus 3 play session into market data you can act on.**
 
-> **Serveur en ligne: à venir.** Pour l'instant, tout reste sur ta machine et **rien n'est envoyé**. Un serveur en ligne qui permettra de synchroniser les prix entre joueurs arrivera plus tard; il ne transmettra que les mêmes données de jeu, jamais d'informations personnelles.
+A small Windows app that passively reads Dofus network traffic and stores prices, breaking results and pet XP in a database on your own computer.
 
-Version actuelle: **2.0.0** (affichée dans Réglages).
+[![Latest release](https://img.shields.io/github/v/release/NathanRodet/OpenDofusData?label=release&color=3b8ed0)](https://github.com/NathanRodet/OpenDofusData/releases/latest)
+![Platform](https://img.shields.io/badge/platform-Windows%2011-3b8ed0)
+![Data stays local](https://img.shields.io/badge/data-stays%20on%20your%20PC-2fb36d)
+![License](https://img.shields.io/badge/license-all%20rights%20reserved-lightgrey)
 
-## Ce que l'outil fait pour toi
+[Download](https://github.com/NathanRodet/OpenDofusData/releases/latest) · [Install](#install) · [Features](#features) · [Privacy](#privacy)
 
-| Page | À quoi ça sert |
+</div>
+
+> **Online sync is coming later.** Today everything stays on your machine and **nothing is sent anywhere**. A server that will let players share and synchronize prices with each other is planned for a later release. It will only ever carry the same game data (never personal information), and the [Privacy](#privacy) section will be updated when it ships.
+
+---
+
+## Features
+
+OpenDofusData listens while you play and turns what it understands into tables, charts and estimates.
+
+| Page | What you get |
 |---|---|
-| **HDV** | Tous les objets dont tu as consulté la fiche à l'HDV: dernier prix, prix médian sur 24 h, nombre vendus, courbes sur 24 h / 7 jours / 30 jours, prix des lots de 1, 10, 100 et 1000, historique des relevés. |
-| **Brisage** | La liste de tes brisages: pour chaque objet, son prix HDV le plus bas, son coefficient de brisage moyen et la plus-value moyenne (valeur des runes obtenues moins prix de l'objet). Un clic détaille la plus-value rune par rune en brisage classique, et en focus sur la stat la plus rentable. |
-| **Craft** | Les crafts dont tous les prix sont connus, du plus rentable au moins rentable, avec le détail des ressources. |
-| **Familiers** | Combien d'XP donne une ressource à un familier, et ce que coûte un point d'XP (trié du moins cher au plus cher). Tu peux ajouter toi-même l'XP observée pour x ressources, voir le « stop » de prix à 25 kamas par XP, et consulter l'onglet **Couverture**: combien de ressources ont un coefficient connu, et lesquelles manquent (filtrable par catégorie). |
-| **Logs** | Ce qui est capté en direct, filtrable par type, période et nom. |
-| **Réglages** | Serveur de jeu, emplacement de la base, noms d'objets, prix utilisé pour les estimations, mises à jour. |
+| **HDV** (market) | Every item whose listing you opened: latest price, 24 h median, units sold, 24 h / 7 d / 30 d price curves, lot prices ×1 / ×10 / ×100 / ×1000 and the full history of snapshots. |
+| **Brisage** (breaking) | Your breakings, item by item: lowest market price, average breaking coefficient and average plus-value (value of the runes obtained minus the item price). Click an item to see the plus-value rune by rune, in classic breaking and in focus on the most profitable stat. |
+| **Craft** | Every craft whose prices are all known, from most to least profitable, with the detail of its resources. |
+| **Familiers** (pets) | How much XP a resource gives a pet and what one XP point costs you, cheapest first. Add your own observed XP for *x* resources, see the **price stop** at 25 kamas per XP, and open the **Coverage** tab to see how many resources have a known coefficient and which ones are still missing (filterable by category). |
+| **Logs** | What is being captured right now, filterable by type, period and name. |
+| **Réglages** (settings) | Game server, database location, item names, the price used for estimates, updates. |
 
-Chaque page se filtre par période (dernière heure, 6 heures, aujourd'hui, 7 jours, 30 jours, tout ou personnalisé), se trie en cliquant sur les en-têtes et ne montre que le serveur choisi dans Réglages.
+Every page can be filtered by period (last hour, 6 hours, today, 7 days, 30 days, all time, or a custom range), sorted by clicking a column header, and only shows the server you picked.
 
-> Le brisage et les familiers sont encore en bêta: ils ont été validés sur les captures d'un seul joueur. Compare ce que tu vois avec l'écran du jeu.
+> **Beta:** breaking and pet data were validated on the captures of a single player. Compare what you see with the game screen.
 
-## Installer
+## Install
 
-1. **Installe [Npcap](https://npcap.com)** (Windows 11). Il n'est pas fourni avec l'outil. Ne coche pas « Restrict Npcap driver's access to Administrators only », sinon lance OpenDofusData en administrateur. Le mode « WinPcap API-compatible » n'est pas nécessaire.
-2. **Télécharge `OpenDofusData.exe`** depuis la page [Releases](https://github.com/NathanRodet/OpenDofusData/releases). Le fichier `OpenDofusData.exe.sha256` contient son empreinte si tu veux la vérifier (`Get-FileHash OpenDofusData.exe`).
-3. **Double-clique sur `OpenDofusData.exe`**, de préférence **avant** de te connecter au jeu. Le programme n'est pas signé: si Windows affiche « Windows a protégé votre ordinateur », clique sur « Informations complémentaires » puis « Exécuter quand même ».
-4. Dans **Réglages**, **choisis ton serveur de jeu** (le trafic ne permet pas de le deviner). La capture redémarre toute seule avec ce choix. Facultatif: « Télécharger les noms » pour voir les noms d'objets au lieu des numéros.
+**Requirements:** Windows 11 and [Npcap](https://npcap.com). No Python needed.
 
-Aucune installation de Python n'est nécessaire.
+**1. Install Npcap**
 
-## Utiliser
+Download and install [Npcap](https://npcap.com). It is not bundled with OpenDofusData.
 
-- Lance le programme **avant** de te connecter au jeu, puis joue normalement. Tu peux le laisser ouvert en arrière-plan; fermer la fenêtre arrête la capture. Il ne démarre pas tout seul avec Windows.
-- **HDV:** seuls les objets dont tu ouvres la fiche sont enregistrés.
-- **Familiers:** l'outil a besoin de l'inventaire envoyé à la connexion pour reconnaître les ressources. Si les Logs indiquent « reconnecte-toi au jeu », déconnecte-toi puis reconnecte-toi une fois l'outil lancé.
-- **Brisage et effets des objets:** certaines estimations demandent des données de référence (effets, runes, recettes) à télécharger une fois depuis DofusDB; voir la [documentation développeur](docs/developpement.md).
-- Le bas du menu à gauche montre l'état de la capture (active, arrêtée, ou une erreur claire comme « Npcap absent »), le serveur et le bouton « Arrêter » / « Relancer ».
+- Leave *"Restrict Npcap driver's access to Administrators only"* **unchecked**, otherwise run OpenDofusData as administrator.
+- The *"WinPcap API-compatible mode"* is not needed.
 
-## Où sont mes données
+**2. Download the app**
 
-Tout est dans `%APPDATA%\OpenDofusData`: la base `prices.db`, la configuration `config.json` et le journal technique `opendofusdata.log`. Tu peux changer l'emplacement de la base dans Réglages.
+Get `OpenDofusData.exe` from the [latest release](https://github.com/NathanRodet/OpenDofusData/releases/latest).
+To verify the download, compare it with the SHA-256 in `OpenDofusData.exe.sha256`:
 
-## Mises à jour
+```powershell
+Get-FileHash OpenDofusData.exe
+```
 
-Elles ne sont **jamais automatiques**. Au démarrage, le programme demande à GitHub s'il existe une version plus récente (une requête anonyme, désactivable dans Réglages). S'il y en a une, un point bleu apparaît à côté de « Réglages ». Un clic sur « Mettre à jour et relancer » télécharge la nouvelle version, vérifie son empreinte SHA-256 et relance le programme. Comme il n'est pas signé, ne mets à jour que depuis les Releases de ce dépôt.
+**3. Run it before you log in to the game**
 
-## Confidentialité
+Double-click `OpenDofusData.exe`. The app is not code-signed, so Windows SmartScreen may show *"Windows protected your PC"*: click **More info**, then **Run anyway**.
 
-- L'outil ne garde que des données de jeu: identifiants d'objets, prix, quantités, dates, et le nom du serveur que tu as choisi.
-- Il **ne stocke ni n'envoie** jamais d'adresse IP, de compte, de nom de personnage ni de chat.
-- **Rien ne quitte ta machine** dans cette version. Les seules connexions du programme sont la vérification des mises à jour (api.github.com, désactivable) et, seulement si tu cliques sur « Télécharger les noms », le téléchargement des noms depuis api.dofusdb.fr.
-- Le code source est public pour que ce comportement puisse être vérifié.
+**4. Pick your game server**
 
-## Limites connues
+Open **Réglages** and choose your server (the traffic does not reveal it). Capture restarts by itself with your choice. Optionally click **Télécharger les noms** to show item names instead of numbers.
 
-- Les messages du jeu changent à chaque mise à jour de Dofus: après une mise à jour du jeu, l'outil peut ne plus rien décoder jusqu'à une nouvelle version (voir la [documentation développeur](docs/developpement.md)).
-- Seuls l'HDV, le brisage et les familiers sont décodés. Pas d'achats, de ventes ni de changements de prix.
-- Un objet sans aucune offre à l'HDV n'est pas enregistré: l'absence de relevé ne veut pas dire prix à 0.
-- Le serveur de jeu n'est pas détecté automatiquement: c'est toi qui le choisis.
+That's it: play, and the pages fill up.
 
-## Pour aller plus loin
+## Using it
 
-- [Documentation développeur](docs/developpement.md): installation depuis les sources, commandes, structure, publication d'une version.
-- [Feuille de route](docs/roadmap.md) et [notes sur le protocole](docs/protocol-notes.md).
+- **Start the app before you log in to Dofus**, then play normally. You can leave the window open in the background; closing it stops the capture. It does not start with Windows.
+- **Market:** only the items whose listing you open are recorded.
+- **Pets:** the app needs the inventory sent at login to recognize resources. If the Logs say *"reconnecte-toi au jeu"*, log out and back in once the app is running.
+- **Breaking and crafts:** some estimates need reference data (item effects, runes, recipes) downloaded once from the public DofusDB API. See the [developer documentation](docs/developpement.md) (in French).
+- The bottom of the left menu shows the capture status (running, stopped, or a clear error such as *Npcap missing*), your server and the **Stop / Restart** button.
 
-## Licence
+## Where your data lives
 
-Tous droits réservés. Le code est publié sur GitHub pour être consulté et vérifié, mais aucune licence n'autorise à le réutiliser, le modifier ni le redistribuer sans l'accord de l'auteur.
+Everything is in `%APPDATA%\OpenDofusData`:
+
+| File | Content |
+|---|---|
+| `prices.db` | Your SQLite database (location can be changed in Réglages) |
+| `config.json` | Your settings |
+| `opendofusdata.log` | Technical log |
+
+## Updates
+
+Updates are **never automatic**. At startup the app asks GitHub whether a newer version exists (one anonymous request, can be turned off in Réglages). If there is one, a blue dot appears next to **Réglages**. Click **Mettre à jour et relancer** to download it, verify its SHA-256 checksum and restart. Since the app is not code-signed, only update from the Releases of this repository.
+
+## Privacy
+
+- Only game data is stored: item IDs, prices, quantities, timestamps and the game server you chose.
+- IP addresses, accounts, character names and chat are **never stored or sent**.
+- **Nothing leaves your machine** in this version. The only network requests the app makes are the update check (`api.github.com`, can be disabled) and, only if you click *Télécharger les noms*, the download of item names from `api.dofusdb.fr`.
+- The source code is public so this behavior can be verified.
+
+## Known limitations
+
+- Dofus message names change with game updates. After a game update the app may stop decoding until a new version is released (see the [developer documentation](docs/developpement.md)).
+- Only the market, breaking and pets are decoded. No purchases, sales or price changes.
+- An item with no offer on the market is not recorded: no snapshot does not mean a price of 0.
+- The game server is not detected automatically: you choose it.
+
+## Learn more
+
+*The following documents are written in French.*
+
+- [Developer documentation](docs/developpement.md): running from source, commands, building and releasing.
+- [Roadmap](docs/roadmap.md) and [protocol notes](docs/protocol-notes.md).
+
+## License
+
+All rights reserved. The code is published on GitHub so it can be read and verified, but no license allows reusing, modifying or redistributing it without the author's permission.
