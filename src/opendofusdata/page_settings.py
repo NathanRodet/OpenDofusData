@@ -19,7 +19,7 @@ from opendofusdata.ui_theme import (
     ACCENT_COLOR, CARD_MIN_WIDTH, ERROR_COLOR, MUTED_COLOR, PADDING, SWITCH_WIDTH, TINY_PADDING, TITLE_SIZE,
     TRANSPARENT, WRAP_LENGTH,
 )
-from opendofusdata.ui_widgets import make_button, make_card, make_label
+from opendofusdata.ui_widgets import make_button, make_card, make_card_title, make_label
 from opendofusdata.window_context import WindowContext
 
 logger = logging.getLogger(__name__)
@@ -97,7 +97,7 @@ class SettingsPage:
         names = list(self._context.server_names)
         values = names if current in names else [current, *names]
         card = make_card(body)
-        make_label(card, SERVER_LABEL, anchor="w").pack(side="left", padx=PADDING, pady=PADDING)
+        make_card_title(card, SERVER_LABEL).pack(side="left", padx=PADDING, pady=PADDING)
         menu = customtkinter.CTkOptionMenu(card, values=values, command=self.choose_server,
                                            fg_color=ACCENT_COLOR)
         menu.set(current)
@@ -106,7 +106,7 @@ class SettingsPage:
 
     def _add_database_card(self, body: customtkinter.CTkFrame) -> customtkinter.CTkLabel:
         card = make_card(body)
-        make_label(card, DATABASE_LABEL, anchor="w").pack(fill="x", padx=PADDING, pady=(PADDING, TINY_PADDING))
+        make_card_title(card, DATABASE_LABEL).pack(fill="x", padx=PADDING, pady=(PADDING, TINY_PADDING))
         label = make_label(card, self._context.session.database_path, color=MUTED_COLOR, anchor="w",
                            justify="left", wraplength=WRAP_LENGTH)
         label.pack(fill="x", padx=PADDING)
@@ -115,7 +115,7 @@ class SettingsPage:
 
     def _add_update_row(self, body: customtkinter.CTkFrame) -> customtkinter.CTkSwitch:
         card = make_card(body)
-        make_label(card, UPDATE_LABEL, anchor="w").pack(side="left", padx=PADDING, pady=PADDING)
+        make_card_title(card, UPDATE_LABEL).pack(side="left", padx=PADDING, pady=PADDING)
         switch = customtkinter.CTkSwitch(card, text="", width=SWITCH_WIDTH, progress_color=ACCENT_COLOR,
                                          command=self._update_toggled)
         switch.pack(side="right", padx=PADDING)

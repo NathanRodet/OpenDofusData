@@ -16,10 +16,11 @@ from opendofusdata.table_model import TableRow
 from opendofusdata.time_filters import Window, local_text
 from opendofusdata.timeutil import format_utc
 from opendofusdata.ui_chart import ChartPoint, DatedChart
+from opendofusdata.ui_stats import StatList, StatRow
 from opendofusdata.ui_table import TAG_UP, Column
-from opendofusdata.ui_theme import CARD_COLOR, CORNER_RADIUS, MUTED_COLOR, PADDING, SMALL_PADDING, TITLE_SIZE
+from opendofusdata.ui_theme import ERROR_COLOR, SUCCESS_COLOR, CARD_COLOR, CORNER_RADIUS, MUTED_COLOR, PADDING, SMALL_PADDING, TITLE_SIZE
 from opendofusdata.ui_widgets import make_label
-from opendofusdata.value_format import format_experience_per_unit, format_kamas, format_kamas_per_experience
+from opendofusdata.value_format import UNKNOWN_TEXT, format_experience_per_unit, format_kamas, format_kamas_per_experience
 from opendofusdata.view_page import ViewPage
 from opendofusdata.window_context import WindowContext
 
@@ -34,7 +35,6 @@ UNRELIABLE_SUFFIX = " peu fiable"
 MANUAL_SUFFIX = " + saisi"
 STALE_SUFFIX = " (ancien)"
 FRESH_PRICE_HOURS = 24  # a x100 / x1000 price older than this is replaced by the last sale price
-TILES_SIZE = 15
 MAX_KAMAS_PER_XP = 25  # a resource costing more than this per XP point is not worth buying
 NO_SELECTION_TEXT = "Sélectionne une ressource pour voir ses relevés."
 
@@ -49,15 +49,17 @@ def bulk_text(row: PetRow) -> str:
     return format_kamas(row.bulk_price) + (STALE_SUFFIX if row.bulk_stale else "")
 
 
-def stop_text(row: PetRow) -> str:
-    """The highest price of one resource worth paying (stop at MAX_KAMAS_PER_XP per XP), and whether it is exceeded."""
+def stop_row(row: PetRow) -> StatRow:
+    """The highest price of one resource worth paying (stop at MAX_KAMAS_PER_XP per XP), green or red."""
+    label = f"Stop ({MAX_KAMAS_PER_XP} kamas par XP)"
     if row.per_unit is None or row.per_unit <= 0:
-        return f"Stop à {MAX_KAMAS_PER_XP} kamas par XP : inconnu"
+        return (label, UNKNOWN_TEXT, None)
     stop = MAX_KAMAS_PER_XP * row.per_unit
-    verdict = ""
-    if row.unit_price is not None:
-        verdict = " — DÉPASSÉ" if row.unit_price > stop else " — OK"
-    return f"Stop à {MAX_KAMAS_PER_XP} kamas par XP : {format_kamas(stop)} kamas la ressource{verdict}"
+    if row.unit_price is None:
+        return (label, f"{format_kamas(stop)} kamas", None)
+    exceeded = row.unit_price > stop
+    return (label, f"{format_kamas(stop)} kamas" + (" — dépassé" if exceeded else ""),
+            ERROR_COLOR if exceeded else SUCCESS_COLOR)
 
 
 def best_keys(rows: list[PetRow]) -> set[int]:
@@ -87,8 +89,8 @@ class PetsPage(ViewPage):
         self.form.pack(fill="x", padx=PADDING, pady=(PADDING, 0))
         self.name_label = make_label(card, NO_SELECTION_TEXT, TITLE_SIZE, bold=True, anchor="w", wraplength=300)
         self.name_label.pack(fill="x", padx=PADDING, pady=(PADDING, SMALL_PADDING))
-        self.tiles_label = make_label(card, "", TILES_SIZE, anchor="w", justify="left", wraplength=300)
-        self.tiles_label.pack(fill="x", padx=PADDING)
+        self.stats_list = StatList(card)
+        self.stats_list.pack(fill="x", padx=PADDING, pady=SMALL_PADDING)
         self.chart = DatedChart(card)
         self.chart.pack(fill="x", padx=PADDING, pady=SMALL_PADDING)
         self.upgrades_label = make_label(card, "", color=MUTED_COLOR, anchor="w", justify="left")
@@ -147,20 +149,19 @@ class PetsPage(ViewPage):
 
     def _clear_detail(self) -> None:
         self.name_label.configure(text=NO_SELECTION_TEXT)
-        self.tiles_label.configure(text="")
+        self.stats_list.set_rows(())
         self.upgrades_label.configure(text="")
         self.chart.clear()
 
     def _fill_detail(self, detail: PetDetail) -> None:
         row = detail.row
         self.name_label.configure(text=row.name)
-        self.tiles_label.configure(text=(
-            f"XP pour 1 ressource : {format_experience_per_unit(row.per_unit)}\n"
-            f"Prix d'1 ressource utilisé : {format_kamas(row.unit_price)} kamas\n"
-            f"Prix moyen : {format_kamas(row.sale_price)} kamas\n"
-            f"Kamas par XP : {format_kamas_per_experience(row.kamas_per_xp)}\n"
-            f"{stop_text(row)}\n"
-            f"Coût pour monter un familier : {format_kamas(row.cost)} kamas"))
+        self.stats_list.set_rows([
+            ("XP pour 1 ressource", format_experience_per_unit(row.per_unit), None),
+            ("Prix d'1 ressource utilisé", f"{format_kamas(row.unit_price)} kamas", None),
+            ("Prix moyen", f"{format_kamas(row.sale_price)} kamas", None),
+            ("Kamas par XP", format_kamas_per_experience(row.kamas_per_xp), None), stop_row(row),
+            ("Coût pour monter un familier", f"{format_kamas(row.cost)} kamas", None)])
         self.chart.set_series([ChartPoint(moment, ratio, f"Prix : {format_kamas(price)} kamas l'unité")
                                for moment, ratio, price in detail.ratio_points], "kamas par XP", 1)
         self.upgrades_label.configure(text="\n".join(upgrade_text(upgrade) for upgrade in detail.upgrades))

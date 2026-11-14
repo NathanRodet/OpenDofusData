@@ -142,9 +142,10 @@ def test_bulk_price_column_shows_the_unit_price_and_marks_an_old_one(root, tmp_p
 
 def test_stop_text_flags_a_price_above_25_kamas_per_xp() -> None:
     from dataclasses import replace
-    from opendofusdata.page_pets import stop_text
+    from opendofusdata.page_pets import stop_row
+    from opendofusdata.value_format import UNKNOWN_TEXT
     from opendofusdata.pets_view_data import PetRow
     row = PetRow(1, "Gratrooll", "Os", 100.0, 2.0, 50.0, 3, 0.0, True, False, None, None, False)
-    assert stop_text(row).endswith("50 kamas la ressource — DÉPASSÉ")
-    assert stop_text(replace(row, unit_price=40.0)).endswith("— OK")
-    assert stop_text(replace(row, per_unit=None)).endswith("inconnu")
+    assert stop_row(row)[1] == "50 kamas — dépassé"
+    assert stop_row(replace(row, unit_price=40.0))[1] == "50 kamas"
+    assert stop_row(replace(row, per_unit=None))[1] == UNKNOWN_TEXT

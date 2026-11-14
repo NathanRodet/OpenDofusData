@@ -50,7 +50,7 @@ def test_selecting_a_row_fills_the_detail_and_the_chart(root, tmp_path) -> None:
     root.update()
     assert "Flèche du Chafer Archer" in page.name_label.cget("text")
     assert len(page.chart._points) == 2
-    assert "Lot ×1 : 80 kamas" in page.lots_label.cget("text")
+    assert ("Lot ×1", "80 kamas", None) in page.lots_list.rows
     store.close()
 
 

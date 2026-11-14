@@ -8,12 +8,13 @@ from opendofusdata.hdv_view_data import HdvDetail, hdv_detail, hdv_rows
 from opendofusdata.table_model import TableRow
 from opendofusdata.time_filters import Window, elapsed_text, local_text, parse_stored
 from opendofusdata.ui_chart import ChartPoint, DatedChart
+from opendofusdata.ui_stats import StatList, StatRow
 from opendofusdata.ui_table import Column
 from opendofusdata.ui_theme import (
     CARD_COLOR, CORNER_RADIUS, LOG_COLOR, MONOSPACE_FONT, MONOSPACE_SIZE, MUTED_COLOR, PADDING, SMALL_PADDING,
     TITLE_SIZE, TRANSPARENT,
 )
-from opendofusdata.ui_widgets import make_label
+from opendofusdata.ui_widgets import make_card_title, make_label
 from opendofusdata.value_format import UNKNOWN_TEXT, format_kamas
 from opendofusdata.view_page import ViewPage
 from opendofusdata.window_context import WindowContext
@@ -25,6 +26,8 @@ LAST_SEEN_COLUMN = 5
 CHART_PERIODS = {"24 h": "24h", "7 j": "7d", "30 j": "30d"}
 NO_SELECTION_TEXT = "Sélectionne un objet pour voir son détail."
 HISTORY_HEIGHT = 140
+LOTS_TITLE = "Prix par lot"
+HISTORY_TITLE = "Derniers relevés"
 
 
 def _number_text(value: int | None) -> str:
@@ -45,21 +48,23 @@ class HdvPage(ViewPage):
         card.pack(fill="both", expand=True)
         self.name_label = make_label(card, NO_SELECTION_TEXT, TITLE_SIZE, bold=True, anchor="w", wraplength=300)
         self.name_label.pack(fill="x", padx=PADDING, pady=(PADDING, SMALL_PADDING))
-        self.tiles_label = make_label(card, "", anchor="w", justify="left")
-        self.tiles_label.pack(fill="x", padx=PADDING)
-        self.seen_label = make_label(card, "", color=MUTED_COLOR, anchor="w")
-        self.seen_label.pack(fill="x", padx=PADDING, pady=SMALL_PADDING)
+        self.type_label = make_label(card, "", color=MUTED_COLOR, anchor="w")
+        self.type_label.pack(fill="x", padx=PADDING)
+        self.stats_list = StatList(card)
+        self.stats_list.pack(fill="x", padx=PADDING, pady=SMALL_PADDING)
         tabs = customtkinter.CTkSegmentedButton(card, values=list(CHART_PERIODS), command=self._tab_chosen)
         tabs.set("24 h")
-        tabs.pack(padx=PADDING, anchor="w")
+        tabs.pack(padx=PADDING, pady=(SMALL_PADDING, 0), anchor="w")
         self.chart = DatedChart(card)
         self.chart.pack(fill="x", padx=PADDING, pady=SMALL_PADDING)
-        self.lots_label = make_label(card, "", anchor="w", justify="left")
-        self.lots_label.pack(fill="x", padx=PADDING)
+        make_card_title(card, LOTS_TITLE).pack(fill="x", padx=PADDING, pady=(PADDING, SMALL_PADDING))
+        self.lots_list = StatList(card)
+        self.lots_list.pack(fill="x", padx=PADDING)
+        make_card_title(card, HISTORY_TITLE).pack(fill="x", padx=PADDING, pady=(PADDING, SMALL_PADDING))
         font = customtkinter.CTkFont(family=MONOSPACE_FONT, size=MONOSPACE_SIZE)
         self.history_box = customtkinter.CTkTextbox(card, height=HISTORY_HEIGHT, font=font, fg_color=LOG_COLOR,
                                                     state="disabled")
-        self.history_box.pack(fill="x", padx=PADDING, pady=PADDING)
+        self.history_box.pack(fill="x", padx=PADDING, pady=(0, PADDING))
 
     def load_rows(self, connection: sqlite3.Connection, server: str, window: Window) -> list[TableRow]:
         """One row per item captured inside the window."""
@@ -87,22 +92,24 @@ class HdvPage(ViewPage):
         detail = self._detail
         if detail is None:
             self.name_label.configure(text=NO_SELECTION_TEXT)
-            for label in (self.tiles_label, self.seen_label, self.lots_label):
-                label.configure(text="")
+            self.type_label.configure(text="")
+            self.stats_list.set_rows(())
+            self.lots_list.set_rows(())
             self.chart.clear()
             self._set_history("")
             return
-        self.name_label.configure(text=f"{detail.name}\n{detail.type_name}")
-        self.tiles_label.configure(text=self._tiles_text(detail))
-        self.lots_label.configure(text="\n".join(f"Lot ×{size} : {format_kamas(price)} kamas"
-                                                 for size, price in sorted(detail.lots.items())))
+        self.name_label.configure(text=detail.name)
+        self.type_label.configure(text=detail.type_name)
+        self.lots_list.set_rows([(f"Lot ×{size}", f"{format_kamas(price)} kamas", None)
+                                 for size, price in sorted(detail.lots.items())])
         self._draw_chart(detail)
         self._draw_history(detail)
 
-    def _tiles_text(self, detail: HdvDetail) -> str:
+    def _stat_rows(self, detail: HdvDetail, last_seen: str) -> list[StatRow]:
         median, mean, sold = detail.stats.get(self._chart_period, (None, None, None))
-        return (f"Médian : {_number_text(median)} kamas\nMoyen : {_number_text(mean)} kamas\n"
-                f"Vendus : {_number_text(sold)}")
+        rows: list[StatRow] = [("Médian", f"{_number_text(median)} kamas", None),
+                               ("Moyen", f"{_number_text(mean)} kamas", None), ("Vendus", _number_text(sold), None)]
+        return rows + ([("Dernier relevé", last_seen, None)] if last_seen else [])
 
     def _draw_chart(self, detail: HdvDetail) -> None:
         curve = detail.curves.get(self._chart_period, [])
@@ -113,7 +120,7 @@ class HdvPage(ViewPage):
         lines = [f"{local_text(parse_stored(lot.captured_at))}   ×{lot.lot_size}   {format_kamas(lot.price)}"
                  for lot in detail.history]
         last = local_text(parse_stored(detail.history[0].captured_at)) if detail.history else ""
-        self.seen_label.configure(text=f"Dernier relevé : {last}" if last else "")
+        self.stats_list.set_rows(self._stat_rows(detail, last))
         self._set_history("\n".join(lines))
 
     def _set_history(self, text: str) -> None:

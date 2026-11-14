@@ -9,7 +9,7 @@ from opendofusdata import __version__
 from opendofusdata.app_links import REPOSITORY_URL
 from opendofusdata.background import TaskState
 from opendofusdata.ui_theme import ACCENT_COLOR, ERROR_COLOR, MUTED_COLOR, PADDING, TINY_PADDING, WRAP_LENGTH
-from opendofusdata.ui_widgets import make_button, make_card, make_label
+from opendofusdata.ui_widgets import make_button, make_card, make_card_title, make_label
 from opendofusdata.updates import is_allowed_url
 from opendofusdata.window_context import WindowContext
 
@@ -46,7 +46,7 @@ class UpdatesCard:
                  open_page: Callable[[str], None] = open_url) -> None:
         self._context, self._open_page = context, open_page
         card = make_card(parent)
-        make_label(card, UPDATES_TITLE, anchor="w").pack(fill="x", padx=PADDING, pady=(PADDING, TINY_PADDING))
+        make_card_title(card, UPDATES_TITLE).pack(fill="x", padx=PADDING, pady=(PADDING, TINY_PADDING))
         self.version_label = make_label(card, f"Version {__version__}", color=MUTED_COLOR, anchor="w")
         self.version_label.pack(fill="x", padx=PADDING)
         self.update_label = make_label(card, "", anchor="w", justify="left", wraplength=WRAP_LENGTH)
@@ -100,7 +100,7 @@ class AboutCard:
 
     def __init__(self, parent: customtkinter.CTkFrame, open_page: Callable[[str], None] = open_url) -> None:
         card = make_card(parent)
-        make_label(card, ABOUT_TITLE, anchor="w").pack(fill="x", padx=PADDING, pady=(PADDING, TINY_PADDING))
+        make_card_title(card, ABOUT_TITLE).pack(fill="x", padx=PADDING, pady=(PADDING, TINY_PADDING))
         self.summary_label = make_label(card, SUMMARY, color=MUTED_COLOR, anchor="w", justify="left",
                                        wraplength=WRAP_LENGTH)
         self.summary_label.pack(fill="x", padx=PADDING)

@@ -8,7 +8,7 @@ import customtkinter
 from opendofusdata.capture_session import SessionSnapshot
 from opendofusdata.ui_theme import (
     ACCENT_COLOR, ACCENT_HOVER_COLOR, BODY_SIZE, BUTTON_HEIGHT, CARD_COLOR, CORNER_RADIUS,
-    PAGE_BUTTON_WIDTH, SMALL_PADDING, TEXT_COLOR,
+    CARD_TITLE_SIZE, PAGE_BUTTON_WIDTH, SMALL_PADDING, TEXT_COLOR,
 )
 
 
@@ -27,6 +27,11 @@ def make_label(
     """A label with the window font; extra options go to CTkLabel."""
     font = customtkinter.CTkFont(size=size, weight="bold" if bold else "normal")
     return customtkinter.CTkLabel(parent, text=text, font=font, text_color=color, **options)
+
+
+def make_card_title(parent: customtkinter.CTkBaseClass, text: str) -> customtkinter.CTkLabel:
+    """The bold title of a card or of a section of a detail panel."""
+    return make_label(parent, text, CARD_TITLE_SIZE, bold=True, anchor="w")
 
 
 def make_button(

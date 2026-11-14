@@ -10,7 +10,7 @@ from opendofusdata.background import BackgroundTask, TaskState
 from opendofusdata.names_fetch import NamesFetchError, TransientFetchError
 from opendofusdata.names_refresh import RefreshResult, loaded_item_count
 from opendofusdata.ui_theme import ERROR_COLOR, MUTED_COLOR, PADDING, TINY_PADDING, WRAP_LENGTH
-from opendofusdata.ui_widgets import make_button, make_card, make_label
+from opendofusdata.ui_widgets import make_button, make_card, make_card_title, make_label
 from opendofusdata.window_context import WindowContext
 
 TITLE = "Noms d'objets"
@@ -34,7 +34,7 @@ class NamesCard:
         self._count = loaded_item_count(context.session.database_path)
         self.task = BackgroundTask(self._download, FAILURES)
         card = make_card(parent)
-        make_label(card, TITLE, anchor="w").pack(fill="x", padx=PADDING, pady=(PADDING, TINY_PADDING))
+        make_card_title(card, TITLE).pack(fill="x", padx=PADDING, pady=(PADDING, TINY_PADDING))
         self.status_label = make_label(card, "", color=MUTED_COLOR, anchor="w", justify="left",
                                        wraplength=WRAP_LENGTH)
         self.status_label.pack(fill="x", padx=PADDING)
