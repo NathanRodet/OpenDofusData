@@ -5,7 +5,7 @@ import sqlite3
 import customtkinter
 
 from opendofusdata.breaking_texts import plus_value_tag
-from opendofusdata.craft_economy import CraftRow
+from opendofusdata.craft_economy import CraftRow, missing_prices
 from opendofusdata.craft_view_data import craft_rows
 from opendofusdata.recipes_csv import DEFAULT_RECIPES_FILE, DEFAULT_RECIPES_PATH, Recipe, load_recipes
 from opendofusdata.table_model import TableRow
@@ -25,6 +25,8 @@ NO_SELECTION_TEXT = "Sélectionne un craft pour voir ses ressources."
 NO_RECIPES_TEXT = "Aucune recette : lance « recipes-update » pour télécharger les recettes (DofusDB)."
 PERCENT_FORMAT = "{:+.0f} %"
 UNKNOWN_PRICE_TEXT = "prix inconnu"
+MISSING_LIMIT = 15
+MISSING_TITLE = "À relever à l'HDV (ils bloquent le plus de crafts) :"
 
 
 class CraftPage(ViewPage):
@@ -68,8 +70,13 @@ class CraftPage(ViewPage):
         row = self._craft_rows.get(key) if key is not None else None
         if row is None:
             self.name_label.configure(text=NO_SELECTION_TEXT)
-            self.ingredients_label.configure(text="")
+            self.ingredients_label.configure(text=self._missing_text())
             return
         self.name_label.configure(text=self._context.name_of(row.item_id))
         lines = [self._ingredient_line(*ingredient) for ingredient in row.ingredients]
         self.ingredients_label.configure(text="\n".join(lines))
+
+    def _missing_text(self) -> str:
+        blocked = missing_prices(self._craft_rows.values(), MISSING_LIMIT)
+        lines = [f"{self._context.name_of(item)} : {count} craft(s)" for item, count in blocked]
+        return "\n".join([MISSING_TITLE, *lines]) if lines else ""

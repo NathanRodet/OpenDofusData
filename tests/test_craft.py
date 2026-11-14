@@ -48,3 +48,12 @@ def test_recipes_update_writes_the_csv(tmp_path) -> None:
     output = tmp_path / "out.csv"
     assert recipes_update_command(argparse.Namespace(output=str(output)), lambda url: page, 0, lambda s: None) == 0
     assert load_recipes(output) == [Recipe(44, ((16512, 3), (303, 3)))]
+
+
+def test_missing_prices_rank_the_items_blocking_most_crafts() -> None:
+    from opendofusdata.craft_economy import missing_prices
+
+    prices = {10: 5.0}
+    rows = [craft_row(Recipe(1, ((10, 1), (11, 1))), 9.0, prices.get),
+            craft_row(Recipe(2, ((11, 2), (12, 1))), None, prices.get)]
+    assert missing_prices(rows, 3) == [(11, 2), (2, 1), (12, 1)]

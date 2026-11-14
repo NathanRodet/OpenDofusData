@@ -8,7 +8,7 @@ from opendofusdata.breaking_theory import base_runes_by_action, expected_runes
 from opendofusdata.breaking_view_data import breaking_rows
 from opendofusdata.effects_csv import ItemEffects, Rune
 from opendofusdata.price_book import PriceBook
-from opendofusdata.price_rules import PRICE_LAST, PRICE_MEAN
+from opendofusdata.price_rules import PRICE_LAST, PRICE_MEAN, ItemPrices
 from opendofusdata.time_filters import Window
 
 UNBOUNDED: Window = (None, None)
@@ -28,6 +28,7 @@ class TheoryRow:
     plus_value: float
     real_runes_value: float | None
     breakings: int
+    seen_at: str | None = None
 
 
 def rune_price(book: PriceBook, rune_id: int) -> float | None:
@@ -72,4 +73,5 @@ def _row_of(item: ItemEffects, book: PriceBook, base: Mapping[int, Rune],
         return None
     value = sum(count * unit for _, count, unit in lines if unit is not None)
     return TheoryRow(item.item_id, price, coefficient, seen is not None and typed is None, tuple(lines), value,
-                     value - price, seen[1] if seen else None, seen[2] if seen else 0)
+                     value - price, seen[1] if seen else None, seen[2] if seen else 0,
+                     (book.prices_of(item.item_id) or ItemPrices({}, None, None)).seen_at)

@@ -1,6 +1,7 @@
 """Brisage tab 3: runes a breaking should give by the formula, for every object with a known HDV price."""
 
 import sqlite3
+from datetime import datetime
 
 import customtkinter
 
@@ -8,7 +9,7 @@ from opendofusdata.breaking_texts import coefficient_text, plus_value_tag
 from opendofusdata.effects_csv import EFFECTS_FILE, RUNES_FILE, ItemEffects, Rune, load_item_effects, load_runes
 from opendofusdata.table_model import TableRow
 from opendofusdata.theory_view_data import TheoryRow, theory_rows
-from opendofusdata.time_filters import Window
+from opendofusdata.time_filters import Window, elapsed_text, parse_stored
 from opendofusdata.ui_table import Column
 from opendofusdata.ui_theme import CARD_COLOR, CORNER_RADIUS, MUTED_COLOR, PADDING, SMALL_PADDING, TITLE_SIZE
 from opendofusdata.ui_widgets import make_label
@@ -21,7 +22,7 @@ TITLE = "Brisage théorique (formule, prix moyens des runes)"
 COLUMNS = (Column("Objet", 230), Column("Prix HDV le plus bas", 160, True),
            Column("Coefficient % (double-clic)", 190, True), Column("Valeur attendue des runes", 190, True),
            Column("Plus-value attendue", 160, True), Column("Valeur réelle moyenne", 170, True),
-           Column("Brisages", 90, True))
+           Column("Brisages", 90, True), Column("Prix HDV relevé", 130))
 COEFFICIENT_COLUMN = 2
 PLUS_VALUE_COLUMN = 4
 PERCENT = 100
@@ -78,16 +79,18 @@ class TheoryPage(ViewPage):
         rows = theory_rows(connection, server, self._effects, self._runes, typed, self._context.name_of)
         self._theory_rows = {row.item_id: row for row in rows}
         self.notice.configure(text="" if self._effects else NO_DATA_TEXT)
-        return [self._table_row(row, row.item_id in typed) for row in rows]
+        now = self._clock()
+        return [self._table_row(row, row.item_id in typed, now) for row in rows]
 
-    def _table_row(self, row: TheoryRow, typed: bool) -> TableRow:
+    def _table_row(self, row: TheoryRow, typed: bool, now: datetime) -> TableRow:
         name = self._context.name_of(row.item_id)
         suffix = MODIFIED if typed else (OBSERVED if row.observed else "")
+        age = "" if row.seen_at is None else elapsed_text(parse_stored(row.seen_at), now)
         real = "" if row.real_runes_value is None else format_kamas(row.real_runes_value)
         cells = (name, format_kamas(row.hdv_price), coefficient_text(row.coefficient) + suffix,
-                 format_kamas(row.runes_value), format_signed_kamas(row.plus_value), real, str(row.breakings))
+                 format_kamas(row.runes_value), format_signed_kamas(row.plus_value), real, str(row.breakings), age)
         sort_values = (name.casefold(), row.hdv_price, row.coefficient, row.runes_value, row.plus_value,
-                       row.real_runes_value, row.breakings)
+                       row.real_runes_value, row.breakings, row.seen_at or "")
         return TableRow(row.item_id, cells, sort_values, plus_value_tag(row.plus_value))
 
     def show_detail(self, connection: sqlite3.Connection, server: str, key: object | None) -> None:

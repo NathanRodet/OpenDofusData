@@ -18,6 +18,7 @@ class ItemPrices:
     lots: Mapping[int, int]
     median_24h: int | None
     mean_24h: int | None
+    seen_at: str | None = None  # stored UTC time of the newest lot price
 
 
 def _last_unit_price(lots: Mapping[int, int]) -> float | None:

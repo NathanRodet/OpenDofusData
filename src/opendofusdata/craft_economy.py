@@ -1,6 +1,7 @@
 """What a craft costs and earns: pure logic."""
 
-from collections.abc import Callable
+from collections import Counter
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 
 from opendofusdata.recipes_csv import Recipe
@@ -35,3 +36,14 @@ def craft_row(recipe: Recipe, sale_price: float | None, ingredient_price: Callab
     margin = sale_price - cost
     percent = margin * PERCENT / cost if cost else None
     return CraftRow(recipe.result_id, sale_price, cost, margin, percent, ingredients)
+
+
+def _missing_of(row: CraftRow) -> list[int]:
+    missing = [item for item, _, price in row.ingredients if price is None]
+    return missing + ([row.item_id] if row.sale_price is None else [])
+
+
+def missing_prices(rows: Iterable[CraftRow], limit: int) -> list[tuple[int, int]]:
+    """The items without a price that block the most crafts, as (item id, blocked crafts), most blocking first."""
+    counts = Counter(item for row in rows for item in _missing_of(row))
+    return sorted(counts.items(), key=lambda entry: (-entry[1], entry[0]))[:limit]
