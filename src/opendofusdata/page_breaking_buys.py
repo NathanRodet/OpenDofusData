@@ -29,7 +29,8 @@ PRICE_COLUMN = 4
 NAME_COLUMN = 1
 BAD_PRICE_NOTICE = "Prix illisible : écris un nombre (95000, 95 000, 1,5k). Vide = reprendre le prix de l'HDV du moment."
 SAVE_FAILED_NOTICE = "Le prix n'a pas pu être enregistré (voir le journal)."
-NO_SELECTION_TEXT = "Sélectionne un brisage pour voir ses runes."
+NO_SELECTION_TEXT = "Sélectionne un brisage pour voir la rentabilité de chaque rune."
+PERCENT = 100
 
 
 def entry_key(row: BreakingRow) -> str:
@@ -115,7 +116,21 @@ class PurchasesPage(ViewPage):
             self.name_label.configure(text=NO_SELECTION_TEXT)
             self.runes_label.configure(text="")
             return
-        names = self._context.name_of
         self.name_label.configure(text=row.name)
-        lines = [f"{names(rune)} ×{count}" for rune, count in row.runes] or ["Aucune rune"]
-        self.runes_label.configure(text="\n".join(lines))
+        self.runes_label.configure(text="\n".join(self._rune_lines(connection, server, row)))
+
+    def _rune_lines(self, connection: sqlite3.Connection, server: str, row: BreakingRow) -> list[str]:
+        """One line per rune: count, unit price, value and share of the total, best first."""
+        mode = price_mode_from_config(load_config(self._context.config_path))
+        book = PriceBook.load(connection, server)
+        priced = [(rune, count, book.unit_price(rune, mode)) for rune, count in row.runes]
+        total = sum(price * count for _, count, price in priced if price is not None)
+        priced.sort(key=lambda entry: -(entry[2] or 0) * entry[1])
+        return [self._rune_line(rune, count, price, total) for rune, count, price in priced] or ["Aucune rune"]
+
+    def _rune_line(self, rune: int, count: int, price: float | None, total: float) -> str:
+        name = self._context.name_of(rune)
+        if price is None:
+            return f"{name} ×{count} : prix inconnu"
+        share = round(price * count * PERCENT / total) if total else 0
+        return f"{name} ×{count} : {format_kamas(price)} l'unité, {format_kamas(price * count)} kamas ({share} %)"
