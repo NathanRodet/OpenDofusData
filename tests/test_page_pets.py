@@ -52,8 +52,8 @@ def test_texts_follow_the_display_rules(root, tmp_path) -> None:
     page = make_page(root, tmp_path)
     page.refresh()
     patte, boue = by_name(page)["Patte de Gruche"], by_name(page)["Boue du Boo"]
-    assert (patte[2], patte[3], patte[4], patte[7]) == ("240", "+2", "120", "21 550 920")
-    assert (boue[2], boue[3], boue[4], boue[7]) == ("Inconnu", "1 XP pour 9", "Inconnu", "Inconnu")
+    assert (patte[2], patte[4], patte[5], patte[7]) == ("240", "+2", "120", "21 550 920")
+    assert (boue[2], boue[4], boue[5], boue[7]) == ("Inconnu", "1 XP pour 9", "Inconnu", "Inconnu")
     store.close()
 
 
@@ -63,8 +63,8 @@ def test_unreliable_row_is_marked(root, tmp_path) -> None:
     store.save_record(feeding(GRAIN, 1, 0, 12))
     page = make_page(root, tmp_path)
     page.refresh()
-    assert by_name(page)["Patte de Gruche"][5] == "1 peu fiable"
-    assert by_name(page)["Graine"][5] == "1"
+    assert by_name(page)["Patte de Gruche"][6] == "1 peu fiable"
+    assert by_name(page)["Graine"][6] == "1"
     store.close()
 
 
@@ -74,10 +74,10 @@ def test_without_a_recent_bulk_price_the_average_price_is_used_whatever_the_pric
     store.save_market_stats(MarketStats(PATTE, "Brial", "24h", [], 200, 210, 5, STAMP, STAMP, STAMP))
     page = make_page(root, tmp_path)
     page.refresh()
-    assert by_name(page)["Patte de Gruche"][4] == "105" and by_name(page)["Patte de Gruche"][6] == "210"
+    assert by_name(page)["Patte de Gruche"][5] == "105" and by_name(page)["Patte de Gruche"][3] == "210"
     (tmp_path / "config.json").write_text(json.dumps({"price_mode": "median"}), encoding="utf-8")
     page.refresh()
-    assert by_name(page)["Patte de Gruche"][4] == "105"
+    assert by_name(page)["Patte de Gruche"][5] == "105"
     store.close()
 
 

@@ -25,10 +25,10 @@ from opendofusdata.window_context import WindowContext
 
 TITLE = "Familiers"
 COLUMNS = (Column("Ressource", 200), Column("Type", 120), Column("Prix d'1 ressource", 130, True),
-           Column("XP pour 1 ressource", 150, True), Column("Kamas par XP", 110, True),
-           Column("Observations", 130, True), Column("Prix moyen", 120, True),
+           Column("Prix moyen", 110, True), Column("XP pour 1 ressource", 150, True),
+           Column("Kamas par XP", 110, True), Column("Observations", 130, True),
            Column("Coût pour monter un familier", 190, True))
-KAMAS_PER_XP_COLUMN = 4
+KAMAS_PER_XP_COLUMN = 5
 BEST_ROW_COUNT = 3
 UNRELIABLE_SUFFIX = " peu fiable"
 MANUAL_SUFFIX = " + saisi"
@@ -107,11 +107,11 @@ class PetsPage(ViewPage):
         return format_utc(self._clock() - timedelta(hours=FRESH_PRICE_HOURS))
 
     def _table_row(self, row: PetRow, best: bool) -> TableRow:
-        cells = (row.name, row.type_name, format_kamas(row.unit_price), format_experience_per_unit(row.per_unit),
-                 format_kamas_per_experience(row.kamas_per_xp), observations_text(row), format_kamas(row.average_price),
-                 format_kamas(row.cost))
-        sort_values = (row.name.casefold(), row.type_name, row.unit_price, row.per_unit, row.kamas_per_xp,
-                       row.feedings, row.average_price, row.cost)
+        cells = (row.name, row.type_name, format_kamas(row.unit_price), format_kamas(row.average_price),
+                 format_experience_per_unit(row.per_unit), format_kamas_per_experience(row.kamas_per_xp),
+                 observations_text(row), format_kamas(row.cost))
+        sort_values = (row.name.casefold(), row.type_name, row.unit_price, row.average_price, row.per_unit,
+                       row.kamas_per_xp, row.feedings, row.cost)
         return TableRow(row.item_id, cells, sort_values, TAG_UP if best else None)
 
     def show_detail(self, connection: sqlite3.Connection, server: str, key: object | None) -> None:
