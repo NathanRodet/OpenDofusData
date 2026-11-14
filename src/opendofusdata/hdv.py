@@ -55,9 +55,20 @@ def _read_lot_message(payload: bytes) -> tuple[int | None, list[int]]:
     outer = decode_fields(payload)
     detail_bytes = first_field(outer, LOT_DETAIL_FIELD, WIRE_TYPE_LENGTH_DELIMITED)
     detail = decode_fields(detail_bytes) if isinstance(detail_bytes, bytes) else []
-    packed = first_field(detail, LOT_PRICES_FIELD, WIRE_TYPE_LENGTH_DELIMITED)
-    prices = unpack_varints(packed) if isinstance(packed, bytes) else []
-    return _find_item_id(detail, outer), prices
+    return _find_item_id(detail, outer), _read_prices(detail)
+
+
+def _read_prices(detail: list[Field]) -> list[int]:
+    """Prices by lot size; when the field is repeated (one entry per offer, as for equipment), the cheapest offer."""
+    chunks = [value for number, wire_type, value in detail
+              if number == LOT_PRICES_FIELD and wire_type == WIRE_TYPE_LENGTH_DELIMITED and isinstance(value, bytes)]
+    if not chunks:
+        return []
+    if len(chunks) == 1:
+        return unpack_varints(chunks[0])
+    offers = [unpack_varints(chunk)[0] for chunk in chunks if chunk]
+    positive = [price for price in offers if price != NO_LOT_PRICE]
+    return [min(positive)] if positive else []
 
 
 def decode_lot_prices(envelope: Envelope, server: str, captured_at: str) -> list[LotPrice]:

@@ -83,10 +83,10 @@ def test_empty_database_and_unknown_item(store) -> None:
     assert breaking_detail(rows, CAPE, name_of, book, "last") is None
 
 
-def test_the_object_hdv_value_is_the_last_sale_of_the_curve_not_a_listing(store) -> None:
-    store.save_lot_price(lot(SAC, 1199275))
+def test_the_object_hdv_value_is_the_cheapest_listing_else_the_last_sale(store) -> None:
     points = [[1_794_470_400, 195, 2], [1_794_477_600, 96, 6]]
     store.save_market_stats(MarketStats(SAC, "Brial", "24h", points, 97, 117, 16, "t", "t", "2026-11-12T09:00:00Z"))
     store.save_record(broken(SAC, 0.73, "10:00"))
-    (row,), _ = rows_of(store)
-    assert row.hdv_value == 96.0 and row.estimated_value == 117.0
+    assert rows_of(store)[0][0].hdv_value == 96.0
+    store.save_lot_price(lot(SAC, 100))
+    assert rows_of(store)[0][0].hdv_value == 100.0

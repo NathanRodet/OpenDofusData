@@ -111,3 +111,11 @@ def test_unpack_varints_roundtrip() -> None:
 def test_unpack_varints_rejects_truncated_input() -> None:
     with pytest.raises(DecodeError):
         unpack_varints(bytes.fromhex("ee05ec"))
+
+
+def test_repeated_price_entries_give_the_cheapest_offer_as_lot_one() -> None:
+    detail = (int_field(1, 8216) + bytes_field(2, varint(1_199_275)) + bytes_field(2, varint(100))
+              + bytes_field(2, varint(5000)))
+    envelope = Envelope("jzs", bytes_field(1, detail))
+    lots = decode_lot_prices(envelope, SERVER, CAPTURED_AT)
+    assert [(lot.lot_size, lot.price) for lot in lots] == [(1, 100)]
