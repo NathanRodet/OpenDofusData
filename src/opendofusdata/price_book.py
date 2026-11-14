@@ -1,5 +1,6 @@
 """The latest known prices of every item of one server, read from the database."""
 
+import json
 import sqlite3
 from bisect import bisect_right
 from datetime import datetime
@@ -19,6 +20,10 @@ LATEST_STATS_SQL = """
         SELECT item_id, median, mean, ROW_NUMBER() OVER (
             PARTITION BY item_id ORDER BY captured_at DESC, id DESC) AS rank
         FROM market_stats WHERE server = ? AND period = ?) WHERE rank = 1"""
+CURVE_PERIODS = ("24h", "7d")
+LAST_CURVE_SQL = """
+    SELECT points_json FROM market_stats WHERE server = ? AND item_id = ? AND period = ?
+    ORDER BY captured_at DESC, id DESC LIMIT 1"""
 HISTORY_SQL = """
     SELECT captured_at, price FROM lot_prices WHERE server = ? AND item_id = ? AND lot_size = ?
     ORDER BY captured_at DESC, id DESC LIMIT ?"""
@@ -52,6 +57,15 @@ class PriceBook:
     def unit_price(self, item_id: int, mode: str) -> float | None:
         """The unit price of the item under the price mode."""
         return unit_price(self.prices_of(item_id), mode)
+
+    def last_sale(self, item_id: int) -> float | None:
+        """The price of the last point of the market curve (24 h, else 7 d): what the game shows on hover."""
+        for period in CURVE_PERIODS:
+            row = self._connection.execute(LAST_CURVE_SQL, (self._server, item_id, period)).fetchone()
+            points = json.loads(row[0]) if row else []
+            if points:
+                return float(points[-1][1])
+        return None
 
     def price_at(self, item_id: int, moment: datetime) -> float | None:
         """The lot x1 price captured at or before the moment, or None."""

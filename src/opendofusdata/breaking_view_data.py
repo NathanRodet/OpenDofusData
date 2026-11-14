@@ -51,7 +51,8 @@ def _estimated_unit_price(book: PriceBook, item_id: int) -> float | None:
 
 def _row_of(broken: BrokenItem, name_of: ItemLabeler, book: PriceBook, mode: str) -> BreakingRow:
     value = runes_value(broken.runes, lambda rune_id: book.unit_price(rune_id, mode))
-    hdv_value = object_value(book.unit_price(broken.item_id, PRICE_LAST), broken.quantity)
+    sale = book.last_sale(broken.item_id)  # a listing price is unreliable for equipment: prefer the last sale
+    hdv_value = object_value(sale if sale is not None else book.unit_price(broken.item_id, PRICE_LAST), broken.quantity)
     return BreakingRow(
         parse_stored(broken.captured_at), broken.item_id, name_of(broken.item_id), broken.quantity,
         broken.coefficient, broken.runes,
