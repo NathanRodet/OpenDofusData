@@ -68,10 +68,10 @@ def test_unreliable_row_is_marked(root, tmp_path) -> None:
     store.close()
 
 
-def test_without_a_recent_bulk_price_the_average_price_is_used_whatever_the_price_mode(root, tmp_path) -> None:
+def test_without_a_recent_bulk_price_the_last_sale_price_is_used_whatever_the_price_mode(root, tmp_path) -> None:
     store = open_store(tmp_path)
     fill(store)
-    store.save_market_stats(MarketStats(PATTE, "Brial", "24h", [], 200, 210, 5, STAMP, STAMP, STAMP))
+    store.save_market_stats(MarketStats(PATTE, "Brial", "24h", [(1, 190, 1), (2, 210, 1)], 200, 300, 5, STAMP, STAMP, STAMP))
     page = make_page(root, tmp_path)
     page.refresh()
     assert by_name(page)["Patte de Gruche"][5] == "105" and by_name(page)["Patte de Gruche"][3] == "210"

@@ -21,7 +21,6 @@ class ItemPrices:
     mean_24h: int | None
     seen_at: str | None = None  # stored UTC time of the newest lot price
     lot_seen: Mapping[int, str] = field(default_factory=dict)  # stored UTC time of the latest price of each lot size
-    mean_7d: int | None = None
 
 
 def _last_unit_price(lots: Mapping[int, int]) -> float | None:
@@ -64,16 +63,10 @@ def bulk_unit_price(prices: ItemPrices | None, fresh_since: str = "") -> float |
     return min(known) if known else None
 
 
-def average_price(prices: ItemPrices | None) -> float | None:
-    """The average price of one unit over 24 h, else over 7 days; None when neither is known."""
-    if prices is None:
-        return None
-    return _optional_float(prices.mean_24h if prices.mean_24h is not None else prices.mean_7d)
-
-
-def pet_unit_price(prices: ItemPrices | None, fallback: float | None, fresh_since: str = "") -> float | None:
-    """A recent x100 / x1000 price, else the average price, else an old bulk price, else the fallback."""
-    for price in (bulk_unit_price(prices, fresh_since), average_price(prices), bulk_unit_price(prices)):
+def pet_unit_price(prices: ItemPrices | None, last_sale: float | None, fallback: float | None,
+                   fresh_since: str = "") -> float | None:
+    """A recent x100 / x1000 price, else the last sale price, else an old bulk price, else the fallback."""
+    for price in (bulk_unit_price(prices, fresh_since), last_sale, bulk_unit_price(prices)):
         if price is not None:
             return price
     return fallback

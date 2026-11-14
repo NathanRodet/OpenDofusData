@@ -10,7 +10,6 @@ from opendofusdata.timeutil import format_utc
 
 HISTORY_LIMIT = 500
 STATS_PERIOD_24H = "24h"
-STATS_PERIOD_7D = "7d"
 LATEST_LOTS_SQL = """
     SELECT item_id, lot_size, price, captured_at FROM (
         SELECT item_id, lot_size, price, captured_at, ROW_NUMBER() OVER (
@@ -51,11 +50,9 @@ class PriceBook:
             seen[item_id] = max(seen.get(item_id, captured_at), captured_at)
         stats = {item_id: (median, mean) for item_id, median, mean
                  in connection.execute(LATEST_STATS_SQL, (server, STATS_PERIOD_24H))}
-        weekly = {item_id: mean for item_id, _, mean
-                  in connection.execute(LATEST_STATS_SQL, (server, STATS_PERIOD_7D))}
         prices = {item_id: ItemPrices(lots.get(item_id, {}), *stats.get(item_id, (None, None)), seen.get(item_id),
-                                      lot_seen.get(item_id, {}), weekly.get(item_id))
-                  for item_id in lots.keys() | stats.keys() | weekly.keys()}
+                                      lot_seen.get(item_id, {}))
+                  for item_id in lots.keys() | stats.keys()}
         return cls(connection, server, prices)
 
     def prices_of(self, item_id: int) -> ItemPrices | None:

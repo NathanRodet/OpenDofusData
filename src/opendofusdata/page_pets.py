@@ -25,14 +25,14 @@ from opendofusdata.window_context import WindowContext
 
 TITLE = "Familiers"
 COLUMNS = (Column("Ressource", 200), Column("Type", 120), Column("Prix d'1 ressource", 130, True),
-           Column("Prix moyen", 110, True), Column("XP pour 1 ressource", 150, True),
+           Column("Dernier prix de vente", 160, True), Column("XP pour 1 ressource", 150, True),
            Column("Kamas par XP", 110, True), Column("Observations", 130, True),
            Column("Coût pour monter un familier", 190, True))
 KAMAS_PER_XP_COLUMN = 5
 BEST_ROW_COUNT = 3
 UNRELIABLE_SUFFIX = " peu fiable"
 MANUAL_SUFFIX = " + saisi"
-FRESH_PRICE_HOURS = 24  # a x100 / x1000 price older than this is replaced by the average price
+FRESH_PRICE_HOURS = 24  # a x100 / x1000 price older than this is replaced by the last sale price
 NO_SELECTION_TEXT = "Sélectionne une ressource pour voir ses relevés."
 
 
@@ -107,10 +107,10 @@ class PetsPage(ViewPage):
         return format_utc(self._clock() - timedelta(hours=FRESH_PRICE_HOURS))
 
     def _table_row(self, row: PetRow, best: bool) -> TableRow:
-        cells = (row.name, row.type_name, format_kamas(row.unit_price), format_kamas(row.average_price),
+        cells = (row.name, row.type_name, format_kamas(row.unit_price), format_kamas(row.sale_price),
                  format_experience_per_unit(row.per_unit), format_kamas_per_experience(row.kamas_per_xp),
                  observations_text(row), format_kamas(row.cost))
-        sort_values = (row.name.casefold(), row.type_name, row.unit_price, row.average_price, row.per_unit,
+        sort_values = (row.name.casefold(), row.type_name, row.unit_price, row.sale_price, row.per_unit,
                        row.kamas_per_xp, row.feedings, row.cost)
         return TableRow(row.item_id, cells, sort_values, TAG_UP if best else None)
 
@@ -138,7 +138,7 @@ class PetsPage(ViewPage):
         self.tiles_label.configure(text=(
             f"XP pour 1 ressource : {format_experience_per_unit(row.per_unit)}\n"
             f"Prix d'1 ressource : {format_kamas(row.unit_price)} kamas\n"
-            f"Prix moyen : {format_kamas(row.average_price)} kamas\n"
+            f"Dernier prix de vente : {format_kamas(row.sale_price)} kamas\n"
             f"Kamas par XP : {format_kamas_per_experience(row.kamas_per_xp)}\n"
             f"Coût pour monter un familier : {format_kamas(row.cost)} kamas"))
         self.chart.set_series([ChartPoint(moment, ratio, f"Prix : {format_kamas(price)} kamas l'unité")

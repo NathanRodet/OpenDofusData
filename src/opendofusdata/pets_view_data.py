@@ -12,7 +12,7 @@ from opendofusdata.pet_economy import (
 )
 from opendofusdata.pets_store import pet_feedings
 from opendofusdata.price_book import PriceBook
-from opendofusdata.price_rules import average_price, pet_unit_price
+from opendofusdata.price_rules import pet_unit_price
 from opendofusdata.records import PetFeeding
 from opendofusdata.time_filters import Window, parse_stored, stored_bounds
 
@@ -32,7 +32,7 @@ class PetRow:
     cost: float | None
     reliable: bool
     manual: bool = False  # the player typed experience for this resource
-    average_price: float | None = None
+    sale_price: float | None = None  # last point of the market curve
 
 
 @dataclass(frozen=True)
@@ -73,12 +73,13 @@ def _with_manual(totals: Mapping[int, ResourceExperience],
 def _row_of(item_id: int, stats: ResourceExperience | None, last_seen: datetime | None, name_of: ItemLabeler,
             type_of: ItemTyper, book: PriceBook, mode: str, manual: bool = False, fresh_since: str = "") -> PetRow:
     prices = book.prices_of(item_id)
-    price = pet_unit_price(prices, book.unit_price(item_id, mode), fresh_since)
+    sale = book.last_sale(item_id)
+    price = pet_unit_price(prices, sale, book.unit_price(item_id, mode), fresh_since)
     per_unit = experience_per_unit(stats) if stats else None
     ratio = kamas_per_experience(price, per_unit)
     return PetRow(item_id, name_of(item_id), type_of(item_id), price, per_unit, ratio,
                   stats.feedings if stats else 0, last_seen, leveling_cost(ratio), bool(stats and is_reliable(stats)), manual,
-                  average_price(prices))
+                  sale)
 
 
 def _ratio_order(row: PetRow) -> tuple[bool, float]:
