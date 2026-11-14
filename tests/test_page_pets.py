@@ -115,3 +115,14 @@ def test_the_form_suggests_items_while_typing_and_adds_the_typed_experience(root
     page.form.add()
     assert load_manual(page._context.config_path)[BOUE].experience == 50 and not page.form.suggestions.winfo_children()
     store.close()
+
+
+def test_the_search_field_is_not_refilled_while_the_same_row_stays_selected(root, tmp_path) -> None:
+    page = make_page(root, tmp_path)
+    page._selection_changed(BOUE)
+    page.form.item_box.delete(0, "end")
+    page.form.item_box.insert(0, "gra")
+    page._selection_changed(BOUE)
+    assert page.form.item_box.get() == "gra"
+    page._selection_changed(PATTE)
+    assert page.form.item_box.get() == "Patte de Gruche"

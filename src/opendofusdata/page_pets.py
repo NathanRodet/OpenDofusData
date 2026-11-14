@@ -74,8 +74,9 @@ class PetsPage(ViewPage):
         self.upgrades_label.pack(fill="x", padx=PADDING, pady=(0, PADDING))
 
     def _selection_changed(self, key: object | None) -> None:
+        changed = key != self._selected  # the table also reports the kept selection at every refresh
         super()._selection_changed(key)
-        if key is not None:
+        if key is not None and changed:
             self.form.prefill(int(key), self._context.name_of(int(key)))
 
     def _search_items(self, text: str) -> list[tuple[int, str]]:
