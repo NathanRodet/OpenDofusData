@@ -10,12 +10,13 @@ import customtkinter
 from opendofusdata.table_model import TableRow, limit_rows, sort_rows
 from opendofusdata.ui_theme import (
     ACCENT_COLOR, BODY_SIZE, DOWN_COLOR, HEADER_COLOR, MUTED_COLOR, ROW_HEIGHT, SELECTED_COLOR, TABLE_COLOR,
-    TEXT_COLOR, TRANSPARENT, UP_COLOR,
+    STRIPE_COLOR, TEXT_COLOR, TRANSPARENT, UP_COLOR,
 )
 
 STYLE_NAME = "OpenDofus.Treeview"
 TAG_UP = "up"
 TAG_DOWN = "down"
+TAG_STRIPE = "stripe"
 ASCENDING_MARK = " ▲"
 DESCENDING_MARK = " ▼"
 SCROLLBAR_WIDTH = 14
@@ -38,6 +39,7 @@ def _define_style(widget: tkinter.Misc) -> None:
     style.configure(f"{STYLE_NAME}.Heading", background=HEADER_COLOR, foreground=MUTED_COLOR, relief="flat",
                     font=("Segoe UI", BODY_SIZE - 2, "bold"))
     style.map(STYLE_NAME, background=[("selected", SELECTED_COLOR)], foreground=[("selected", TEXT_COLOR)])
+    style.configure(STYLE_NAME, selectbackground=SELECTED_COLOR, selectforeground=TEXT_COLOR)
     style.map(f"{STYLE_NAME}.Heading", background=[("active", SELECTED_COLOR)])
 
 
@@ -63,6 +65,7 @@ class DataTable(customtkinter.CTkFrame):
         for name, column in zip(names, self._columns):
             tree.column(name, width=column.width, minwidth=column.width // 2,
                         anchor="center", stretch=True)
+        tree.tag_configure(TAG_STRIPE, background=STRIPE_COLOR)
         tree.tag_configure(TAG_UP, foreground=UP_COLOR)
         tree.tag_configure(TAG_DOWN, foreground=DOWN_COLOR)
         tree.bind("<<TreeviewSelect>>", self._selection_changed)
@@ -121,8 +124,13 @@ class DataTable(customtkinter.CTkFrame):
             self._on_select(None)
         return truncated
 
+    @staticmethod
+    def _tags_of(index: int, row: TableRow) -> tuple[str, ...]:
+        stripe = (TAG_STRIPE,) if index % 2 else ()
+        return (*stripe, row.tag) if row.tag else stripe
+
     def _insert_rows(self, selected_key: object | None) -> None:
         for index, row in enumerate(self._shown):
-            self._tree.insert("", "end", iid=str(index), values=row.cells, tags=(row.tag,) if row.tag else ())
+            self._tree.insert("", "end", iid=str(index), values=row.cells, tags=self._tags_of(index, row))
             if selected_key is not None and row.key == selected_key and not self._tree.selection():
                 self._tree.selection_set(str(index))

@@ -82,3 +82,10 @@ def test_split_layout_moves_the_detail_below_when_narrow(root) -> None:
     split.relayout(1300)
     assert split.layout_mode == LAYOUT_RIGHT
     assert int(split.detail.grid_info()["column"]) == 1
+
+
+def test_rows_alternate_their_background(root) -> None:
+    table = make_table(root, [])
+    table.set_rows([row("a", 1), row("b", 2), row("c", 3)])
+    tags = [table._tree.item(str(index), "tags") for index in range(3)]
+    assert ["stripe" in item for item in tags] == [False, True, False]
