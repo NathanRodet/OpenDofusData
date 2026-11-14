@@ -20,6 +20,7 @@ Flux de messages Protobuf précédés de leur longueur, avec des enveloppes `typ
 | 34095 | `a98805000000` | 82985, 0, 0, 0 | 82 985 (×1 seulement) |
 | 1022 | `01f306c42c00` | 1, 883, 5700, 0 | non vérifié |
 
+- **Équipements (vérifié sur la capture `equipement.jsonl`, 2026-11-14):** le champ 1 de `jzs` est répété, une entrée par offre ({1: objet, 2: prix compactés `[prix, 0, 0, 0]`, 3: identifiant d'offre, 4, 5: effets}), dans un ordre quelconque. Le prix ×1 de l'outil est le plus bas de toutes les offres (jamais la première ou la dernière).
 - Champs non identifiés: 1.3 (897, 3695, 1336, 75860), 1.4 et 2 (104 ou 328). Ils ne sont pas nécessaires.
 
 ## Cours du marché

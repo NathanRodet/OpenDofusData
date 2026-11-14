@@ -113,9 +113,10 @@ def test_unpack_varints_rejects_truncated_input() -> None:
         unpack_varints(bytes.fromhex("ee05ec"))
 
 
-def test_repeated_price_entries_give_the_cheapest_offer_as_lot_one() -> None:
-    detail = (int_field(1, 8216) + bytes_field(2, varint(1_199_275)) + bytes_field(2, varint(100))
-              + bytes_field(2, varint(5000)))
-    envelope = Envelope("jzs", bytes_field(1, detail))
+def test_equipment_offers_arrive_as_repeated_entries_and_lot_one_is_the_cheapest() -> None:
+    def offer(price: int) -> bytes:
+        return bytes_field(1, int_field(1, 8216) + bytes_field(2, varint(price) + b"\x00\x00\x00") + int_field(3, price))
+
+    envelope = Envelope("jzs", offer(1_199_275) + offer(100) + offer(5000) + int_field(2, 11))
     lots = decode_lot_prices(envelope, SERVER, CAPTURED_AT)
-    assert [(lot.lot_size, lot.price) for lot in lots] == [(1, 100)]
+    assert [(lot.item_id, lot.lot_size, lot.price) for lot in lots] == [(8216, 1, 100)]

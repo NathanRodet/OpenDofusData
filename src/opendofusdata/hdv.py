@@ -50,25 +50,35 @@ def _pair_with_sizes(item_id: int, prices: list[int], server: str, captured_at: 
             for lot_size, price in zip(LOT_SIZES, prices) if price != NO_LOT_PRICE]
 
 
+def _entry_prices(entry: bytes) -> tuple[int | None, list[int]]:
+    detail = decode_fields(entry)
+    packed = first_field(detail, LOT_PRICES_FIELD, WIRE_TYPE_LENGTH_DELIMITED)
+    return first_field(detail, LOT_ITEM_FIELD, WIRE_TYPE_VARINT), (unpack_varints(packed) if isinstance(packed, bytes) else [])
+
+
+def _cheapest_by_size(columns: list[list[int]]) -> list[int]:
+    """Per lot size, the lowest non-zero price over all entries (equipment has one entry per offer)."""
+    width = max((len(prices) for prices in columns), default=0)
+    cheapest = []
+    for index in range(width):
+        offered = [prices[index] for prices in columns if index < len(prices) and prices[index] != NO_LOT_PRICE]
+        cheapest.append(min(offered) if offered else NO_LOT_PRICE)
+    return cheapest
+
+
 def _read_lot_message(payload: bytes) -> tuple[int | None, list[int]]:
-    """Return (item id, packed prices); prices are empty when the field is absent."""
+    """Return (item id, prices by lot size); the field 1 entry is repeated for equipment, one per offer."""
     outer = decode_fields(payload)
-    detail_bytes = first_field(outer, LOT_DETAIL_FIELD, WIRE_TYPE_LENGTH_DELIMITED)
-    detail = decode_fields(detail_bytes) if isinstance(detail_bytes, bytes) else []
-    return _find_item_id(detail, outer), _read_prices(detail)
-
-
-def _read_prices(detail: list[Field]) -> list[int]:
-    """Prices by lot size; when the field is repeated (one entry per offer, as for equipment), the cheapest offer."""
-    chunks = [value for number, wire_type, value in detail
-              if number == LOT_PRICES_FIELD and wire_type == WIRE_TYPE_LENGTH_DELIMITED and isinstance(value, bytes)]
-    if not chunks:
-        return []
-    if len(chunks) == 1:
-        return unpack_varints(chunks[0])
-    offers = [unpack_varints(chunk)[0] for chunk in chunks if chunk]
-    positive = [price for price in offers if price != NO_LOT_PRICE]
-    return [min(positive)] if positive else []
+    entries = [value for number, wire_type, value in outer
+               if number == LOT_DETAIL_FIELD and wire_type == WIRE_TYPE_LENGTH_DELIMITED and isinstance(value, bytes)]
+    item_id, columns = None, []
+    for entry in entries:
+        entry_item, prices = _entry_prices(entry)
+        item_id = item_id if item_id is not None else entry_item
+        columns.append(prices)
+    if item_id is None:
+        item_id = first_field(outer, LOT_FALLBACK_ITEM_FIELD, WIRE_TYPE_VARINT)
+    return (item_id if isinstance(item_id, int) else None), _cheapest_by_size(columns)
 
 
 def decode_lot_prices(envelope: Envelope, server: str, captured_at: str) -> list[LotPrice]:
