@@ -56,6 +56,11 @@ class PriceBook:
         """What is known of the item, or None."""
         return self._prices.get(item_id)
 
+    def seen_at(self, item_id: int) -> str | None:
+        """The stored time of the newest lot price of the item, or None."""
+        prices = self._prices.get(item_id)
+        return None if prices is None else prices.seen_at
+
     def unit_price(self, item_id: int, mode: str) -> float | None:
         """The unit price of the item under the price mode."""
         return unit_price(self.prices_of(item_id), mode)

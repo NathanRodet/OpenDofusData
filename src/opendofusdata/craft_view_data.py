@@ -13,5 +13,5 @@ def craft_rows(connection: sqlite3.Connection, server: str, recipes: Sequence[Re
     """Every recipe priced with the latest known prices; sorted by margin, best first, unpriced last."""
     book = PriceBook.load(connection, server)
     rows = [craft_row(recipe, book.unit_price(recipe.result_id, PRICE_LAST),
-                      lambda item: best_lot_unit_price(book.prices_of(item))) for recipe in recipes]
+                      lambda item: best_lot_unit_price(book.prices_of(item)), book.seen_at) for recipe in recipes]
     return sorted(rows, key=lambda row: (row.margin is None, -(row.margin or 0)))

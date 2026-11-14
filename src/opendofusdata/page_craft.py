@@ -1,6 +1,7 @@
 """The Craft page: crafts that can be priced with the collected prices, most profitable first."""
 
 import sqlite3
+from datetime import datetime
 
 import customtkinter
 
@@ -9,7 +10,7 @@ from opendofusdata.craft_economy import CraftRow, missing_prices
 from opendofusdata.craft_view_data import craft_rows
 from opendofusdata.recipes_csv import DEFAULT_RECIPES_FILE, DEFAULT_RECIPES_PATH, Recipe, load_recipes
 from opendofusdata.table_model import TableRow
-from opendofusdata.time_filters import Window
+from opendofusdata.time_filters import Window, elapsed_text, parse_stored
 from opendofusdata.ui_table import Column
 from opendofusdata.ui_theme import CARD_COLOR, CORNER_RADIUS, MUTED_COLOR, PADDING, SMALL_PADDING, TITLE_SIZE
 from opendofusdata.ui_widgets import make_label
@@ -19,7 +20,7 @@ from opendofusdata.window_context import WindowContext
 
 TITLE = "Crafts rentables"
 COLUMNS = (Column("Objet", 240), Column("Prix HDV le plus bas", 170, True), Column("Coût des ressources", 170, True),
-           Column("Marge", 140, True), Column("Marge %", 100, True))
+           Column("Marge", 140, True), Column("Marge %", 100, True), Column("Prix le plus ancien", 150))
 MARGIN_COLUMN = 3
 NO_SELECTION_TEXT = "Sélectionne un craft pour voir ses ressources."
 NO_RECIPES_TEXT = "Aucune recette : lance « recipes-update » pour télécharger les recettes (DofusDB)."
@@ -52,13 +53,17 @@ class CraftPage(ViewPage):
         rows = craft_rows(connection, server, self._recipes)
         self._craft_rows = {row.item_id: row for row in rows}
         self.notice.configure(text="" if self._recipes else NO_RECIPES_TEXT)
-        return [self._table_row(row) for row in rows if row.margin is not None]
+        now = self._clock()
+        return [self._table_row(row, now) for row in rows if row.margin is not None]
 
-    def _table_row(self, row: CraftRow) -> TableRow:
+    def _table_row(self, row: CraftRow, now: datetime) -> TableRow:
         percent = "" if row.margin_percent is None else PERCENT_FORMAT.format(row.margin_percent)
         name = self._context.name_of(row.item_id)
-        cells = (name, format_kamas(row.sale_price), format_kamas(row.cost), format_signed_kamas(row.margin), percent)
-        sort_values = (name.casefold(), row.sale_price, row.cost, row.margin, row.margin_percent)
+        age = "" if row.oldest_seen is None else elapsed_text(parse_stored(row.oldest_seen), now)
+        cells = (name, format_kamas(row.sale_price), format_kamas(row.cost), format_signed_kamas(row.margin), percent,
+                 age)
+        sort_values = (name.casefold(), row.sale_price, row.cost, row.margin, row.margin_percent,
+                       row.oldest_seen or "")
         return TableRow(row.item_id, cells, sort_values, plus_value_tag(row.margin))
 
     def _ingredient_line(self, item: int, quantity: int, price: float | None) -> str:
