@@ -102,7 +102,7 @@ def test_purchases_default_to_the_hdv_price_of_the_moment_and_show_the_gain(root
     fill(store)
     page = make_buys(root, tmp_path)
     page.refresh()
-    first = next(row for row in page.table._shown if row.key == FIRST_CAPE)
+    first = next(row for row in page.table.flat_rows() if row.key == FIRST_CAPE)
     assert (first.cells[4], first.cells[5], first.cells[6]) == ("20 000", "35 880", "+15 880")
     assert "Gain total" in page.totals_label.cget("text")
     store.close()
@@ -114,7 +114,7 @@ def test_a_typed_purchase_price_sets_the_gain_and_the_totals(root, tmp_path) -> 
     page = make_buys(root, tmp_path)
     page.refresh()
     page.price_typed(FIRST_CAPE, 4, "40000")
-    first = next(row for row in page.table._shown if row.key == FIRST_CAPE)
+    first = next(row for row in page.table.flat_rows() if row.key == FIRST_CAPE)
     assert (first.cells[4], first.cells[6]) == ("40 000 (modifié)", "-4 120")
     assert "Dépensé : 60 000" in page.totals_label.cget("text")
     page._selection_changed(FIRST_CAPE)
@@ -128,3 +128,30 @@ def test_empty_database_renders_on_both_tabs(root, tmp_path) -> None:
         page = make(root, tmp_path)
         page.refresh()
         assert page.table._shown == []
+
+
+def test_purchases_group_the_breakings_of_an_object_under_its_latest_one(root, tmp_path) -> None:
+    store = open_store(tmp_path)
+    fill(store)
+    page = make_buys(root, tmp_path)
+    page.refresh()
+    parents = page.table._shown
+    cape = next(row for row in parents if row.cells[1].startswith("Cape Maj'Hic"))
+    assert cape.cells[1] == "Cape Maj'Hic (2 brisages)" and cape.cells[3] == "31 %"
+    assert [child.cells[3] for child in cape.children] == ["31 %", "44 %"]
+    assert len(parents) == 2
+    store.close()
+
+
+def test_an_unfolded_object_stays_unfolded_after_a_refresh(root, tmp_path) -> None:
+    store = open_store(tmp_path)
+    fill(store)
+    page = make_buys(root, tmp_path)
+    page.refresh()
+    tree = page.table._tree
+    cape = next(iid for iid in tree.get_children() if tree.item(iid, "values")[1].startswith("Cape"))
+    tree.item(cape, open=True)
+    page.refresh()
+    cape = next(iid for iid in tree.get_children() if tree.item(iid, "values")[1].startswith("Cape"))
+    assert tree.item(cape, "open") and len(tree.get_children(cape)) == 2
+    store.close()

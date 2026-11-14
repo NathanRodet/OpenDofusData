@@ -14,6 +14,8 @@ class TableRow:
     cells: tuple[str, ...]
     sort_values: tuple[object, ...]
     tag: str | None = None
+    children: tuple["TableRow", ...] = ()  # rows shown when this one is unfolded
+    group: object | None = None  # stable identity of a group, to keep it unfolded across refreshes
 
 
 def sort_rows(rows: Sequence[TableRow], column: int, descending: bool) -> list[TableRow]:

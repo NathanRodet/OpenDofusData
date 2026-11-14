@@ -43,7 +43,7 @@ class PurchasesPage(ViewPage):
 
     def __init__(self, parent: customtkinter.CTkBaseClass, context: WindowContext, **options: object) -> None:
         super().__init__(parent, context, TITLE, COLUMNS, (0, True), NAME_COLUMN,
-                         editable=(PRICE_COLUMN,), on_edit=self.price_typed, **options)
+                         editable=(PRICE_COLUMN,), on_edit=self.price_typed, grouped=True, **options)
         self._breaking_rows: dict[str, BreakingRow] = {}
         self._build_detail()
 
@@ -76,9 +76,23 @@ class PurchasesPage(ViewPage):
         typed = load_prices(self._context.config_path, PURCHASE_PRICES_KEY)
         self._breaking_rows = {entry_key(row): row for row in rows}
         now = self._clock()
-        table = [self._table_row(row, typed, book, now) for row in rows]
+        table = self._grouped_rows(rows, typed, book, now)
         self._show_totals(rows, typed, book)
         return table
+
+    def _grouped_rows(self, rows: list[BreakingRow], typed: dict[str, float], book: PriceBook,
+                      now: datetime) -> list[TableRow]:
+        """One line per object with its latest breaking; unfolding it lists every breaking of the object."""
+        by_item: dict[int, list[TableRow]] = {}
+        for row in sorted(rows, key=lambda broken: broken.moment, reverse=True):
+            by_item.setdefault(row.item_id, []).append(self._table_row(row, typed, book, now))
+        grouped = []
+        for item_id, lines in by_item.items():
+            latest = lines[0]
+            name = latest.cells[NAME_COLUMN] + (f" ({len(lines)} brisages)" if len(lines) > 1 else "")
+            cells = latest.cells[:NAME_COLUMN] + (name,) + latest.cells[NAME_COLUMN + 1:]
+            grouped.append(TableRow(latest.key, cells, latest.sort_values, latest.tag, tuple(lines), item_id))
+        return grouped
 
     def _unit_price(self, row: BreakingRow, typed: dict[str, float], book: PriceBook) -> float | None:
         key = entry_key(row)
