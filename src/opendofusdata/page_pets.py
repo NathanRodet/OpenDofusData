@@ -8,6 +8,8 @@ import customtkinter
 from opendofusdata.app_config import load_config
 from opendofusdata.client_settings import price_mode_from_config
 from opendofusdata.item_search import search_items
+from opendofusdata.pet_coverage import Coverage, load_coverage
+from opendofusdata.pet_coverage_view import CoverageView
 from opendofusdata.pet_manual_form import PetManualForm
 from opendofusdata.pet_manual_store import add_manual, load_manual, remove_manual
 from opendofusdata.pets_view_data import PetDetail, PetRow, PetUpgrade, pet_detail, pet_rows
@@ -25,6 +27,8 @@ from opendofusdata.view_page import ViewPage
 from opendofusdata.window_context import WindowContext
 
 TITLE = "Familiers"
+TAB_RESOURCES = "Ressources"
+TAB_COVERAGE = "Couverture"
 COLUMNS = (Column("Ressource", 200), Column("Type", 120), Column("Prix ×100 / ×1000", 160, True),
            Column("Prix moyen", 110, True), Column("XP pour 1 ressource", 150, True),
            Column("Kamas par XP", 110, True), Column("Observations", 130, True),
@@ -80,7 +84,28 @@ class PetsPage(ViewPage):
     def __init__(self, parent: customtkinter.CTkBaseClass, context: WindowContext, **options: object) -> None:
         super().__init__(parent, context, TITLE, COLUMNS, (KAMAS_PER_XP_COLUMN, False), 0, **options)
         self._mode = ""
+        self._coverage = Coverage(0, 0, ())
         self._build_detail()
+        self._build_tabs()
+
+    def _build_tabs(self) -> None:
+        self.coverage_view = CoverageView(self.frame)
+        self.tabs = customtkinter.CTkSegmentedButton(self.frame, values=[TAB_RESOURCES, TAB_COVERAGE],
+                                                     command=self._tab_chosen)
+        self.tabs.set(TAB_RESOURCES)
+        self.tabs.pack(before=self.split, anchor="w", padx=PADDING, pady=(0, SMALL_PADDING))
+
+    def _tab_chosen(self, tab: str) -> None:
+        if tab == TAB_COVERAGE:
+            self.split.pack_forget()
+            self.coverage_view.pack(fill="both", expand=True)
+        else:
+            self.coverage_view.pack_forget()
+            self.split.pack(fill="both", expand=True, padx=PADDING, pady=(0, PADDING))
+
+    def _show_rows(self) -> None:
+        super()._show_rows()
+        self.coverage_view.set_coverage(self._coverage, self.search_entry.get())
 
     def _build_detail(self) -> None:
         card = customtkinter.CTkScrollableFrame(self.split.detail, fg_color=CARD_COLOR, corner_radius=CORNER_RADIUS)
@@ -121,6 +146,7 @@ class PetsPage(ViewPage):
         book = PriceBook.load(connection, server)
         rows = pet_rows(connection, server, window, self._context.name_of, self._context.type_of, book, self._mode,
                         load_manual(self._context.config_path), self._fresh_since())
+        self._coverage = load_coverage(connection, {row.item_id for row in rows if row.per_unit is not None})
         best = best_keys(rows)
         return [self._table_row(row, row.item_id in best) for row in rows]
 

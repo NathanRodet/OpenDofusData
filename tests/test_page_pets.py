@@ -149,3 +149,24 @@ def test_stop_text_flags_a_price_above_25_kamas_per_xp() -> None:
     assert stop_row(row)[1] == "50 kamas — dépassé"
     assert stop_row(replace(row, unit_price=40.0))[1] == "50 kamas"
     assert stop_row(replace(row, per_unit=None))[1] == UNKNOWN_TEXT
+
+
+def test_coverage_tab_counts_and_filters_the_missing_resources(root, tmp_path) -> None:
+    from opendofusdata.pet_coverage import Coverage, MissingItem
+    from opendofusdata.pet_coverage_view import ALL_CATEGORIES, CoverageView
+    view = CoverageView(root)
+    view.set_coverage(Coverage(1, 3, (MissingItem(2, "Os de Tofu", "Os"), MissingItem(3, "Poil de Tofu", "Poil"))))
+    assert ("Ressources avec un coefficient", "1 / 3", None) in view.summary.rows
+    assert len(view.table._shown) == 2
+    view.category_menu.set("Poil")
+    view.set_coverage(view._coverage)
+    assert [row.cells[0] for row in view.table._shown] == ["Poil de Tofu"]
+    assert view.category_menu.get() != ALL_CATEGORIES
+
+
+def test_tabs_switch_between_the_table_and_the_coverage(root, tmp_path) -> None:
+    page = make_page(root, tmp_path)
+    page._tab_chosen("Couverture")
+    assert page.coverage_view.winfo_manager() == "pack" and page.split.winfo_manager() == ""
+    page._tab_chosen("Ressources")
+    assert page.split.winfo_manager() == "pack" and page.coverage_view.winfo_manager() == ""
