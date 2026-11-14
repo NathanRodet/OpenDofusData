@@ -93,6 +93,14 @@ class DataTable(customtkinter.CTkFrame):
         self._refresh_headings()
         self.set_rows(self._source)
 
+    def clear_selection(self) -> None:
+        """Unselect the row without telling the page."""
+        self._silent = True
+        try:
+            self._tree.selection_set(())
+        finally:
+            self._silent = False
+
     def selected_key(self) -> object | None:
         """The key of the selected row, or None."""
         selection = self._tree.selection()
@@ -116,6 +124,5 @@ class DataTable(customtkinter.CTkFrame):
     def _insert_rows(self, selected_key: object | None) -> None:
         for index, row in enumerate(self._shown):
             self._tree.insert("", "end", iid=str(index), values=row.cells, tags=(row.tag,) if row.tag else ())
-            if selected_key is not None and row.key == selected_key:
+            if selected_key is not None and row.key == selected_key and not self._tree.selection():
                 self._tree.selection_set(str(index))
-                self._tree.see(str(index))

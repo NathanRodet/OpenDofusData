@@ -23,6 +23,8 @@ def _existing_tables(connection: sqlite3.Connection) -> list[str]:
 
 def collected_counts(database_path: str) -> dict[str, int]:
     """The number of rows of each collected table (0 for a table that does not exist)."""
+    if not Path(database_path).is_file():
+        raise FileNotFoundError(MISSING_MESSAGE.format(path=database_path))
     with closing(sqlite3.connect(database_path)) as connection:
         existing = _existing_tables(connection)
         return {table: (connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] if table in existing else 0)

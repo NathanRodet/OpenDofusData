@@ -117,6 +117,8 @@ class HdvPage(ViewPage):
         self._set_history("\n".join(lines))
 
     def _set_history(self, text: str) -> None:
+        if text == self.history_box.get("1.0", "end").rstrip("\n"):
+            return
         self.history_box.configure(state="normal")
         self.history_box.delete("1.0", "end")
         self.history_box.insert("1.0", text)

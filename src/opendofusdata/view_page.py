@@ -80,6 +80,7 @@ class ViewPage:
         server = self._context.session.server
         if server != self._server:
             self._server, self._selected = server, None
+            self.table.clear_selection()
         window = period_window(self.period_bar.selection(), self._clock())
         rows = self._read(lambda connection: self.load_rows(connection, server, window))
         if rows is None:

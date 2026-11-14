@@ -1,6 +1,7 @@
 """The Brisage page: every broken object with its coefficient, rune value and plus-value."""
 
 import sqlite3
+from datetime import datetime
 
 import customtkinter
 
@@ -79,19 +80,19 @@ class BreakingPage(ViewPage):
         now = self._clock()
         return [self._table_row(row, now) for row in self._breaking_rows]
 
-    def _table_row(self, row: BreakingRow, now) -> TableRow:
+    def _table_row(self, row: BreakingRow, now: datetime) -> TableRow:
         cells = (elapsed_text(row.moment, now), row.name, str(row.quantity), coefficient_text(row.coefficient),
                  format_kamas(row.estimated_value), format_kamas(row.hdv_value), runes_text(row),
                  format_signed_kamas(row.plus_value))
         sort_values = (row.moment, row.name.casefold(), row.quantity, row.coefficient, row.estimated_value,
                        row.hdv_value, row.runes_value.total, row.plus_value)
-        return TableRow(row.item_id, cells, sort_values, plus_value_tag(row.plus_value))
+        return TableRow((row.item_id, row.moment), cells, sort_values, plus_value_tag(row.plus_value))
 
     def show_detail(self, connection: sqlite3.Connection, server: str, key: object | None) -> None:
         """Show the coefficient history of the selected object, or reset the panel."""
         detail = None
         if key is not None and self._book is not None:
-            detail = breaking_detail(self._breaking_rows, int(key), self._context.name_of, self._book, self._mode)
+            detail = breaking_detail(self._breaking_rows, key[0], self._context.name_of, self._book, self._mode)
         if detail is None:
             self._clear_detail()
         else:

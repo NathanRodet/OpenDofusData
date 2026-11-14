@@ -60,8 +60,10 @@ class DatedChart(customtkinter.CTkFrame):
 
     def set_series(self, points: Sequence[ChartPoint], unit: str, decimals: int = 0) -> None:
         """Show the points (sorted by date) with the unit written after each value."""
-        self._points = sorted(points, key=lambda point: point.moment)
-        self._unit, self._decimals = unit, decimals
+        ordered = sorted(points, key=lambda point: point.moment)
+        if (ordered, unit, decimals) == (self._points, self._unit, self._decimals) and self._plot.find_all():
+            return
+        self._points, self._unit, self._decimals = ordered, unit, decimals
         self._redraw()
 
     def clear(self) -> None:

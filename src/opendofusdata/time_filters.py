@@ -37,8 +37,8 @@ class PeriodSelection:
 
 
 def _local_midnight(now: datetime, local_zone: tzinfo | None) -> datetime:
-    local_now = now.astimezone(local_zone)
-    midnight = datetime.combine(local_now.date(), time.min, tzinfo=local_now.tzinfo)
+    day = now.astimezone(local_zone).date()
+    midnight = datetime.combine(day, time.min, tzinfo=local_zone)  # naive when local_zone is None
     return midnight.astimezone(timezone.utc)
 
 
@@ -89,8 +89,11 @@ CUSTOM_DATE_FORMAT = "%d/%m/%Y"
 
 def parse_custom_range(start_text: str, end_text: str) -> tuple[datetime, datetime]:
     """Two JJ/MM/AAAA local days into UTC bounds (the end day included); ValueError when invalid."""
-    start = datetime.strptime(start_text.strip(), CUSTOM_DATE_FORMAT).astimezone()
-    end = datetime.strptime(end_text.strip(), CUSTOM_DATE_FORMAT).astimezone() + timedelta(days=1)
-    if end <= start:
+    first = datetime.strptime(start_text.strip(), CUSTOM_DATE_FORMAT)
+    last = datetime.strptime(end_text.strip(), CUSTOM_DATE_FORMAT) + timedelta(days=1)
+    if last <= first:
         raise ValueError("the end day is before the start day")
-    return start.astimezone(timezone.utc), end.astimezone(timezone.utc)
+    try:
+        return first.astimezone(timezone.utc), last.astimezone(timezone.utc)
+    except (OSError, OverflowError) as error:
+        raise ValueError("date out of range") from error

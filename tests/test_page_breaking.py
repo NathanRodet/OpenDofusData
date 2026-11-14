@@ -56,7 +56,7 @@ def test_selecting_an_object_shows_its_coefficient_history(root, tmp_path) -> No
     fill(store)
     page = make_page(root, tmp_path)
     page.refresh()
-    page._selection_changed(CAPE)
+    page._selection_changed((CAPE, None))
     assert page.name_label.cget("text") == "Cape Maj'Hic"
     assert "Brisages : 2" in page.tiles_label.cget("text")
     assert len(page.chart._points) == 2

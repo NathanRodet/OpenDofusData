@@ -19,7 +19,7 @@ class SplitLayout(customtkinter.CTkFrame):
         self.detail = customtkinter.CTkFrame(self, fg_color=TRANSPARENT, corner_radius=0)
         self.layout_mode = ""
         self.relayout(SPLIT_BREAKPOINT)
-        self.bind("<Configure>", lambda event: self.relayout(event.width))
+        self.bind("<Configure>", lambda _event: self.relayout(self.winfo_toplevel().winfo_width()))
 
     def relayout(self, width: int) -> None:
         """Place the detail panel right of the main area from SPLIT_BREAKPOINT wide, below it otherwise."""
