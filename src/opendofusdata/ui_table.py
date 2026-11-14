@@ -62,7 +62,7 @@ class DataTable(customtkinter.CTkFrame):
         tree = ttk.Treeview(self, columns=names, show="headings", selectmode="browse", style=STYLE_NAME)
         for name, column in zip(names, self._columns):
             tree.column(name, width=column.width, minwidth=column.width // 2,
-                        anchor="e" if column.numeric else "w", stretch=True)
+                        anchor="center", stretch=True)
         tree.tag_configure(TAG_UP, foreground=UP_COLOR)
         tree.tag_configure(TAG_DOWN, foreground=DOWN_COLOR)
         tree.bind("<<TreeviewSelect>>", self._selection_changed)
@@ -76,7 +76,7 @@ class DataTable(customtkinter.CTkFrame):
         sorted_column, descending = self._sort
         for index, column in enumerate(self._columns):
             mark = (DESCENDING_MARK if descending else ASCENDING_MARK) if index == sorted_column else ""
-            self._tree.heading(str(index), text=column.title + mark,
+            self._tree.heading(str(index), text=column.title + mark, anchor="center",
                                command=lambda chosen=index: self._header_clicked(chosen))
 
     def _header_clicked(self, column: int) -> None:
