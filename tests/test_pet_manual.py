@@ -53,3 +53,13 @@ def add_and_load(tmp_path):
 @pytest.mark.parametrize("text, expected", [("12", 12), (" 1 500 ", 1500), ("0", None), ("-3", None), ("abc", None)])
 def test_counts_are_strictly_positive_whole_numbers(text, expected) -> None:
     assert parse_count(text) == expected
+
+
+def test_search_ignores_case_and_accents() -> None:
+    import sqlite3
+    from opendofusdata.item_search import search_items
+    connection = sqlite3.connect(":memory:")
+    connection.execute("CREATE TABLE items (item_id INTEGER, name_fr TEXT)")
+    connection.execute("INSERT INTO items VALUES (1, 'Épée Ténébreuse')")
+    assert search_items(connection, "epee tenebr") == [(1, "Épée Ténébreuse")]
+    assert search_items(connection, "ÉPÉE") == [(1, "Épée Ténébreuse")]

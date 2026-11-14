@@ -47,7 +47,7 @@ class PetManualForm(customtkinter.CTkFrame):
         self.item_box = customtkinter.CTkEntry(self, placeholder_text=ITEM_PLACEHOLDER)
         self.item_box.pack(fill="x", padx=PADDING)
         self.item_box.bind("<KeyRelease>", self._key_released)
-        self.suggestions = customtkinter.CTkFrame(self, fg_color="transparent")
+        self.suggestions = customtkinter.CTkFrame(self, fg_color="transparent", height=0)
         self.suggestions.pack(fill="x", padx=PADDING)
         self.units_entry = customtkinter.CTkEntry(self, placeholder_text=UNITS_PLACEHOLDER)
         self.units_entry.pack(fill="x", padx=PADDING, pady=SMALL_PADDING)

@@ -34,6 +34,8 @@ UNRELIABLE_SUFFIX = " peu fiable"
 MANUAL_SUFFIX = " + saisi"
 STALE_SUFFIX = " (ancien)"
 FRESH_PRICE_HOURS = 24  # a x100 / x1000 price older than this is replaced by the last sale price
+TILES_SIZE = 15
+MAX_KAMAS_PER_XP = 25  # a resource costing more than this per XP point is not worth buying
 NO_SELECTION_TEXT = "Sélectionne une ressource pour voir ses relevés."
 
 
@@ -45,6 +47,17 @@ def observations_text(row: PetRow) -> str:
 def bulk_text(row: PetRow) -> str:
     """The x100 / x1000 price, marked when it is too old to be used."""
     return format_kamas(row.bulk_price) + (STALE_SUFFIX if row.bulk_stale else "")
+
+
+def stop_text(row: PetRow) -> str:
+    """The highest price of one resource worth paying (stop at MAX_KAMAS_PER_XP per XP), and whether it is exceeded."""
+    if row.per_unit is None or row.per_unit <= 0:
+        return f"Stop à {MAX_KAMAS_PER_XP} kamas par XP : inconnu"
+    stop = MAX_KAMAS_PER_XP * row.per_unit
+    verdict = ""
+    if row.unit_price is not None:
+        verdict = " — DÉPASSÉ" if row.unit_price > stop else " — OK"
+    return f"Stop à {MAX_KAMAS_PER_XP} kamas par XP : {format_kamas(stop)} kamas la ressource{verdict}"
 
 
 def best_keys(rows: list[PetRow]) -> set[int]:
@@ -74,7 +87,7 @@ class PetsPage(ViewPage):
         self.form.pack(fill="x", padx=PADDING, pady=(PADDING, 0))
         self.name_label = make_label(card, NO_SELECTION_TEXT, TITLE_SIZE, bold=True, anchor="w", wraplength=300)
         self.name_label.pack(fill="x", padx=PADDING, pady=(PADDING, SMALL_PADDING))
-        self.tiles_label = make_label(card, "", anchor="w", justify="left")
+        self.tiles_label = make_label(card, "", TILES_SIZE, anchor="w", justify="left", wraplength=300)
         self.tiles_label.pack(fill="x", padx=PADDING)
         self.chart = DatedChart(card)
         self.chart.pack(fill="x", padx=PADDING, pady=SMALL_PADDING)
@@ -146,6 +159,7 @@ class PetsPage(ViewPage):
             f"Prix d'1 ressource utilisé : {format_kamas(row.unit_price)} kamas\n"
             f"Prix moyen : {format_kamas(row.sale_price)} kamas\n"
             f"Kamas par XP : {format_kamas_per_experience(row.kamas_per_xp)}\n"
+            f"{stop_text(row)}\n"
             f"Coût pour monter un familier : {format_kamas(row.cost)} kamas"))
         self.chart.set_series([ChartPoint(moment, ratio, f"Prix : {format_kamas(price)} kamas l'unité")
                                for moment, ratio, price in detail.ratio_points], "kamas par XP", 1)
