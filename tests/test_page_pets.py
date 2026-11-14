@@ -52,7 +52,7 @@ def test_texts_follow_the_display_rules(root, tmp_path) -> None:
     page = make_page(root, tmp_path)
     page.refresh()
     patte, boue = by_name(page)["Patte de Gruche"], by_name(page)["Boue du Boo"]
-    assert (patte[2], patte[4], patte[5], patte[7]) == ("240", "+2", "120", "21 550 920")
+    assert (patte[2], patte[4], patte[5], patte[7]) == ("Inconnu", "+2", "120", "21 550 920")
     assert (boue[2], boue[4], boue[5], boue[7]) == ("Inconnu", "1 XP pour 9", "Inconnu", "Inconnu")
     store.close()
 
@@ -126,3 +126,15 @@ def test_the_search_field_is_not_refilled_while_the_same_row_stays_selected(root
     assert page.form.item_box.get() == "gra"
     page._selection_changed(PATTE)
     assert page.form.item_box.get() == "Patte de Gruche"
+
+
+def test_bulk_price_column_shows_the_unit_price_and_marks_an_old_one(root, tmp_path) -> None:
+    store = open_store(tmp_path)
+    fill(store)
+    store.save_lot_price(LotPrice(PATTE, "Brial", 100, 20_000, STAMP))
+    store.save_lot_price(LotPrice(BOUE, "Brial", 1000, 90_000, "2026-11-10T09:00:00Z"))
+    page = make_page(root, tmp_path)
+    page.refresh()
+    assert by_name(page)["Patte de Gruche"][2] == "200"
+    assert by_name(page)["Boue du Boo"][2] == "90 (ancien)"
+    store.close()

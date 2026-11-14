@@ -12,7 +12,7 @@ from opendofusdata.pet_economy import (
 )
 from opendofusdata.pets_store import pet_feedings
 from opendofusdata.price_book import PriceBook
-from opendofusdata.price_rules import pet_unit_price
+from opendofusdata.price_rules import bulk_unit_price, pet_unit_price
 from opendofusdata.records import PetFeeding
 from opendofusdata.time_filters import Window, parse_stored, stored_bounds
 
@@ -32,7 +32,9 @@ class PetRow:
     cost: float | None
     reliable: bool
     manual: bool = False  # the player typed experience for this resource
-    sale_price: float | None = None  # last point of the market curve
+    sale_price: float | None = None  # last point of the market curve (the game calls it the average price)
+    bulk_price: float | None = None  # cheapest unit price of the x100 / x1000 lots, however old
+    bulk_stale: bool = False  # that price is older than the freshness limit
 
 
 @dataclass(frozen=True)
@@ -79,7 +81,8 @@ def _row_of(item_id: int, stats: ResourceExperience | None, last_seen: datetime 
     ratio = kamas_per_experience(price, per_unit)
     return PetRow(item_id, name_of(item_id), type_of(item_id), price, per_unit, ratio,
                   stats.feedings if stats else 0, last_seen, leveling_cost(ratio), bool(stats and is_reliable(stats)), manual,
-                  sale)
+                  sale, bulk_unit_price(prices),
+                  bulk_unit_price(prices) is not None and bulk_unit_price(prices, fresh_since) is None)
 
 
 def _ratio_order(row: PetRow) -> tuple[bool, float]:
