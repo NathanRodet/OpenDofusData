@@ -11,9 +11,10 @@ from opendofusdata.craft_view_data import craft_rows
 from opendofusdata.recipes_csv import DEFAULT_RECIPES_FILE, DEFAULT_RECIPES_PATH, Recipe, load_recipes
 from opendofusdata.table_model import TableRow
 from opendofusdata.time_filters import Window, elapsed_text, parse_stored
+from opendofusdata.ui_stats import StatList, StatRow
 from opendofusdata.ui_table import Column
-from opendofusdata.ui_theme import CARD_COLOR, CORNER_RADIUS, MUTED_COLOR, PADDING, SMALL_PADDING, TITLE_SIZE
-from opendofusdata.ui_widgets import make_label
+from opendofusdata.ui_theme import CARD_COLOR, CORNER_RADIUS, PADDING, SMALL_PADDING, TITLE_SIZE
+from opendofusdata.ui_widgets import make_card_title, make_label
 from opendofusdata.value_format import format_kamas, format_signed_kamas
 from opendofusdata.view_page import ViewPage
 from opendofusdata.window_context import WindowContext
@@ -27,7 +28,8 @@ NO_RECIPES_TEXT = "Aucune recette : lance « recipes-update » pour télécharge
 PERCENT_FORMAT = "{:+.0f} %"
 UNKNOWN_PRICE_TEXT = "prix inconnu"
 MISSING_LIMIT = 15
-MISSING_TITLE = "À relever à l'HDV (ils bloquent le plus de crafts) :"
+MISSING_TITLE = "À relever à l'HDV (ils bloquent le plus de crafts)"
+INGREDIENTS_TITLE = "Ressources"
 
 
 class CraftPage(ViewPage):
@@ -42,8 +44,10 @@ class CraftPage(ViewPage):
         card.pack(fill="both", expand=True)
         self.name_label = make_label(card, NO_SELECTION_TEXT, TITLE_SIZE, bold=True, anchor="w", wraplength=300)
         self.name_label.pack(fill="x", padx=PADDING, pady=(PADDING, SMALL_PADDING))
-        self.ingredients_label = make_label(card, "", color=MUTED_COLOR, anchor="w", justify="left")
-        self.ingredients_label.pack(fill="x", padx=PADDING, pady=(0, PADDING))
+        self.ingredients_title = make_card_title(card, "")
+        self.ingredients_title.pack(fill="x", padx=PADDING, pady=(SMALL_PADDING, SMALL_PADDING))
+        self.ingredients_list = StatList(card)
+        self.ingredients_list.pack(fill="x", padx=PADDING, pady=(0, PADDING))
 
     def load_rows(self, connection: sqlite3.Connection, server: str, window: Window) -> list[TableRow]:
         """The priced crafts, left out of the table when a price is missing."""
@@ -66,22 +70,22 @@ class CraftPage(ViewPage):
                        row.oldest_seen or "")
         return TableRow(row.item_id, cells, sort_values, plus_value_tag(row.margin))
 
-    def _ingredient_line(self, item: int, quantity: int, price: float | None) -> str:
+    def _ingredient_row(self, item: int, quantity: int, price: float | None) -> StatRow:
         shown = UNKNOWN_PRICE_TEXT if price is None else f"{format_kamas(price)} l'unité"
-        return f"{self._context.name_of(item)} ×{quantity} : {shown}"
+        return (f"{self._context.name_of(item)} ×{quantity}", shown, None)
 
     def show_detail(self, connection: sqlite3.Connection, server: str, key: object | None) -> None:
         """List the resources of the selected craft with their unit price."""
         row = self._craft_rows.get(key) if key is not None else None
         if row is None:
             self.name_label.configure(text=NO_SELECTION_TEXT)
-            self.ingredients_label.configure(text=self._missing_text())
+            self.ingredients_title.configure(text=MISSING_TITLE if self._missing_rows() else "")
+            self.ingredients_list.set_rows(self._missing_rows())
             return
         self.name_label.configure(text=self._context.name_of(row.item_id))
-        lines = [self._ingredient_line(*ingredient) for ingredient in row.ingredients]
-        self.ingredients_label.configure(text="\n".join(lines))
+        self.ingredients_title.configure(text=INGREDIENTS_TITLE)
+        self.ingredients_list.set_rows([self._ingredient_row(*ingredient) for ingredient in row.ingredients])
 
-    def _missing_text(self) -> str:
+    def _missing_rows(self) -> list[StatRow]:
         blocked = missing_prices(self._craft_rows.values(), MISSING_LIMIT)
-        lines = [f"{self._context.name_of(item)} : {count} craft(s)" for item, count in blocked]
-        return "\n".join([MISSING_TITLE, *lines]) if lines else ""
+        return [(self._context.name_of(item), f"{count} craft(s)", None) for item, count in blocked]

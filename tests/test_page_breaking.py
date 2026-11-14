@@ -1,5 +1,6 @@
 """Headless-safe checks of the Brisage page on synthetic data."""
 
+import customtkinter
 import pytest
 
 pytest.importorskip("customtkinter")
@@ -56,7 +57,8 @@ def test_selecting_an_object_lists_its_breakings_and_both_scenarios(root, tmp_pa
     page.refresh()
     page._selection_changed(CAPE)
     assert len(page.breakings_table._shown) == 2
-    titles = [child.cget("text") for child in page.blocks_frame.winfo_children()]
+    titles = [child.cget("text") for child in page.blocks_frame.winfo_children()
+              if isinstance(child, customtkinter.CTkLabel)]
     assert "Brisage classique" in titles and any(title.startswith("Focus le plus rentable") for title in titles)
     store.close()
 

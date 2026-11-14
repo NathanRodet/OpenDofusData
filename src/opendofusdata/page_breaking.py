@@ -17,10 +17,11 @@ from opendofusdata.price_book import PriceBook
 from opendofusdata.price_rules import PRICE_LAST
 from opendofusdata.table_model import TableRow
 from opendofusdata.time_filters import Window, elapsed_text
+from opendofusdata.ui_stats import StatList
 from opendofusdata.ui_table import Column, DataTable
 from opendofusdata.ui_theme import (CARD_COLOR, CORNER_RADIUS, DETAIL_WIDTH, DOWN_COLOR, MUTED_COLOR, PADDING,
                                     SMALL_PADDING, TITLE_SIZE, TRANSPARENT, UP_COLOR)
-from opendofusdata.ui_widgets import make_label
+from opendofusdata.ui_widgets import make_card_title, make_label
 from opendofusdata.value_format import format_kamas, format_signed_kamas
 from opendofusdata.view_page import ViewPage
 from opendofusdata.window_context import WindowContext
@@ -46,7 +47,7 @@ class BreakingPage(ViewPage):
         self._effects: dict[int, ItemEffects] | None = None
         self._runes: list[Rune] = []
         self._detail_shown: object = None
-        make_label(self.split.main, BREAKINGS_TITLE, color=MUTED_COLOR, anchor="w").pack(fill="x", pady=(PADDING, 0))
+        make_card_title(self.split.main, BREAKINGS_TITLE).pack(fill="x", pady=(PADDING, SMALL_PADDING))
         self.breakings_table = DataTable(self.split.main, BREAKING_COLUMNS, lambda key: None, (0, True))
         self.breakings_table.pack(fill="both", expand=True)
         self._build_detail()
@@ -118,10 +119,10 @@ class BreakingPage(ViewPage):
             self._render_block(block)
 
     def _render_block(self, block: DetailBlock) -> None:
-        make_label(self.blocks_frame, block.title, bold=True, anchor="w", justify="left",
-                   wraplength=WRAP_LENGTH).pack(fill="x", pady=(SMALL_PADDING, 0))
-        make_label(self.blocks_frame, "\n".join(block.lines), color=MUTED_COLOR, anchor="w", justify="left",
-                   wraplength=WRAP_LENGTH).pack(fill="x")
+        make_card_title(self.blocks_frame, block.title).pack(fill="x", pady=(PADDING, SMALL_PADDING))
+        rows = StatList(self.blocks_frame)
+        rows.set_rows(block.lines)
+        rows.pack(fill="x")
         color = MUTED_COLOR if block.positive is None else (UP_COLOR if block.positive else DOWN_COLOR)
         make_label(self.blocks_frame, block.summary, bold=True, color=color, anchor="w", justify="left",
-                   wraplength=WRAP_LENGTH).pack(fill="x", pady=(0, SMALL_PADDING))
+                   wraplength=WRAP_LENGTH).pack(fill="x", pady=(SMALL_PADDING, 0))
