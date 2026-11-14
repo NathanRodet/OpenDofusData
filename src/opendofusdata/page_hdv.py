@@ -60,6 +60,9 @@ class HdvPage(ViewPage):
         make_card_title(card, LOTS_TITLE).pack(fill="x", padx=PADDING, pady=(PADDING, SMALL_PADDING))
         self.lots_list = StatList(card)
         self.lots_list.pack(fill="x", padx=PADDING)
+        self._build_history(card)
+
+    def _build_history(self, card: customtkinter.CTkBaseClass) -> None:
         make_card_title(card, HISTORY_TITLE).pack(fill="x", padx=PADDING, pady=(PADDING, SMALL_PADDING))
         font = customtkinter.CTkFont(family=MONOSPACE_FONT, size=MONOSPACE_SIZE)
         self.history_box = customtkinter.CTkTextbox(card, height=HISTORY_HEIGHT, font=font, fg_color=LOG_COLOR,
