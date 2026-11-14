@@ -6,6 +6,7 @@ from opendofusdata.effects_csv import ItemEffects, Rune
 
 WEIGHT_FACTOR = 3
 LEVEL_DIVISOR = 200
+FOCUS_OTHER_FACTOR = 0.5  # with a focus, the other stat lines count for half
 
 
 def base_runes_by_action(runes: Iterable[Rune]) -> dict[int, Rune]:
@@ -23,12 +24,17 @@ def breaking_weight(roll: int, power_rate: float, level: int) -> float:
     return WEIGHT_FACTOR * roll * power_rate * level / LEVEL_DIVISOR + 1
 
 
-def expected_runes(effects: ItemEffects, coefficient: float, base_runes: Mapping[int, Rune]) -> list[tuple[int, float]]:
-    """Expected number of base runes per stat line: weight x coefficient / (stat weight x rune amount)."""
+def expected_runes(effects: ItemEffects, coefficient: float, base_runes: Mapping[int, Rune],
+                   focus_action: int | None = None) -> list[tuple[int, float]]:
+    """Expected number of base runes per stat line: weight x coefficient / (stat weight x rune amount).
+
+    With a focus the focused stat counts for 100 % and the other lines for FOCUS_OTHER_FACTOR.
+    """
     result = []
     for line in effects.lines:
         rune = base_runes.get(line.action_id)
         if rune is not None:
-            weight = breaking_weight(line.maximum, rune.power_rate, effects.level)
+            factor = 1.0 if focus_action in (None, line.action_id) else FOCUS_OTHER_FACTOR
+            weight = breaking_weight(line.maximum, rune.power_rate, effects.level) * factor
             result.append((rune.rune_id, weight * coefficient / (rune.power_rate * rune.amount)))
     return result

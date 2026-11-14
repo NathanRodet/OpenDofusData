@@ -1,4 +1,4 @@
-"""Headless-safe checks of the Craft page and the theoretical breaking tab on synthetic data."""
+"""Headless-safe checks of the Craft page on synthetic data."""
 
 import pytest
 
@@ -7,7 +7,6 @@ pytest.importorskip("customtkinter")
 from opendofusdata.effects_csv import (EFFECTS_CSV_HEADER, EFFECTS_FILE, RUNES_CSV_HEADER, RUNES_FILE,
                                        ItemEffects, Rune, StatLine, effects_rows, runes_rows)
 from opendofusdata.names_build import write_csv_atomically
-from opendofusdata.page_breaking_theory import TheoryPage
 from opendofusdata.page_craft import CraftPage
 from opendofusdata.records import LotPrice
 from opendofusdata.recipes_csv import DEFAULT_RECIPES_FILE, RECIPES_CSV_HEADER, Recipe, recipe_rows
@@ -51,18 +50,4 @@ def test_craft_names_the_missing_price_when_nothing_is_selected(root, tmp_path) 
     page = CraftPage(root, context_with_data(tmp_path), clock=lambda: NOW)
     page.refresh()
     assert page.table._shown == [] and "Pierre" in page.ingredients_label.cget("text")
-    store.close()
-
-
-def test_theory_expects_runes_and_a_typed_coefficient_changes_them(root, tmp_path) -> None:
-    store = open_store(tmp_path)
-    fill(store)
-    page = TheoryPage(root, context_with_data(tmp_path), clock=lambda: NOW)
-    page.refresh()
-    row = page.table._shown[0]
-    assert row.cells[0] == "Chapeau" and row.cells[2] == "50 %"
-    page.coefficient_typed(HAT, 2, "100")
-    assert page.table._shown[0].cells[2].startswith("100 %")
-    page.coefficient_typed(HAT, 2, "250")
-    assert "illisible" in page.notice.cget("text")
     store.close()

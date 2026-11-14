@@ -1,6 +1,7 @@
 """What the Familiers page shows: experience and kamas per resource, and the upgrades behind them."""
 
 import sqlite3
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -29,6 +30,7 @@ class PetRow:
     last_seen: datetime | None
     cost: float | None
     reliable: bool
+    manual: bool = False  # the player typed experience for this resource
 
 
 @dataclass(frozen=True)
@@ -55,13 +57,24 @@ def _server_feedings(connection: sqlite3.Connection, server: str) -> list[PetFee
     return [feeding for feeding in pet_feedings(connection) if feeding.server == server]
 
 
+def _with_manual(totals: Mapping[int, ResourceExperience],
+                 manual: Mapping[int, ResourceExperience]) -> dict[int, ResourceExperience]:
+    """The observed totals plus the experience typed by the player."""
+    merged = dict(totals)
+    for item_id, typed in manual.items():
+        known = merged.get(item_id, ResourceExperience(item_id, 0, 0, 0))
+        merged[item_id] = ResourceExperience(item_id, known.feedings, known.units + typed.units,
+                                             known.experience + typed.experience)
+    return merged
+
+
 def _row_of(item_id: int, stats: ResourceExperience | None, last_seen: datetime | None, name_of: ItemLabeler,
-            type_of: ItemTyper, book: PriceBook, mode: str) -> PetRow:
+            type_of: ItemTyper, book: PriceBook, mode: str, manual: bool = False) -> PetRow:
     price = book.unit_price(item_id, mode)
     per_unit = experience_per_unit(stats) if stats else None
     ratio = kamas_per_experience(price, per_unit)
     return PetRow(item_id, name_of(item_id), type_of(item_id), price, per_unit, ratio,
-                  stats.feedings if stats else 0, last_seen, leveling_cost(ratio), bool(stats and is_reliable(stats)))
+                  stats.feedings if stats else 0, last_seen, leveling_cost(ratio), bool(stats and is_reliable(stats)), manual)
 
 
 def _ratio_order(row: PetRow) -> tuple[bool, float]:
@@ -69,16 +82,18 @@ def _ratio_order(row: PetRow) -> tuple[bool, float]:
 
 
 def pet_rows(connection: sqlite3.Connection, server: str, window: Window, name_of: ItemLabeler,
-             type_of: ItemTyper, book: PriceBook, mode: str) -> list[PetRow]:
-    """One row per resource seen in usable upgrades inside the window, cheapest experience first."""
+             type_of: ItemTyper, book: PriceBook, mode: str,
+             manual: Mapping[int, ResourceExperience] | None = None) -> list[PetRow]:
+    """One row per resource seen in usable upgrades inside the window (or typed by the player), cheapest first."""
     low, high = stored_bounds(window)
     feedings = [feeding for feeding in _server_feedings(connection, server) if low <= feeding.captured_at <= high]
-    totals = experience_by_resource(feedings)
+    typed = manual or {}
+    totals = _with_manual(experience_by_resource(feedings), typed)
     seen: dict[int, datetime] = {}
     for feeding in feedings:
         if len(feeding.resources) == 1 and feeding.resources[0][0] in totals:
             seen[feeding.resources[0][0]] = parse_stored(feeding.captured_at)
-    rows = [_row_of(item_id, stats, seen.get(item_id), name_of, type_of, book, mode)
+    rows = [_row_of(item_id, stats, seen.get(item_id), name_of, type_of, book, mode, item_id in typed)
             for item_id, stats in totals.items()]
     return sorted(rows, key=_ratio_order)
 
@@ -100,14 +115,17 @@ def _ratio_points(upgrades: list[PetUpgrade], item_id: int, book: PriceBook) -> 
 
 
 def pet_detail(connection: sqlite3.Connection, server: str, item_id: int, name_of: ItemLabeler,
-               type_of: ItemTyper, book: PriceBook, mode: str) -> PetDetail | None:
-    """All upgrades that used the resource (newest first); None when it was never used."""
+               type_of: ItemTyper, book: PriceBook, mode: str,
+               manual: Mapping[int, ResourceExperience] | None = None) -> PetDetail | None:
+    """All upgrades that used the resource (newest first); None when it was never used nor typed."""
     feedings = [feeding for feeding in _server_feedings(connection, server)
                 if any(resource == item_id for resource, _ in feeding.resources)]
-    if not feedings:
+    typed = manual or {}
+    if not feedings and item_id not in typed:
         return None
     upgrades = sorted((_upgrade_of(feeding, item_id, name_of) for feeding in feedings),
                       key=lambda upgrade: upgrade.moment, reverse=True)
-    stats = experience_by_resource(feedings).get(item_id)
-    row = _row_of(item_id, stats, upgrades[0].moment, name_of, type_of, book, mode)
+    stats = _with_manual(experience_by_resource(feedings), typed).get(item_id)
+    row = _row_of(item_id, stats, upgrades[0].moment if upgrades else None, name_of, type_of, book, mode,
+                  item_id in typed)
     return PetDetail(row, upgrades, _ratio_points(list(reversed(upgrades)), item_id, book))

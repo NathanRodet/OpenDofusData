@@ -7,6 +7,9 @@ import customtkinter
 
 from opendofusdata.app_config import load_config
 from opendofusdata.client_settings import price_mode_from_config
+from opendofusdata.item_search import search_items
+from opendofusdata.pet_manual_form import PetManualForm
+from opendofusdata.pet_manual_store import add_manual, load_manual, remove_manual
 from opendofusdata.pets_view_data import PetDetail, PetRow, PetUpgrade, pet_detail, pet_rows
 from opendofusdata.price_book import PriceBook
 from opendofusdata.table_model import TableRow
@@ -27,12 +30,13 @@ COLUMNS = (Column("Ressource", 200), Column("Type", 120), Column("Prix d'1 resso
 KAMAS_PER_XP_COLUMN = 4
 BEST_ROW_COUNT = 3
 UNRELIABLE_SUFFIX = " peu fiable"
+MANUAL_SUFFIX = " + saisi"
 NO_SELECTION_TEXT = "Sélectionne une ressource pour voir ses relevés."
 
 
 def observations_text(row: PetRow) -> str:
     """The number of feedings, marked when too little experience was observed."""
-    return str(row.feedings) + ("" if row.reliable else UNRELIABLE_SUFFIX)
+    return str(row.feedings) + ("" if row.reliable else UNRELIABLE_SUFFIX) + (MANUAL_SUFFIX if row.manual else "")
 
 
 def best_keys(rows: list[PetRow]) -> set[int]:
@@ -58,6 +62,8 @@ class PetsPage(ViewPage):
     def _build_detail(self) -> None:
         card = customtkinter.CTkScrollableFrame(self.split.detail, fg_color=CARD_COLOR, corner_radius=CORNER_RADIUS)
         card.pack(fill="both", expand=True)
+        self.form = PetManualForm(card, self._search_items, self._add_manual, self._remove_manual)
+        self.form.pack(fill="x", padx=PADDING, pady=(PADDING, 0))
         self.name_label = make_label(card, NO_SELECTION_TEXT, TITLE_SIZE, bold=True, anchor="w", wraplength=300)
         self.name_label.pack(fill="x", padx=PADDING, pady=(PADDING, SMALL_PADDING))
         self.tiles_label = make_label(card, "", anchor="w", justify="left")
@@ -67,11 +73,30 @@ class PetsPage(ViewPage):
         self.upgrades_label = make_label(card, "", color=MUTED_COLOR, anchor="w", justify="left")
         self.upgrades_label.pack(fill="x", padx=PADDING, pady=(0, PADDING))
 
+    def _selection_changed(self, key: object | None) -> None:
+        super()._selection_changed(key)
+        if key is not None:
+            self.form.prefill(int(key), self._context.name_of(int(key)))
+
+    def _search_items(self, text: str) -> list[tuple[int, str]]:
+        return self._read(lambda connection: search_items(connection, text)) or []
+
+    def _add_manual(self, item_id: int, units: int, experience: int) -> bool:
+        saved = add_manual(self._context.config_path, item_id, units, experience)
+        self.refresh()
+        return saved
+
+    def _remove_manual(self, item_id: int) -> bool:
+        removed = remove_manual(self._context.config_path, item_id)
+        self.refresh()
+        return removed
+
     def load_rows(self, connection: sqlite3.Connection, server: str, window: Window) -> list[TableRow]:
         """One row per resource seen in usable upgrades inside the window."""
         self._mode = price_mode_from_config(load_config(self._context.config_path))
         book = PriceBook.load(connection, server)
-        rows = pet_rows(connection, server, window, self._context.name_of, self._context.type_of, book, self._mode)
+        rows = pet_rows(connection, server, window, self._context.name_of, self._context.type_of, book, self._mode,
+                        load_manual(self._context.config_path))
         best, now = best_keys(rows), self._clock()
         return [self._table_row(row, now, row.item_id in best) for row in rows]
 
@@ -89,7 +114,7 @@ class PetsPage(ViewPage):
         if key is not None:
             book = PriceBook.load(connection, server)  # fresh: its price history reads this open connection
             detail = pet_detail(connection, server, int(key), self._context.name_of, self._context.type_of,
-                                book, self._mode)
+                                book, self._mode, load_manual(self._context.config_path))
         if detail is None:
             self._clear_detail()
         else:
