@@ -10,6 +10,7 @@ from opendofusdata.timeutil import format_utc
 
 HISTORY_LIMIT = 500
 STATS_PERIOD_24H = "24h"
+STATS_PERIOD_7D = "7d"
 LATEST_LOTS_SQL = """
     SELECT item_id, lot_size, price, captured_at FROM (
         SELECT item_id, lot_size, price, captured_at, ROW_NUMBER() OVER (
@@ -43,13 +44,18 @@ class PriceBook:
         """Read the latest lot prices and 24 h statistics; sqlite3.Error is left to the caller."""
         lots: dict[int, dict[int, int]] = {}
         seen: dict[int, str] = {}
+        lot_seen: dict[int, dict[int, str]] = {}
         for item_id, lot_size, price, captured_at in connection.execute(LATEST_LOTS_SQL, (server,)):
             lots.setdefault(item_id, {})[lot_size] = price
+            lot_seen.setdefault(item_id, {})[lot_size] = captured_at
             seen[item_id] = max(seen.get(item_id, captured_at), captured_at)
         stats = {item_id: (median, mean) for item_id, median, mean
                  in connection.execute(LATEST_STATS_SQL, (server, STATS_PERIOD_24H))}
-        prices = {item_id: ItemPrices(lots.get(item_id, {}), *stats.get(item_id, (None, None)), seen.get(item_id))
-                  for item_id in lots.keys() | stats.keys()}
+        weekly = {item_id: mean for item_id, _, mean
+                  in connection.execute(LATEST_STATS_SQL, (server, STATS_PERIOD_7D))}
+        prices = {item_id: ItemPrices(lots.get(item_id, {}), *stats.get(item_id, (None, None)), seen.get(item_id),
+                                      lot_seen.get(item_id, {}), weekly.get(item_id))
+                  for item_id in lots.keys() | stats.keys() | weekly.keys()}
         return cls(connection, server, prices)
 
     def prices_of(self, item_id: int) -> ItemPrices | None:

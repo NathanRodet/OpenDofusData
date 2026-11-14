@@ -1,7 +1,7 @@
 """Which unit price the player wants for estimates: pure logic."""
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 PRICE_LAST = "last"
 PRICE_MEDIAN = "median"
@@ -20,6 +20,8 @@ class ItemPrices:
     median_24h: int | None
     mean_24h: int | None
     seen_at: str | None = None  # stored UTC time of the newest lot price
+    lot_seen: Mapping[int, str] = field(default_factory=dict)  # stored UTC time of the latest price of each lot size
+    mean_7d: int | None = None
 
 
 def _last_unit_price(lots: Mapping[int, int]) -> float | None:
@@ -53,9 +55,25 @@ def best_lot_unit_price(prices: ItemPrices | None) -> float | None:
     return min(price / size for size, price in prices.lots.items())
 
 
-def bulk_unit_price(prices: ItemPrices | None) -> float | None:
-    """The cheapest price per unit among the x100 and x1000 lots (what pet feeding buys); None when neither is known."""
+def bulk_unit_price(prices: ItemPrices | None, fresh_since: str = "") -> float | None:
+    """The cheapest price per unit among the x100 and x1000 lots seen since `fresh_since`; None when none is."""
     if prices is None:
         return None
-    known = [prices.lots[size] / size for size in BULK_LOT_SIZES if size in prices.lots]
+    known = [prices.lots[size] / size for size in BULK_LOT_SIZES
+             if size in prices.lots and prices.lot_seen.get(size, "") >= fresh_since]
     return min(known) if known else None
+
+
+def average_price(prices: ItemPrices | None) -> float | None:
+    """The average price of one unit over 24 h, else over 7 days; None when neither is known."""
+    if prices is None:
+        return None
+    return _optional_float(prices.mean_24h if prices.mean_24h is not None else prices.mean_7d)
+
+
+def pet_unit_price(prices: ItemPrices | None, fallback: float | None, fresh_since: str = "") -> float | None:
+    """A recent x100 / x1000 price, else the average price, else an old bulk price, else the fallback."""
+    for price in (bulk_unit_price(prices, fresh_since), average_price(prices), bulk_unit_price(prices)):
+        if price is not None:
+            return price
+    return fallback

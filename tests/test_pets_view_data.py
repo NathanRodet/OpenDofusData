@@ -88,3 +88,16 @@ def test_bulk_price_is_the_cheapest_unit_price_of_the_x100_and_x1000_lots() -> N
     assert bulk_unit_price(ItemPrices({1: 900, 100: 80_000, 1000: 700_000}, None, None)) == 700.0
     assert bulk_unit_price(ItemPrices({1: 900, 10: 8_000}, None, None)) is None
     assert bulk_unit_price(None) is None
+
+
+def test_pet_price_is_the_recent_bulk_price_else_the_average_else_an_old_bulk_price() -> None:
+    from opendofusdata.price_rules import ItemPrices, pet_unit_price
+
+    stale = {100: "2026-11-10T09:00:00Z"}
+    old_bulk = ItemPrices({100: 80_000}, None, 950, None, stale, 990)
+    assert pet_unit_price(old_bulk, 1.0, "2026-11-13T09:00:00Z") == 950.0
+    assert pet_unit_price(ItemPrices({100: 80_000}, None, None, None, stale, 990), 1.0, "2026-11-13T09:00:00Z") == 990.0
+    assert pet_unit_price(ItemPrices({100: 80_000}, None, None, None, stale), 1.0, "2026-11-13T09:00:00Z") == 800.0
+    fresh = ItemPrices({100: 80_000}, None, 950, None, {100: "2026-11-14T09:00:00Z"})
+    assert pet_unit_price(fresh, 1.0, "2026-11-13T09:00:00Z") == 800.0
+    assert pet_unit_price(None, 7.0) == 7.0

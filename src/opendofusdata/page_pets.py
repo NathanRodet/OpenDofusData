@@ -1,7 +1,7 @@
 """The Familiers page: experience given by one resource, its price and the kamas spent per XP."""
 
 import sqlite3
-from datetime import datetime
+from datetime import timedelta
 
 import customtkinter
 
@@ -13,7 +13,8 @@ from opendofusdata.pet_manual_store import add_manual, load_manual, remove_manua
 from opendofusdata.pets_view_data import PetDetail, PetRow, PetUpgrade, pet_detail, pet_rows
 from opendofusdata.price_book import PriceBook
 from opendofusdata.table_model import TableRow
-from opendofusdata.time_filters import Window, elapsed_text, local_text
+from opendofusdata.time_filters import Window, local_text
+from opendofusdata.timeutil import format_utc
 from opendofusdata.ui_chart import ChartPoint, DatedChart
 from opendofusdata.ui_table import TAG_UP, Column
 from opendofusdata.ui_theme import CARD_COLOR, CORNER_RADIUS, MUTED_COLOR, PADDING, SMALL_PADDING, TITLE_SIZE
@@ -25,12 +26,13 @@ from opendofusdata.window_context import WindowContext
 TITLE = "Familiers"
 COLUMNS = (Column("Ressource", 200), Column("Type", 120), Column("Prix d'1 ressource", 130, True),
            Column("XP pour 1 ressource", 150, True), Column("Kamas par XP", 110, True),
-           Column("Observations", 130, True), Column("Dernier relevé", 120, True),
+           Column("Observations", 130, True), Column("Prix moyen", 120, True),
            Column("Coût pour monter un familier", 190, True))
 KAMAS_PER_XP_COLUMN = 4
 BEST_ROW_COUNT = 3
 UNRELIABLE_SUFFIX = " peu fiable"
 MANUAL_SUFFIX = " + saisi"
+FRESH_PRICE_HOURS = 24  # a x100 / x1000 price older than this is replaced by the average price
 NO_SELECTION_TEXT = "Sélectionne une ressource pour voir ses relevés."
 
 
@@ -97,16 +99,19 @@ class PetsPage(ViewPage):
         self._mode = price_mode_from_config(load_config(self._context.config_path))
         book = PriceBook.load(connection, server)
         rows = pet_rows(connection, server, window, self._context.name_of, self._context.type_of, book, self._mode,
-                        load_manual(self._context.config_path))
-        best, now = best_keys(rows), self._clock()
-        return [self._table_row(row, now, row.item_id in best) for row in rows]
+                        load_manual(self._context.config_path), self._fresh_since())
+        best = best_keys(rows)
+        return [self._table_row(row, row.item_id in best) for row in rows]
 
-    def _table_row(self, row: PetRow, now: datetime, best: bool) -> TableRow:
-        seen = elapsed_text(row.last_seen, now) if row.last_seen else ""
+    def _fresh_since(self) -> str:
+        return format_utc(self._clock() - timedelta(hours=FRESH_PRICE_HOURS))
+
+    def _table_row(self, row: PetRow, best: bool) -> TableRow:
         cells = (row.name, row.type_name, format_kamas(row.unit_price), format_experience_per_unit(row.per_unit),
-                 format_kamas_per_experience(row.kamas_per_xp), observations_text(row), seen, format_kamas(row.cost))
+                 format_kamas_per_experience(row.kamas_per_xp), observations_text(row), format_kamas(row.average_price),
+                 format_kamas(row.cost))
         sort_values = (row.name.casefold(), row.type_name, row.unit_price, row.per_unit, row.kamas_per_xp,
-                       row.feedings, row.last_seen, row.cost)
+                       row.feedings, row.average_price, row.cost)
         return TableRow(row.item_id, cells, sort_values, TAG_UP if best else None)
 
     def show_detail(self, connection: sqlite3.Connection, server: str, key: object | None) -> None:
@@ -115,7 +120,7 @@ class PetsPage(ViewPage):
         if key is not None:
             book = PriceBook.load(connection, server)  # fresh: its price history reads this open connection
             detail = pet_detail(connection, server, int(key), self._context.name_of, self._context.type_of,
-                                book, self._mode, load_manual(self._context.config_path))
+                                book, self._mode, load_manual(self._context.config_path), self._fresh_since())
         if detail is None:
             self._clear_detail()
         else:
@@ -133,6 +138,7 @@ class PetsPage(ViewPage):
         self.tiles_label.configure(text=(
             f"XP pour 1 ressource : {format_experience_per_unit(row.per_unit)}\n"
             f"Prix d'1 ressource : {format_kamas(row.unit_price)} kamas\n"
+            f"Prix moyen : {format_kamas(row.average_price)} kamas\n"
             f"Kamas par XP : {format_kamas_per_experience(row.kamas_per_xp)}\n"
             f"Coût pour monter un familier : {format_kamas(row.cost)} kamas"))
         self.chart.set_series([ChartPoint(moment, ratio, f"Prix : {format_kamas(price)} kamas l'unité")
