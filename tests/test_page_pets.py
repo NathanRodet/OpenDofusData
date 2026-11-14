@@ -96,3 +96,22 @@ def test_empty_database_renders(root, tmp_path) -> None:
     page = make_page(root, tmp_path)
     page.refresh()
     assert page.table._shown == []
+
+
+def test_the_form_suggests_items_while_typing_and_adds_the_typed_experience(root, tmp_path) -> None:
+    from opendofusdata.pet_manual_store import load_manual
+
+    store = open_store(tmp_path)
+    store.connection.executemany("INSERT INTO items (item_id, name_fr, type_fr) VALUES (?, ?, ?)",
+                                 [(BOUE, "Boue du Boo", "Ressource"), (GRAIN, "Boue grise", "Ressource")])
+    store.connection.commit()
+    page = make_page(root, tmp_path)
+    page.form.item_box.insert(0, "boue")
+    page.form.update_choices()
+    assert [button.cget("text") for button in page.form.suggestions.winfo_children()] == ["Boue du Boo", "Boue grise"]
+    page.form.choose("Boue du Boo")
+    page.form.units_entry.insert(0, "10")
+    page.form.experience_entry.insert(0, "50")
+    page.form.add()
+    assert load_manual(page._context.config_path)[BOUE].experience == 50 and not page.form.suggestions.winfo_children()
+    store.close()
