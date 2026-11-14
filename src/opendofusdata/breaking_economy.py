@@ -22,6 +22,8 @@ def runes_value(runes: Sequence[tuple[int, int]], price_of: Callable[[int], floa
             continue
         known += 1
         total += quantity * price
+    if not runes:
+        return RunesValue(0.0, False)  # an object that gave no rune is worth nothing, not unknown
     return RunesValue(total if known else None, unknown > 0 and known > 0)
 
 

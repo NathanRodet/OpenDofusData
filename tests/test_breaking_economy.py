@@ -28,3 +28,8 @@ def test_plus_value() -> None:
 def test_object_value() -> None:
     assert object_value(900.0, 2) == 1800.0
     assert object_value(None, 2) is None
+
+
+def test_no_rune_at_all_is_a_known_value_of_zero() -> None:
+    assert runes_value((), {}.get) == RunesValue(0.0, False)
+    assert plus_value(runes_value((), {}.get), 1200.0) == -1200.0
