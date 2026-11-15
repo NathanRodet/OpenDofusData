@@ -24,9 +24,9 @@ function Invoke-Setup {
         python -m venv $VenvDir
     }
     Write-Host "Installation des dépendances..."
-    & $VenvPython -m pip install --upgrade pip
-    & $VenvPython -m pip install -r (Join-Path $ProjectRoot "requirements.txt")
-    & $VenvPython -m pip install -e $ProjectRoot
+    # requirements.lock pins every package with its hashes; requirements.txt is only the human-edited input.
+    & $VenvPython -m pip install --require-hashes -r (Join-Path $ProjectRoot "requirements.lock")
+    & $VenvPython -m pip install --no-deps --no-build-isolation -e $ProjectRoot
     Write-Host "Prêt. Active le venv avec: .\.venv\Scripts\Activate.ps1"
 }
 
@@ -84,7 +84,7 @@ function Invoke-Clean {
 
 function Show-Help {
     Write-Host "Usage: .\dev.ps1 <commande>"
-    Write-Host "  setup  Crée le venv et installe requirements.txt"
+    Write-Host "  setup  Crée le venv et installe requirements.lock (versions et hashes verrouillés)"
     Write-Host "  test   Lance pytest dans le venv"
     Write-Host "  clean  Supprime le venv et les caches"
     Write-Host "  capture Lance la capture des prix (ex: .\dev.ps1 capture --server MonServeur)"

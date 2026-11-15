@@ -21,6 +21,8 @@ A small Windows app that passively reads Dofus network traffic and stores prices
 
 ## Install
 
+> **Only download OpenDofusData from the [Releases page of this repository](https://github.com/NathanRodet/OpenDofusData/releases/latest).** We suggest you never download this tool, or a similar version of it, anywhere else: it could have been corrupted with bad intentions. The app is not code-signed, so the SHA-256 check below and the source of the download are your only protection.
+
 **Requirements:** Windows 11 and [Npcap](https://npcap.com). No Python needed.
 
 **1. Install Npcap**

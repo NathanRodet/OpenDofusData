@@ -12,5 +12,5 @@ Outil local (Python 3.13, Windows) qui capture le trafic réseau de Dofus (TCP 5
 - Un module par couche, dépendances dans un seul sens; la logique pure (décodage, reconstruction TCP) ne dépend ni de Scapy ni de SQLite pour être testable.
 - Pas d'`except:` nu ni d'erreurs avalées silencieusement; logs via `logging`.
 - Tests `pytest` sur des données synthétiques pour chaque module de logique.
-- Dépendances listées dans `requirements.txt`, installées dans le venv `.venv` (jamais en global).
+- Dépendances listées dans `requirements.txt`, verrouillées avec leurs hashes dans `requirements.lock` (régénéré avec pip-compile, voir docs/developpement.md), installées dans le venv `.venv` (jamais en global).
 - Commandes de dev via `.\dev.ps1` (`setup`, `test`, `clean`, `build`); `.venv/`, `build/` et `dist/` sont à exclure du versionnement.

@@ -21,6 +21,17 @@ Cette commande crée le venv `.venv` et installe `requirements.txt` (`scapy` pou
 
 Le projet est aussi un paquet Python (`pyproject.toml`). Dans le venv, `pip install -e .` installe la commande `opendofusdata`, équivalente à `python -m opendofusdata` (ex. `opendofusdata window`, `opendofusdata run --server Kourial`). `.\dev.ps1 setup` fait cette installation. Au premier lancement de `window` ou `run` dans un terminal, la liste des serveurs de jeu est proposée (le choix est mémorisé, voir « Serveur de jeu »); `--server NOM` et `--choose-server` fonctionnent aussi.
 
+### Dépendances verrouillées
+
+`requirements.txt` est le fichier écrit à la main (fourchettes de versions). `requirements.lock` en est la version verrouillée: chaque paquet, y compris les dépendances indirectes, y figure avec sa version exacte et ses empreintes SHA-256. `.\dev.ps1 setup` et les workflows GitHub l'installent avec `pip install --require-hashes`, donc l'exécutable publié ne dépend pas de ce que pip trouverait le jour du build. Pour changer une dépendance, modifie `requirements.txt` puis régénère le verrou (Python 3.13, sous Windows):
+
+```powershell
+python -m pip install pip-tools
+python -m piptools compile --generate-hashes --allow-unsafe --strip-extras -o requirements.lock requirements.txt
+```
+
+Les actions GitHub des workflows sont épinglées par empreinte de commit (le tag est rappelé en commentaire). Pour les mettre à jour, résous le nouveau tag avec `git ls-remote --tags https://github.com/actions/<nom>` et remplace l'empreinte.
+
 ### Construire l'exécutable et publier une version
 
 `.\dev.ps1 build` produit `dist\OpenDofusData.exe` (PyInstaller, sans console) et `dist\OpenDofusData.exe.sha256`. Pour publier: change `__version__`, commite sur `main`, puis crée et pousse le tag `vX.Y.Z`. Le workflow GitHub `.github/workflows/release.yml` lance les tests, vérifie que le tag correspond à la version, construit l'exécutable et le publie sur la Release avec son empreinte: c'est ce que la page À propos des programmes installés va chercher. Le workflow `ci.yml` lance les tests à chaque push sur `main` et chaque pull request.
