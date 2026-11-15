@@ -1,6 +1,6 @@
 # Feuille de route
 
-État au 2026-11-15: la V2 (refonte de la fenêtre) est publiée. Version du produit: 2.0.0 (tags `v1.0.0` et `v1.1.0` existants; `v2.0.0` publié le 2026-11-15).
+État au 2026-11-15: la V2 (refonte de la fenêtre) est publiée. Version du produit: 2.1.0 (tags `v1.0.0` et `v1.1.0` existants; `v2.0.0` et `v2.1.0` publiés le 2026-11-15). La 2.1.0 ajoute le menu déroulant de période, les favoris et l'onglet Couverture des Familiers, le détail des runes obtenues en vrai, et le verrouillage des dépendances.
 
 ## Validé en jeu
 
