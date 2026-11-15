@@ -11,7 +11,7 @@ A small Windows app that passively reads Dofus network traffic and stores prices
 ![Data stays local](https://img.shields.io/badge/data-stays%20on%20your%20PC-2fb36d)
 ![License](https://img.shields.io/badge/license-all%20rights%20reserved-lightgrey)
 
-[Download](https://github.com/NathanRodet/OpenDofusData/releases/latest) · [Install](#install) · [Features](#features) · [Privacy](#privacy)
+[Download](https://github.com/NathanRodet/OpenDofusData/releases/latest) | [Install](#install) | [Features](#features) | [Privacy](#privacy)
 
 </div>
 
@@ -59,11 +59,11 @@ OpenDofusData listens while you play and turns what it understands into tables, 
 | **HDV** (market) | Every item whose listing you opened: latest price, 24 h median, units sold, 24 h / 7 d / 30 d price curves, lot prices ×1 / ×10 / ×100 / ×1000 and the full history of snapshots. |
 | **Brisage** (breaking) | Your breakings, item by item: lowest market price, average breaking coefficient and average plus-value (value of the runes obtained minus the item price). Click an item to see the plus-value rune by rune, in classic breaking and in focus on the most profitable stat. |
 | **Craft** | Every craft whose prices are all known, from most to least profitable, with the detail of its resources. |
-| **Familiers** (pets) | How much XP a resource gives a pet and what one XP point costs you, cheapest first. Add your own observed XP for *x* resources, see the **price stop** at 25 kamas per XP, and open the **Coverage** tab to see how many resources have a known coefficient and which ones are still missing (filterable by category). |
+| **Familiers** (pets) | How much XP a resource gives a pet and what one XP point costs you, cheapest first. Add your own observed XP for *x* resources, see the **price stop** at 25 kamas per XP, mark resources as **favorites** (stored locally, with a "favorites only" filter), and open the **Coverage** tab to see how many resources have a known coefficient and which ones are still missing (filterable by category). |
 | **Logs** | What is being captured right now, filterable by type, period and name. |
 | **Réglages** (settings) | Game server, database location, item names, the price used for estimates, updates. |
 
-Every page can be filtered by period (last hour, 6 hours, today, 7 days, 30 days, all time, or a custom range), sorted by clicking a column header, and only shows the server you picked.
+Every page can be filtered with the period dropdown (last hour, 6 hours, today, 7 days, 30 days, all time, or a custom range), sorted by clicking a column header, and only shows the server you picked.
 
 > **Beta:** breaking and pet data were validated on the captures of a single player. Compare what you see with the game screen.
 

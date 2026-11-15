@@ -100,7 +100,7 @@ class BreakingPage(ViewPage):
             self._render_detail(NO_SELECTION_TEXT, "", [])
             return
         self._load_data()
-        info = f"Coefficient moyen {coefficient_text(mean_coefficient(own))} · {len(own)} brisage(s)"
+        info = f"Coefficient moyen {coefficient_text(mean_coefficient(own))}, {len(own)} brisage(s)"
         effects = self._effects.get(own[0].item_id)
         blocks = []
         if effects is not None:

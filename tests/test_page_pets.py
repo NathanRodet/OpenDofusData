@@ -7,6 +7,7 @@ import pytest
 pytest.importorskip("customtkinter")
 
 from opendofusdata.page_pets import PetsPage
+from opendofusdata.pet_favorites_store import load_favorites
 from opendofusdata.records import LotPrice, MarketStats, PetFeeding, PetState
 from opendofusdata.time_filters import PERIOD_ALL
 from tests.view_page_helpers import NOW, make_context, open_store
@@ -142,11 +143,11 @@ def test_bulk_price_column_shows_the_unit_price_and_marks_an_old_one(root, tmp_p
 
 def test_stop_text_flags_a_price_above_25_kamas_per_xp() -> None:
     from dataclasses import replace
-    from opendofusdata.page_pets import stop_row
+    from opendofusdata.pets_texts import stop_row
     from opendofusdata.value_format import UNKNOWN_TEXT
     from opendofusdata.pets_view_data import PetRow
     row = PetRow(1, "Gratrooll", "Os", 100.0, 2.0, 50.0, 3, 0.0, True, False, None, None, False)
-    assert stop_row(row)[1] == "50 kamas — dépassé"
+    assert stop_row(row)[1] == "50 kamas, dépassé"
     assert stop_row(replace(row, unit_price=40.0))[1] == "50 kamas"
     assert stop_row(replace(row, per_unit=None))[1] == UNKNOWN_TEXT
 
@@ -170,3 +171,34 @@ def test_tabs_switch_between_the_table_and_the_coverage(root, tmp_path) -> None:
     assert page.coverage_view.winfo_manager() == "pack" and page.split.winfo_manager() == ""
     page._tab_chosen("Ressources")
     assert page.split.winfo_manager() == "pack" and page.coverage_view.winfo_manager() == ""
+
+
+def test_suggestions_take_no_room_when_empty(root, tmp_path) -> None:
+    page = make_page(root, tmp_path)
+    assert page.form.suggestions.winfo_manager() == ""
+    page.form.item_box.insert(0, "Boue")
+    page.form.update_choices()
+    shown = page.form.suggestions.winfo_manager()
+    page.form.update_choices(clear=True)
+    assert shown in ("pack", "") and page.form.suggestions.winfo_manager() == ""
+
+
+def test_favorite_checkbox_stores_and_marks_the_resource_and_the_filter_keeps_only_favorites(root, tmp_path) -> None:
+    store = open_store(tmp_path)
+    fill(store)
+    page = make_page(root, tmp_path)
+    page.refresh()
+    page._selection_changed(PATTE)
+    page.favorite_box.select()
+    page._toggle_favorite()
+    assert load_favorites(page._context.config_path) == {PATTE}
+    assert [row.cells[0] for row in page.table._shown if row.key == PATTE] == ["\u2605 Patte de Gruche"]
+    page.favorites_only.select()
+    page._show_rows()
+    assert [row.key for row in page.table._shown] == [PATTE]
+    page.favorites_only.deselect()
+    page._show_rows()
+    assert len(page.table._shown) == 2
+    page._toggle_favorite()
+    assert load_favorites(page._context.config_path) == set()
+    store.close()

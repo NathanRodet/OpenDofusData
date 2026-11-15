@@ -2,8 +2,8 @@
 
 from collections.abc import Callable, Mapping, Sequence
 
-from opendofusdata.breaking_detail_text import DetailBlock, detail_blocks
-from opendofusdata.breaking_items import mean_real_runes
+from opendofusdata.breaking_detail_text import DetailBlock, detail_blocks, real_block
+from opendofusdata.breaking_items import mean_real_runes, real_totals
 from opendofusdata.breaking_scenarios import best_focus, build_scenario
 from opendofusdata.breaking_theory import base_runes_by_action
 from opendofusdata.breaking_view_data import BreakingRow
@@ -34,4 +34,5 @@ def item_blocks(rows: Sequence[BreakingRow], effects: ItemEffects, runes: Sequen
         return rune_price(book, rune_id)
 
     classic = build_scenario(effects, coefficient, base, price_of, hdv_price, mean_real_runes(rows))
-    return detail_blocks(classic, best_focus(effects, coefficient, base, price_of, hdv_price), name_of)
+    real = real_block(real_totals(rows), sum(row.quantity for row in rows), price_of, hdv_price, name_of)
+    return [real, *detail_blocks(classic, best_focus(effects, coefficient, base, price_of, hdv_price), name_of)]

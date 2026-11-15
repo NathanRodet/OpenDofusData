@@ -126,7 +126,7 @@ Ces deux options affichent un avertissement au lancement. Relis le journal avant
 Règles de calcul des statistiques:
 
 - Médiane pondérée par les quantités vendues; moyenne = somme(prix x quantité) / somme(quantités), tronquée à l'entier.
-- 24 h et 30 jours: points fournis par le serveur. 7 jours: aucun message dédié, calculé à partir des points des 30 jours dont l'horodatage est postérieur ou égal à minuit UTC de (date de capture − 7 jours).
+- 24 h et 30 jours: points fournis par le serveur. 7 jours: aucun message dédié, calculé à partir des points des 30 jours dont l'horodatage est postérieur ou égal à minuit UTC de (date de capture - 7 jours).
 - Horodatages stockés en UTC au format `YYYY-MM-DDTHH:MM:SSZ`.
 - Dernière mise à jour des données = heure de capture (le serveur n'envoie pas ce champ).
 

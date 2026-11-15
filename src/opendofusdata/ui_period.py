@@ -1,4 +1,4 @@
-"""The period buttons of a view, with a custom date range."""
+"""The period dropdown of a view, with a custom date range."""
 
 import tkinter
 from collections.abc import Callable
@@ -6,26 +6,32 @@ from collections.abc import Callable
 import customtkinter
 
 from opendofusdata.time_filters import PERIOD_CUSTOM, PERIODS, PeriodSelection, parse_custom_range
-from opendofusdata.ui_theme import ERROR_COLOR, MUTED_COLOR, SMALL_PADDING, TRANSPARENT
+from opendofusdata.ui_theme import ERROR_COLOR, MUTED_COLOR, PERIOD_MENU_WIDTH, SMALL_PADDING, TRANSPARENT
 from opendofusdata.ui_widgets import make_label
 
 BAD_DATE_MESSAGE = "Dates invalides (JJ/MM/AAAA, début avant fin)"
 DATE_ENTRY_WIDTH = 110
 APPLY_LABEL = "Appliquer"
 DATE_PLACEHOLDER = "JJ/MM/AAAA"
+PERIOD_LABEL = "Période"
+CUSTOM_HINT = "Saisis deux dates puis clique sur Appliquer."
 
 
 class PeriodBar(customtkinter.CTkFrame):
-    """Seven segmented buttons; Personnalisé reveals two date entries."""
+    """A dropdown of the periods; Personnalisé reveals two date entries."""
 
     def __init__(self, parent: tkinter.Misc, on_change: Callable[[], None],
                  selection: PeriodSelection = PeriodSelection()) -> None:
         super().__init__(parent, fg_color=TRANSPARENT, corner_radius=0)
         self._on_change = on_change
         self._selection = selection
-        self._buttons = customtkinter.CTkSegmentedButton(self, values=list(PERIODS), command=self.set_period)
-        self._buttons.set(selection.period)
-        self._buttons.pack(side="top", anchor="w")
+        row = customtkinter.CTkFrame(self, fg_color=TRANSPARENT, corner_radius=0)
+        row.pack(side="top", anchor="w")
+        make_label(row, PERIOD_LABEL, color=MUTED_COLOR).pack(side="left", padx=(0, SMALL_PADDING))
+        self.menu = customtkinter.CTkOptionMenu(row, values=list(PERIODS), width=PERIOD_MENU_WIDTH,
+                                                command=self.set_period)
+        self.menu.set(selection.period)
+        self.menu.pack(side="left")
         self._custom_row = customtkinter.CTkFrame(self, fg_color=TRANSPARENT)
         self.start_entry = self._add_entry()
         self.end_entry = self._add_entry()
@@ -46,8 +52,9 @@ class PeriodBar(customtkinter.CTkFrame):
 
     def set_period(self, period: str) -> None:
         """Choose a period; Personnalisé waits for valid dates before it is applied."""
-        self._buttons.set(period)
+        self.menu.set(period)
         if period == PERIOD_CUSTOM:
+            self.message_label.configure(text=CUSTOM_HINT, text_color=MUTED_COLOR)
             self._custom_row.pack(side="top", anchor="w", pady=(SMALL_PADDING, 0))
             return
         self._custom_row.pack_forget()
@@ -59,7 +66,7 @@ class PeriodBar(customtkinter.CTkFrame):
         try:
             start, end = parse_custom_range(self.start_entry.get(), self.end_entry.get())
         except ValueError:
-            self.message_label.configure(text=BAD_DATE_MESSAGE)
+            self.message_label.configure(text=BAD_DATE_MESSAGE, text_color=ERROR_COLOR)
             return
         self.message_label.configure(text="")
         self._selection = PeriodSelection(PERIOD_CUSTOM, start, end)

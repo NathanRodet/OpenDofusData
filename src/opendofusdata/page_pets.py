@@ -12,70 +12,35 @@ from opendofusdata.pet_coverage import Coverage, load_coverage
 from opendofusdata.pet_coverage_view import CoverageView
 from opendofusdata.pet_manual_form import PetManualForm
 from opendofusdata.pet_manual_store import add_manual, load_manual, remove_manual
-from opendofusdata.pets_view_data import PetDetail, PetRow, PetUpgrade, pet_detail, pet_rows
+from opendofusdata.pet_favorites_store import load_favorites, toggle_favorite
+from opendofusdata.pets_texts import (FAVORITE_MARK, best_keys, bulk_text, observations_text, stop_row,
+                                      upgrade_text)
+from opendofusdata.pets_view_data import PetDetail, PetRow, pet_detail, pet_rows
 from opendofusdata.price_book import PriceBook
 from opendofusdata.table_model import TableRow
-from opendofusdata.time_filters import Window, local_text
+from opendofusdata.time_filters import Window
 from opendofusdata.timeutil import format_utc
 from opendofusdata.ui_chart import ChartPoint, DatedChart
-from opendofusdata.ui_stats import StatList, StatRow
+from opendofusdata.ui_stats import StatList
 from opendofusdata.ui_table import TAG_UP, Column
-from opendofusdata.ui_theme import ERROR_COLOR, SUCCESS_COLOR, CARD_COLOR, CORNER_RADIUS, MUTED_COLOR, PADDING, SMALL_PADDING, TITLE_SIZE
+from opendofusdata.ui_theme import CARD_COLOR, CORNER_RADIUS, MUTED_COLOR, PADDING, SMALL_PADDING, TITLE_SIZE, TRANSPARENT
 from opendofusdata.ui_widgets import make_label
-from opendofusdata.value_format import UNKNOWN_TEXT, format_experience_per_unit, format_kamas, format_kamas_per_experience
+from opendofusdata.value_format import format_experience_per_unit, format_kamas, format_kamas_per_experience
 from opendofusdata.view_page import ViewPage
 from opendofusdata.window_context import WindowContext
 
 TITLE = "Familiers"
 TAB_RESOURCES = "Ressources"
+FAVORITE_LABEL = "Ressource favorite"
+FAVORITES_ONLY_LABEL = "Favoris seulement"
 TAB_COVERAGE = "Couverture"
 COLUMNS = (Column("Ressource", 200), Column("Type", 120), Column("Prix ×100 / ×1000", 160, True),
            Column("Prix moyen", 110, True), Column("XP pour 1 ressource", 150, True),
            Column("Kamas par XP", 110, True), Column("Observations", 130, True),
            Column("Coût pour monter un familier", 190, True))
 KAMAS_PER_XP_COLUMN = 5
-BEST_ROW_COUNT = 3
-UNRELIABLE_SUFFIX = " peu fiable"
-MANUAL_SUFFIX = " + saisi"
-STALE_SUFFIX = " (ancien)"
 FRESH_PRICE_HOURS = 24  # a x100 / x1000 price older than this is replaced by the last sale price
-MAX_KAMAS_PER_XP = 25  # a resource costing more than this per XP point is not worth buying
 NO_SELECTION_TEXT = "Sélectionne une ressource pour voir ses relevés."
-
-
-def observations_text(row: PetRow) -> str:
-    """The number of feedings, marked when too little experience was observed."""
-    return str(row.feedings) + ("" if row.reliable else UNRELIABLE_SUFFIX) + (MANUAL_SUFFIX if row.manual else "")
-
-
-def bulk_text(row: PetRow) -> str:
-    """The x100 / x1000 price, marked when it is too old to be used."""
-    return format_kamas(row.bulk_price) + (STALE_SUFFIX if row.bulk_stale else "")
-
-
-def stop_row(row: PetRow) -> StatRow:
-    """The highest price of one resource worth paying (stop at MAX_KAMAS_PER_XP per XP), green or red."""
-    label = f"Stop ({MAX_KAMAS_PER_XP} kamas par XP)"
-    if row.per_unit is None or row.per_unit <= 0:
-        return (label, UNKNOWN_TEXT, None)
-    stop = MAX_KAMAS_PER_XP * row.per_unit
-    if row.unit_price is None:
-        return (label, f"{format_kamas(stop)} kamas", None)
-    exceeded = row.unit_price > stop
-    return (label, f"{format_kamas(stop)} kamas" + (" — dépassé" if exceeded else ""),
-            ERROR_COLOR if exceeded else SUCCESS_COLOR)
-
-
-def best_keys(rows: list[PetRow]) -> set[int]:
-    """The resources with the lowest known kamas per XP."""
-    priced = sorted((row for row in rows if row.kamas_per_xp is not None), key=lambda row: row.kamas_per_xp)
-    return {row.item_id for row in priced[:BEST_ROW_COUNT]}
-
-
-def upgrade_text(upgrade: PetUpgrade) -> str:
-    """One upgrade line: exact local date, pet, units and experience."""
-    gain = "sans XP" if upgrade.gain is None else f"+{upgrade.gain} XP"
-    return f"{local_text(upgrade.moment)}   {upgrade.pet_name}   ×{upgrade.units}, {gain}"
 
 
 class PetsPage(ViewPage):
@@ -85,15 +50,19 @@ class PetsPage(ViewPage):
         super().__init__(parent, context, TITLE, COLUMNS, (KAMAS_PER_XP_COLUMN, False), 0, **options)
         self._mode = ""
         self._coverage = Coverage(0, 0, ())
+        self._favorites: set[int] = set()
         self._build_detail()
         self._build_tabs()
 
     def _build_tabs(self) -> None:
         self.coverage_view = CoverageView(self.frame)
-        self.tabs = customtkinter.CTkSegmentedButton(self.frame, values=[TAB_RESOURCES, TAB_COVERAGE],
-                                                     command=self._tab_chosen)
+        bar = customtkinter.CTkFrame(self.frame, fg_color=TRANSPARENT, corner_radius=0)
+        bar.pack(before=self.split, fill="x", padx=PADDING, pady=(0, SMALL_PADDING))
+        self.tabs = customtkinter.CTkSegmentedButton(bar, values=[TAB_RESOURCES, TAB_COVERAGE], command=self._tab_chosen)
         self.tabs.set(TAB_RESOURCES)
-        self.tabs.pack(before=self.split, anchor="w", padx=PADDING, pady=(0, SMALL_PADDING))
+        self.tabs.pack(side="left")
+        self.favorites_only = customtkinter.CTkCheckBox(bar, text=FAVORITES_ONLY_LABEL, command=self._show_rows)
+        self.favorites_only.pack(side="left", padx=PADDING)
 
     def _tab_chosen(self, tab: str) -> None:
         if tab == TAB_COVERAGE:
@@ -104,8 +73,17 @@ class PetsPage(ViewPage):
             self.split.pack(fill="both", expand=True, padx=PADDING, pady=(0, PADDING))
 
     def _show_rows(self) -> None:
+        every_row = self._rows
+        if self.favorites_only.get():
+            self._rows = [row for row in every_row if row.key in self._favorites]
         super()._show_rows()
+        self._rows = every_row
         self.coverage_view.set_coverage(self._coverage, self.search_entry.get())
+
+    def _toggle_favorite(self) -> None:
+        if self._selected is not None:
+            toggle_favorite(self._context.config_path, int(self._selected))
+            self.refresh()
 
     def _build_detail(self) -> None:
         card = customtkinter.CTkScrollableFrame(self.split.detail, fg_color=CARD_COLOR, corner_radius=CORNER_RADIUS)
@@ -114,6 +92,8 @@ class PetsPage(ViewPage):
         self.form.pack(fill="x", padx=PADDING, pady=(PADDING, 0))
         self.name_label = make_label(card, NO_SELECTION_TEXT, TITLE_SIZE, bold=True, anchor="w", wraplength=300)
         self.name_label.pack(fill="x", padx=PADDING, pady=(PADDING, SMALL_PADDING))
+        self.favorite_box = customtkinter.CTkCheckBox(card, text=FAVORITE_LABEL, command=self._toggle_favorite)
+        self.favorite_box.pack(anchor="w", padx=PADDING)
         self.stats_list = StatList(card)
         self.stats_list.pack(fill="x", padx=PADDING, pady=SMALL_PADDING)
         self.chart = DatedChart(card)
@@ -146,6 +126,7 @@ class PetsPage(ViewPage):
         book = PriceBook.load(connection, server)
         rows = pet_rows(connection, server, window, self._context.name_of, self._context.type_of, book, self._mode,
                         load_manual(self._context.config_path), self._fresh_since())
+        self._favorites = load_favorites(self._context.config_path)
         self._coverage = load_coverage(connection, {row.item_id for row in rows if row.per_unit is not None})
         best = best_keys(rows)
         return [self._table_row(row, row.item_id in best) for row in rows]
@@ -154,7 +135,8 @@ class PetsPage(ViewPage):
         return format_utc(self._clock() - timedelta(hours=FRESH_PRICE_HOURS))
 
     def _table_row(self, row: PetRow, best: bool) -> TableRow:
-        cells = (row.name, row.type_name, bulk_text(row), format_kamas(row.sale_price),
+        name = (FAVORITE_MARK if row.item_id in self._favorites else "") + row.name
+        cells = (name, row.type_name, bulk_text(row), format_kamas(row.sale_price),
                  format_experience_per_unit(row.per_unit), format_kamas_per_experience(row.kamas_per_xp),
                  observations_text(row), format_kamas(row.cost))
         sort_values = (row.name.casefold(), row.type_name, row.bulk_price, row.sale_price, row.per_unit,
@@ -175,6 +157,8 @@ class PetsPage(ViewPage):
 
     def _clear_detail(self) -> None:
         self.name_label.configure(text=NO_SELECTION_TEXT)
+        self.favorite_box.deselect()
+        self.favorite_box.configure(state="disabled")
         self.stats_list.set_rows(())
         self.upgrades_label.configure(text="")
         self.chart.clear()
@@ -182,6 +166,8 @@ class PetsPage(ViewPage):
     def _fill_detail(self, detail: PetDetail) -> None:
         row = detail.row
         self.name_label.configure(text=row.name)
+        self.favorite_box.configure(state="normal")
+        (self.favorite_box.select if row.item_id in self._favorites else self.favorite_box.deselect)()
         self.stats_list.set_rows([
             ("XP pour 1 ressource", format_experience_per_unit(row.per_unit), None),
             ("Prix d'1 ressource utilisé", f"{format_kamas(row.unit_price)} kamas", None),

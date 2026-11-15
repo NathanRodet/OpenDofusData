@@ -36,12 +36,18 @@ def mean_plus_value(rows: Sequence[BreakingRow]) -> float | None:
     return sum(row.plus_value for row in known) / quantity if quantity else None
 
 
-def mean_real_runes(rows: Sequence[BreakingRow]) -> dict[int, float]:
-    """Mean number of each rune really obtained per broken object."""
+def real_totals(rows: Sequence[BreakingRow]) -> dict[int, int]:
+    """The total count of each rune really obtained over the breakings."""
     totals: dict[int, int] = defaultdict(int)
     for row in rows:
         for rune_id, count in row.runes:
             totals[rune_id] += count
+    return dict(totals)
+
+
+def mean_real_runes(rows: Sequence[BreakingRow]) -> dict[int, float]:
+    """Mean number of each rune really obtained per broken object."""
+    totals = real_totals(rows)
     objects = sum(row.quantity for row in rows)
     return {rune_id: count / objects for rune_id, count in totals.items()} if objects else {}
 

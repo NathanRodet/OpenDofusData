@@ -48,7 +48,6 @@ class PetManualForm(customtkinter.CTkFrame):
         self.item_box.pack(fill="x", padx=PADDING)
         self.item_box.bind("<KeyRelease>", self._key_released)
         self.suggestions = customtkinter.CTkFrame(self, fg_color="transparent", height=0)
-        self.suggestions.pack(fill="x", padx=PADDING)
         self.units_entry = customtkinter.CTkEntry(self, placeholder_text=UNITS_PLACEHOLDER)
         self.units_entry.pack(fill="x", padx=PADDING, pady=SMALL_PADDING)
         self.experience_entry = customtkinter.CTkEntry(self, placeholder_text=EXPERIENCE_PLACEHOLDER)
@@ -78,10 +77,18 @@ class PetManualForm(customtkinter.CTkFrame):
         self._names = [name for _, name in matches]
         for child in self.suggestions.winfo_children():
             child.destroy()
+        self._place_suggestions()
         for name in self._names:
             customtkinter.CTkButton(self.suggestions, text=name, anchor="w", height=SUGGESTION_HEIGHT,
                                     fg_color=SUGGESTION_COLOR, hover_color=ACCENT_COLOR, corner_radius=CORNER_RADIUS,
                                     command=lambda picked=name: self.choose(picked)).pack(fill="x", pady=1)
+
+    def _place_suggestions(self) -> None:
+        """The list takes room only while it has suggestions (an emptied frame would keep its last height)."""
+        if self._names:
+            self.suggestions.pack(fill="x", padx=PADDING, before=self.units_entry)
+        else:
+            self.suggestions.pack_forget()
 
     def choose(self, name: str) -> None:
         """Put the picked name in the field and close the suggestions."""
