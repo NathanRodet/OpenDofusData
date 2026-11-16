@@ -19,8 +19,10 @@ from opendofusdata.admin_settings import AdminSettings
 from opendofusdata.background import BackgroundTask, TaskSnapshot, TaskState
 from opendofusdata.capture_session import SessionSnapshot
 from opendofusdata.env_file import env_file_path
+from opendofusdata.settings_sections import SettingsSections
 from opendofusdata.ui_theme import (
-    CARD_COLOR, CORNER_RADIUS, ERROR_COLOR, MUTED_COLOR, PADDING, SUCCESS_COLOR, TITLE_SIZE, TRANSPARENT, WRAP_LENGTH,
+    COLUMN_WIDTH, COMPACT_BUTTON_HEIGHT, COMPACT_BUTTON_WIDTH, CORNER_RADIUS, ERROR_COLOR, LOG_COLOR, MONOSPACE_FONT,
+    MONOSPACE_SIZE, MUTED_COLOR, PADDING, SMALL_PADDING, SUCCESS_COLOR, TEXT_COLOR, TITLE_SIZE, TRANSPARENT,
 )
 from opendofusdata.ui_widgets import make_button, make_label
 from opendofusdata.window_context import WindowContext
@@ -30,7 +32,10 @@ logger = logging.getLogger(__name__)
 TITLE = "Administration"
 SUBTITLE = ("Génère une clé par joueur et révoque-la au besoin. "
             "Cet onglet n'existe que parce que ton .env contient le secret.")
+NEW_KEY_TITLE = "Nouvelle clé"
+KEYS_TITLE = "Clés générées"
 ENTRY_PLACEHOLDER = "Pseudo du joueur"
+ENTRY_WIDTH = 300
 GENERATE_LABEL = "Générer une clé"
 COPY_NEW_LABEL = "Copier"
 HIDE_LABEL = "Masquer"
@@ -59,30 +64,38 @@ class AdminPage:
     def _build(self) -> None:
         make_label(self.frame, TITLE, TITLE_SIZE, bold=True, anchor="w").pack(fill="x", padx=PADDING, pady=PADDING)
         self.message_label = make_label(self.frame, SUBTITLE, color=MUTED_COLOR, anchor="w", justify="left",
-                                        wraplength=WRAP_LENGTH * 2)
+                                        wraplength=COLUMN_WIDTH)
         self.message_label.pack(fill="x", padx=PADDING)
-        bar = customtkinter.CTkFrame(self.frame, fg_color=TRANSPARENT, corner_radius=0)
-        bar.pack(fill="x", padx=PADDING, pady=PADDING)
-        self.label_entry = customtkinter.CTkEntry(bar, placeholder_text=ENTRY_PLACEHOLDER)
-        self.label_entry.pack(side="left", fill="x", expand=True, padx=(0, PADDING))
-        self.generate_button = make_button(bar, GENERATE_LABEL, self.generate)
-        self.generate_button.pack(side="left")
-        self._build_new_key_panel()
-        self._scroll = customtkinter.CTkScrollableFrame(self.frame, fg_color=TRANSPARENT)
-        self._pack_scroll()
-        self.rows = AdminRows(self._scroll, self.copy_key, self.revoke, self.revoke_and_purge)
+        body = customtkinter.CTkScrollableFrame(self.frame, fg_color=TRANSPARENT)
+        body.pack(fill="both", expand=True, padx=PADDING, pady=PADDING)
+        sections = SettingsSections(body)
+        self._build_generator(sections.add(NEW_KEY_TITLE))
+        self.rows = AdminRows(sections.add(KEYS_TITLE), self.copy_key, self.revoke, self.revoke_and_purge)
         self.rows.pack(fill="x")
 
-    def _pack_scroll(self) -> None:
-        self._scroll.pack(fill="both", expand=True, padx=PADDING, pady=PADDING)
+    def _build_generator(self, panel: customtkinter.CTkFrame) -> None:
+        self._generator_panel = panel
+        bar = customtkinter.CTkFrame(panel, fg_color=TRANSPARENT, corner_radius=0)
+        bar.pack(fill="x", padx=PADDING, pady=PADDING)
+        self.label_entry = customtkinter.CTkEntry(bar, placeholder_text=ENTRY_PLACEHOLDER, width=ENTRY_WIDTH,
+                                            height=COMPACT_BUTTON_HEIGHT)
+        self.label_entry.pack(side="left", padx=(0, PADDING))
+        self.generate_button = make_button(bar, GENERATE_LABEL, self.generate, COMPACT_BUTTON_WIDTH,
+                                           COMPACT_BUTTON_HEIGHT)
+        self.generate_button.pack(side="left")
+        self._build_new_key_box(panel)
 
-    def _build_new_key_panel(self) -> None:
-        self._new_key_panel = customtkinter.CTkFrame(self.frame, fg_color=CARD_COLOR, corner_radius=CORNER_RADIUS)
-        self.new_key_label = make_label(self._new_key_panel, "", anchor="w", wraplength=WRAP_LENGTH * 2)
+    def _build_new_key_box(self, panel: customtkinter.CTkFrame) -> None:
+        self._new_key_panel = customtkinter.CTkFrame(panel, fg_color=LOG_COLOR, corner_radius=CORNER_RADIUS)
+        font = customtkinter.CTkFont(family=MONOSPACE_FONT, size=MONOSPACE_SIZE)
+        self.new_key_label = customtkinter.CTkLabel(self._new_key_panel, text="", font=font, text_color=TEXT_COLOR,
+                                                    anchor="w")
         self.new_key_label.pack(side="left", fill="x", expand=True, padx=PADDING, pady=PADDING)
-        self.copy_new_button = make_button(self._new_key_panel, COPY_NEW_LABEL, self.copy_new_key, width=90)
-        self.copy_new_button.pack(side="left", padx=PADDING)
-        make_button(self._new_key_panel, HIDE_LABEL, self.hide_new_key, width=90).pack(side="left", padx=(0, PADDING))
+        self.copy_new_button = make_button(self._new_key_panel, COPY_NEW_LABEL, self.copy_new_key, 80,
+                                           COMPACT_BUTTON_HEIGHT)
+        self.copy_new_button.pack(side="left", padx=SMALL_PADDING)
+        make_button(self._new_key_panel, HIDE_LABEL, self.hide_new_key, 80, COMPACT_BUTTON_HEIGHT).pack(
+            side="left", padx=(0, PADDING))
 
     @property
     def visible_entries(self) -> list[KeyEntry]:
@@ -126,9 +139,7 @@ class AdminPage:
 
     def _show_new_key(self, key: str, label: str) -> None:
         self.new_key_label.configure(text=key)
-        self._scroll.pack_forget()  # the panel goes above the list: pack it first, then the list again
-        self._new_key_panel.pack(fill="x", padx=PADDING)
-        self._pack_scroll()
+        self._new_key_panel.pack(fill="x", padx=PADDING, pady=(0, PADDING))
         self._say(NEW_KEY_TEXT.format(label=label), SUCCESS_COLOR)
 
     def hide_new_key(self) -> None:

@@ -226,11 +226,17 @@ def test_page_offers_both_revocation_choices_with_their_own_confirmation(root, t
     assert "Joueur Un" in texts[0] and "Joueur Un" in texts[1]
 
 
+def descendants(widget):
+    for child in widget.winfo_children():
+        yield child
+        yield from descendants(child)
+
+
 def test_rows_have_a_revoke_and_purge_button(root, tmp_path) -> None:
     page = make_page(root, tmp_path)
     generate(page, "Joueur Un")
-    labels = [child.cget("text") for child in page.rows.winfo_children() if isinstance(child, customtkinter.CTkButton)]
-    assert "Révoquer" in labels and "Révoquer et supprimer ses relevés" in labels
+    labels = [child.cget("text") for child in descendants(page.rows) if isinstance(child, customtkinter.CTkButton)]
+    assert "Révoquer" in labels and "Révoquer et purger" in labels
 
 
 def test_revoke_with_purge_asks_the_server_for_the_purge_and_marks_the_row_after_the_answer(root, tmp_path) -> None:

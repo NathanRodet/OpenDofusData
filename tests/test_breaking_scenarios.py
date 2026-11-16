@@ -56,5 +56,5 @@ def test_real_block_lists_the_runes_really_obtained_and_the_real_plus_value() ->
     from opendofusdata.breaking_detail_text import real_block
     block = real_block({STR_RUNE: 2}, 29, {STR_RUNE: 100.0}.get, 10.0, {STR_RUNE: "Rune Fo"}.get)
     assert block.lines == (("Rune Fo (100 l'unité)", "×2 → 200", None),)
-    assert block.summary == "29 objet(s) brisé(s), runes 200, plus-value -90"
+    assert block.summary == "29 objet(s) brisé(s)\nRunes 200\nPlus-value -90"
     assert block.positive is False

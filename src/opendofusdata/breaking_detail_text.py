@@ -9,7 +9,7 @@ from opendofusdata.value_format import format_kamas, format_signed_kamas
 
 UNKNOWN_PRICE = "prix inconnu"
 LARGE_COUNT = 100
-REAL_TITLE = "Runes obtenues en vrai"
+REAL_TITLE = "Runes obtenues"
 
 
 @dataclass(frozen=True)
@@ -47,11 +47,11 @@ def real_block(totals: Mapping[int, int], objects: int, price_of: Callable[[int]
                    f"×{count}" + ("" if price_of(rune) is None else f" → {format_kamas(count * price_of(rune))}"), None)
                   for rune, count in ordered) or (("Aucune rune obtenue", "", None),)
     value = sum(count * (price_of(rune) or 0.0) for rune, count in totals.items())
-    summary = f"{objects} objet(s) brisé(s), runes {format_kamas(value)}"
+    summary = f"{objects} objet(s) brisé(s)\nRunes {format_kamas(value)}"
     if hdv_price is None:
         return DetailBlock(REAL_TITLE, lines, summary)
     gain = value - hdv_price * objects
-    return DetailBlock(REAL_TITLE, lines, f"{summary}, plus-value {format_signed_kamas(gain)}", gain >= 0)
+    return DetailBlock(REAL_TITLE, lines, f"{summary}\nPlus-value {format_signed_kamas(gain)}", gain >= 0)
 
 
 def block_of(title: str, scenario: Scenario, name_of: Callable[[int], str], note: str = "") -> DetailBlock:
@@ -59,9 +59,9 @@ def block_of(title: str, scenario: Scenario, name_of: Callable[[int], str], note
     ordered = sorted(scenario.lines, key=lambda line: -(line.value or 0.0))
     lines = tuple(rune_row(line, name_of(line.rune_id)) for line in ordered) or (("Aucune rune", "", None),)
     partial = " (prix de rune manquant)" if scenario.partial else ""
-    gain = "plus-value inconnue (prix de l'objet inconnu)" if scenario.plus_value is None \
-        else f"plus-value {format_signed_kamas(scenario.plus_value)}"
-    summary = f"Runes {format_kamas(scenario.value)}{partial}, {gain}{note}"
+    gain = "Plus-value inconnue (prix de l'objet inconnu)" if scenario.plus_value is None \
+        else f"Plus-value {format_signed_kamas(scenario.plus_value)}"
+    summary = f"Runes {format_kamas(scenario.value)}{partial}\n{gain}{note}"
     return DetailBlock(title, lines, summary, None if scenario.plus_value is None else scenario.plus_value >= 0)
 
 
@@ -70,6 +70,6 @@ def detail_blocks(classic: Scenario, focus: Scenario | None, name_of: Callable[[
     blocks = [block_of("Brisage classique", classic, name_of)]
     if focus is not None and focus.focus_rune is not None:
         extra = "" if classic.plus_value is None or focus.plus_value is None \
-            else f" ({format_signed_kamas(focus.plus_value - classic.plus_value)} vs classique)"
+            else f"\n{format_signed_kamas(focus.plus_value - classic.plus_value)} vs classique"
         blocks.append(block_of(f"Focus le plus rentable : {name_of(focus.focus_rune)}", focus, name_of, extra))
     return blocks
