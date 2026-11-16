@@ -15,7 +15,7 @@ A small Windows app that passively reads Dofus network traffic and stores prices
 
 </div>
 
-> **Online sync is coming later.** Today everything stays on your machine and **nothing is sent anywhere**. A server that will let players share and synchronize prices with each other is planned for a later release. It will only ever carry the same game data (never personal information), and the [Privacy](#privacy) section will be updated when it ships.
+> **Online sync is coming later.** Today everything stays on your machine and **no game data is sent anywhere** (see [Privacy](#privacy) for the few network requests the app can make). A server that will let players share and synchronize prices with each other is planned for a later release. It will only ever carry the same game data (never personal information), and the [Privacy](#privacy) section will be updated when it ships.
 
 ---
 
@@ -63,7 +63,7 @@ OpenDofusData listens while you play and turns what it understands into tables, 
 | **Craft** | Every craft whose prices are all known, from most to least profitable, with the detail of its resources. |
 | **Familiers** (pets) | How much XP a resource gives a pet and what one XP point costs you, cheapest first. Add your own observed XP for *x* resources, see the **price stop** at 25 kamas per XP, mark resources as **favorites** (stored locally, with a "favorites only" filter), and open the **Coverage** tab to see how many resources have a known coefficient and which ones are still missing (filterable by category). |
 | **Logs** | What is being captured right now, filterable by type, period and name. |
-| **Réglages** (settings) | Game server, database location, item names, the price used for estimates, updates. |
+| **Réglages** (settings) | Game server, database location, item names, the price used for estimates, the synchronization key and its connection test, updates. |
 
 Every page can be filtered with the period dropdown (last hour, 6 hours, today, 7 days, 30 days, all time, or a custom range), sorted by clicking a column header, and only shows the server you picked.
 
@@ -95,7 +95,7 @@ Updates are **never automatic**. At startup the app asks GitHub whether a newer 
 
 - Only game data is stored: item IDs, prices, quantities, timestamps and the game server you chose.
 - IP addresses, accounts, character names and chat are **never stored or sent**.
-- **Nothing leaves your machine** in this version. The only network requests the app makes are the update check (`api.github.com`, can be disabled) and, only if you click *Télécharger les noms*, the download of item names from `api.dofusdb.fr`.
+- **Nothing leaves your machine** in this version. The only network requests the app makes are the update check (`api.github.com`, can be disabled) and, only if you click *Télécharger les noms*, the download of item names from `api.dofusdb.fr`. If you were given a synchronization key, you can paste it in **Réglages** and click *Tester la connexion*: that sends your key, and nothing else, to the sync server, only when you click.
 - The source code is public so this behavior can be verified.
 
 ## Known limitations

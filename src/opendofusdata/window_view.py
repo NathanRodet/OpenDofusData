@@ -39,9 +39,9 @@ class CaptureWindow:
         context.restart_capture = self.restart_capture
         self._configure_root()
         self.menu_buttons: dict[str, customtkinter.CTkButton] = {}
-        self._build_menu()
         self.content = customtkinter.CTkFrame(root, fg_color=WINDOW_COLOR, corner_radius=0)
         self.pages: dict[str, Page] = build_pages(self.content, context)
+        self._build_menu()
         self.current_page = PAGE_NAMES[0]
         self.relayout(DEFAULT_WIDTH)
         root.bind("<Configure>", lambda event: self._root_resized(event.widget, event.width))
@@ -62,7 +62,7 @@ class CaptureWindow:
     def _build_menu(self) -> None:
         self.menu = customtkinter.CTkFrame(self._root, width=SIDEBAR_WIDTH, fg_color=SIDEBAR_COLOR, corner_radius=0)
         self.title_label = make_label(self.menu, APP_NAME, MENU_TITLE_SIZE, bold=True)
-        for name in PAGE_NAMES:
+        for name in self.pages:  # the pages come in menu order, Administration last when configured
             self.menu_buttons[name] = self._menu_button(name)
         self.status_frame = StatusBlock(self.menu)
         self.toggle_button = make_button(self.menu, "", self._toggle_capture, MENU_BUTTON_WIDTH)

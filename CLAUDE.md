@@ -1,6 +1,6 @@
 # OpenDofusData
 
-Outil local (Python 3.13, Windows) qui capture le trafic réseau de Dofus (TCP 5555) via Npcap/Scapy, décode les messages utiles et les stocke dans une base SQLite locale. Catégories de données collectées: HDV, brisage, expérience des pets; tout est collecté en permanence, sans interrupteur (V2). Le recyclage n'est pas capturé: ses taux viennent de la colonne `recycling_nuggets` de `data/items.csv` (DofusDB). Objectif global: ce client récolte les données, les stocke en SQLite, puis alimentera à terme un serveur distant (la synchronisation et le serveur sont hors périmètre de la v1). La v1 n'envoie rien à l'extérieur.
+Outil local (Python 3.13, Windows) qui capture le trafic réseau de Dofus (TCP 5555) via Npcap/Scapy, décode les messages utiles et les stocke dans une base SQLite locale. Catégories de données collectées: HDV, brisage, expérience des pets; tout est collecté en permanence, sans interrupteur (V2). Le recyclage n'est pas capturé: ses taux viennent de la colonne `recycling_nuggets` de `data/items.csv` (DofusDB). Objectif global: ce client récolte les données, les stocke en SQLite, puis alimentera à terme un serveur distant. Le serveur d'authentification par clés (`src/server/`, FastAPI, voir docs/developpement.md) et, côté client, la carte Synchronisation (clé et test de connexion) et l'onglet Administration existent, mais l'envoi des relevés et leur ingestion restent hors périmètre: le client n'envoie aucune donnée de jeu, et ses seules requêtes réseau sont la vérification des mises à jour, le téléchargement optionnel des noms et le test de connexion, tous sur action ou réglage explicite. Aucune adresse de joueur n'est collectée, enregistrée ni transmise.
 
 ## Règles de code
 
@@ -12,5 +12,5 @@ Outil local (Python 3.13, Windows) qui capture le trafic réseau de Dofus (TCP 5
 - Un module par couche, dépendances dans un seul sens; la logique pure (décodage, reconstruction TCP) ne dépend ni de Scapy ni de SQLite pour être testable.
 - Pas d'`except:` nu ni d'erreurs avalées silencieusement; logs via `logging`.
 - Tests `pytest` sur des données synthétiques pour chaque module de logique.
-- Dépendances listées dans `requirements.txt`, verrouillées avec leurs hashes dans `requirements.lock` (régénéré avec pip-compile, voir docs/developpement.md), installées dans le venv `.venv` (jamais en global).
+- Dépendances listées dans `requirements.txt`, verrouillées avec leurs hashes dans `requirements.lock` (régénéré avec pip-compile, voir docs/developpement.md), installées dans le venv `.venv` (le serveur a son propre venv et ses propres verrous dans `src/server/`; jamais en global).
 - Commandes de dev via `.\dev.ps1` (`setup`, `test`, `clean`, `build`); `.venv/`, `build/` et `dist/` sont à exclure du versionnement.

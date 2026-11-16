@@ -8,6 +8,7 @@ import customtkinter
 
 from opendofusdata.app_config import load_config, save_config
 from opendofusdata.capture_session import CaptureStatus, SessionSnapshot
+from opendofusdata.env_file import env_file_path
 from opendofusdata.client_settings import (
     config_with_database, config_with_server, config_with_update_check, update_check_enabled,
 )
@@ -15,6 +16,8 @@ from opendofusdata.names_refresh import refresh_reference_data
 from opendofusdata.settings_about import AboutCard, UpdatesCard, open_url
 from opendofusdata.settings_names import NamesCard, Refresh
 from opendofusdata.settings_prices import PricesCard
+from opendofusdata.sync_client import resolve_server_url
+from opendofusdata.sync_settings_card import SyncSettingsCard
 from opendofusdata.ui_theme import (
     ACCENT_COLOR, CARD_MIN_WIDTH, ERROR_COLOR, MUTED_COLOR, PADDING, SWITCH_WIDTH, TINY_PADDING, TITLE_SIZE,
     TRANSPARENT, WRAP_LENGTH,
@@ -75,6 +78,8 @@ class SettingsPage:
         self.database_label = self._add_database_card(self._body)
         self.names_card = NamesCard(self._body, context, refresh)
         self.prices_card = PricesCard(self._body, context, self._save)
+        sync_address = resolve_server_url(env_file_path(context.config_path))
+        self.sync_card = SyncSettingsCard(self._body, context, server_url=sync_address)
         self.update_switch = self._add_update_row(self._body)
         self.updates_card = UpdatesCard(self._body, context, open_page)
         self.about_card = AboutCard(self._body, open_page)
@@ -166,6 +171,7 @@ class SettingsPage:
                                      text_color=MUTED_COLOR)
 
     def render(self, snapshot: SessionSnapshot) -> None:
-        """Refresh the names and updates cards (the other settings only change on user actions)."""
+        """Refresh the names, synchronisation and updates cards (the other settings only change on user actions)."""
         self.names_card.render()
+        self.sync_card.render()
         self.updates_card.render()

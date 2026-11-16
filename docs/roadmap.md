@@ -9,7 +9,7 @@
 
 ## Fait
 
-- **Fenêtre du client (V2):** `opendofusdata window`, fenêtre CustomTkinter pleine taille et responsive, menu HDV / Brisage / Familiers / Logs / Réglages, tableaux triables, filtres par période, détails avec courbes datées, estimations de brisage (plus-value) et de familiers (kamas par XP), prix utilisé réglable. Tout est collecté en permanence. Conception: [docs/superpowers/specs/2026-11-12-client-redesign-design.md](superpowers/specs/2026-11-12-client-redesign-design.md). Pas de démarrage automatique avec Windows, plus de lien vers un site.
+- **Fenêtre du client (V2):** `opendofusdata window`, fenêtre CustomTkinter pleine taille et responsive, menu HDV / Brisage / Familiers / Logs / Réglages, tableaux triables, filtres par période, détails avec courbes datées, estimations de brisage (plus-value) et de familiers (kamas par XP), prix utilisé réglable. Tout est collecté en permanence. Conception: [superpowers/specs/2026-11-12-client-redesign-design.md](superpowers/specs/2026-11-12-client-redesign-design.md). Pas de démarrage automatique avec Windows, plus de lien vers un site.
 - **Remise à zéro:** `reset-data --yes` sauvegarde puis efface les données collectées (faite sur la base du propriétaire le 2026-11-13).
 - **Noms d'objets pour les joueurs:** bouton « Télécharger les noms » dans Réglages (api.dofusdb.fr, une fois, à la demande), chargés dans la base.
 - **Exécutable:** `.\dev.ps1 build` produit `dist\OpenDofusData.exe` (PyInstaller, sans console) et son SHA-256. Base, config et journal dans `%APPDATA%\OpenDofusData`.
@@ -25,7 +25,7 @@
 
 ## Catégories de données
 
-Les trois catégories sont décodées et toujours collectées: HDV (validée en jeu), brisage et familiers (écrits à partir de captures d'un seul joueur et vérifiés contre ses captures d'écran; structure des messages: [docs/protocol-notes.md](protocol-notes.md)). Chacune a son compteur, ses lignes dans les Logs, sa vue et sa table dans `prices.db`.
+Les trois catégories sont décodées et toujours collectées: HDV (validée en jeu), brisage et familiers (écrits à partir de captures d'un seul joueur et vérifiés contre ses captures d'écran; structure des messages: [protocol-notes.md](protocol-notes.md)). Chacune a son compteur, ses lignes dans les Logs, sa vue et sa table dans `prices.db`.
 
 À vérifier en jeu avec les nouvelles vues:
 - Refaire l'action et comparer les vues Brisage et Familiers à l'écran.
@@ -34,18 +34,21 @@ Les trois catégories sont décodées et toujours collectées: HDV (validée en 
 - Familiers: lancer l'outil avant la connexion, faire plusieurs améliorations (dont une montée de niveau) et comparer l'état avant et après.
 - Brisage (coefficients) et familiers (expérience par ressource) se déduisent des enregistrements cumulés.
 
-Le guide pour capturer de nouveaux cas: [docs/new-categories.md](new-categories.md).
+Le guide pour capturer de nouveaux cas: [new-categories.md](new-categories.md).
 
-## Synchronisation et serveur (plus tard)
+## Synchronisation et serveur
 
-- File d'envoi (colonne `synced_at`), identifiant d'enregistrement idempotent, reprises avec attente croissante.
-- Contrat d'API, authentification, protection contre les données falsifiées.
-- Serveur et SaaS d'affichage des prix.
+Fait (branche `key-server`, pas encore publié): serveur d'authentification par clés signées dans `src/server/` (révocation, limites de requête, schémas stricts des relevés), carte Synchronisation des Réglages (clé et test de connexion) et onglet Administration (génération locale des clés, révocation). Détails dans [developpement.md](developpement.md).
+
+Reste à faire:
+- Route d'ingestion des relevés (champs par catégorie, bornes tirées des vraies données), ajoutée à `ALLOWED_ROUTES` du serveur.
+- File d'envoi côté client (colonne `synced_at`), identifiant d'enregistrement idempotent, reprises avec attente croissante, réglage d'envoi par catégorie, mise à jour du README et de la confidentialité.
+- Protection contre les données falsifiées (médiane entre contributeurs), puis SaaS d'affichage des prix.
 
 ## Pistes facultatives
 
 - Caractéristiques (effets) des équipements dans l'HDV: non décodées.
-- Recyclage: le taux n'est pas sur le réseau; il se calcule à partir de `recyclingNuggets` (voir docs/protocol-notes.md).
+- Recyclage: le taux n'est pas sur le réseau; il se calcule à partir de `recyclingNuggets` (voir [protocol-notes.md](protocol-notes.md)).
 - Avertir quand le décodage ne voit plus rien après une mise à jour du jeu: pas de signal fiable aujourd'hui (rien n'est décodé tant que le joueur n'ouvre pas l'HDV), donc pas d'alerte pour éviter les fausses alarmes.
 - `names-import` réduirait la table `servers` de la base locale de 27 à 15 lignes (CSV filtré aux serveurs classiques): non exécuté.
 - Les noms de messages obfusqués (`jzs`, `ire`, `kcy`, `iqp`) changent à chaque version du jeu: `messages.py` est à remettre à jour avec le mode `discover`.

@@ -76,9 +76,9 @@ Piège PowerShell: une valeur contenant des virgules doit être entre guillemets
 
 `data/items.csv` est un index local `id -> nom` (colonnes `id,name_fr,level,type_fr`, trié par identifiant) construit à partir de l'API publique DofusDB (`api.dofusdb.fr`). Il sert de donnée de référence pour enrichir plus tard les prix; ailleurs dans l'outil, les objets restent identifiés par leur identifiant.
 
-- `.\dev.ps1 run names-update [--output chemin]` télécharge l'index. C'est la seule commande qui accède au réseau, et une seule fois (environ 430 requêtes); la capture reste hors ligne.
+- `.\dev.ps1 run names-update [--output chemin]` télécharge l'index. Comme `recipes-update`, `effects-update` et `servers-update`, elle ne fait que lire des données publiques de DofusDB, sur ordre (environ 430 requêtes); la capture reste hors ligne.
 - `.\dev.ps1 run recipes-update` télécharge les recettes de craft (`data/recipes.csv`, environ 95 requêtes) pour l'onglet Craft.
-- `.\dev.ps1 run effects-update` télécharge les effets des objets et les runes (`data/item_effects.csv`, `data/runes.csv`, environ 450 requêtes) pour la page Brisage (formule du poids de brisage, brisage classique et focus). Ces deux commandes, comme `names-update`, ne servent qu'à lire des données publiques de DofusDB.
+- `.\dev.ps1 run effects-update` télécharge les effets des objets et les runes (`data/item_effects.csv`, `data/runes.csv`, environ 450 requêtes) pour la page Brisage (formule du poids de brisage, brisage classique et focus).
 - Le fichier est local, régénérable et ignoré par git (`data/`). C'est une donnée destinée à l'outil, pas un fichier à ouvrir dans un tableur.
 
 ### Noms dans la base
@@ -90,7 +90,7 @@ Les commandes `prices`, `history`, `stats` et `export-csv` affichent aussi le no
 - Exemple: `sqlite3 prices.db "SELECT item_name, lot_size, price, captured_at FROM lot_prices_named ORDER BY captured_at DESC LIMIT 10"`
 - `.\dev.ps1 run names-gaps [--db prices.db]` affiche le contenu de `unknown_items` (les trous à investiguer). La capture (`run`) ne connaît toujours pas les noms et reste hors ligne.
 
-## Serveurs de jeu
+## Liste des serveurs de jeu
 
 `data/servers.csv` est une liste locale des serveurs de jeu (colonnes `id,name_fr,game_type_id,game_type_fr,community_id`, triée par identifiant), construite à partir de l'API publique DofusDB comme l'index des noms d'objets. Elle peut contenir des serveurs qui n'existent pas dans Dofus 3 (serveurs de tournoi, Kolizeum, etc.). La communauté reste un simple numéro.
 
@@ -131,8 +131,10 @@ Ces deux options affichent un avertissement au lancement. Relis le journal avant
 1. Capture passive des paquets TCP du port 5555 avec Npcap/Scapy: l'outil ne modifie ni ne bloque rien.
 2. Reconstruction des flux TCP (réordonnancement, resynchronisation en cours de connexion).
 3. Découpage en messages Protobuf précédés de leur longueur, dans des enveloppes `type.ankama.com/<nom>`.
-4. Décodage de deux messages: les prix de lots (réponse à la consultation d'un objet) et les cours du marché (points des 24 heures et des 30 jours).
+4. Décodage des messages utiles: pour l'HDV, les prix de lots (réponse à la consultation d'un objet) et les cours du marché (points des 24 heures et des 30 jours); pour le brisage, le résultat du concasseur; pour les familiers, l'inventaire, les objets ajoutés et les améliorations.
 5. Écriture dans SQLite par un thread dédié.
+
+Les règles ci-dessous concernent les statistiques de l'HDV.
 
 Règles de calcul des statistiques:
 
@@ -141,13 +143,13 @@ Règles de calcul des statistiques:
 - Horodatages stockés en UTC au format `YYYY-MM-DDTHH:MM:SSZ`.
 - Dernière mise à jour des données = heure de capture (le serveur n'envoie pas ce champ).
 
-Détails et octets vérifiés contre l'écran: [docs/protocol-notes.md](docs/protocol-notes.md).
+Détails et octets vérifiés contre l'écran: [protocol-notes.md](protocol-notes.md). Capturer et valider de nouveaux cas: [new-categories.md](new-categories.md).
 
-Suite prévue du projet: [docs/roadmap.md](docs/roadmap.md).
+Suite prévue du projet: [roadmap.md](roadmap.md).
 
 ## Limites connues et maintenance
 
-- Les noms courts des messages (`jzs`, `ire`, `kcy`, `iqp`) changent à chaque mise à jour du jeu. Ils sont isolés dans `src/opendofusdata/messages.py`. Si l'outil ne décode plus rien après une mise à jour: lance `discover` avec `--hex-types` sur la nouvelle version, compare avec `docs/protocol-notes.md`, puis mets à jour `messages.py`.
+- Les noms courts des messages (`jzs`, `ire`, `kcy`, `iqp`) changent à chaque mise à jour du jeu. Ils sont isolés dans `src/opendofusdata/messages.py`. Si l'outil ne décode plus rien après une mise à jour: lance `discover` avec `--hex-types` sur la nouvelle version, compare avec [protocol-notes.md](protocol-notes.md), puis mets à jour `messages.py`.
 - L'HDV (prix de lots et cours du marché; pas d'achats, de ventes ni de changements de prix) est décodé. Brisage et familiers (bêta) le sont aussi, mais validés sur les captures d'un seul joueur: compare les vues Brisage et Familiers à l'écran du jeu. Les familiers demandent l'inventaire envoyé à la connexion pour identifier les ressources: lance l'outil avant de te connecter, ou déconnecte-toi puis reconnecte-toi une fois l'outil lancé. Tant que l'inventaire n'est pas reçu, les Logs signalent « reconnecte-toi au jeu » et une amélioration ignorée apparaît dans les Logs (« ressource inconnue » ou « familier inconnu », « ignorée », « reconnecte »).
 - Fenêtre de 7 jours: la règle (minuit UTC sept jours avant la date de capture) est vérifiée à l'écran sur cinq objets.
 - Un objet sans aucune offre (« Cet objet n'est pas en vente actuellement ») ne produit aucun enregistrement, par décision: l'absence de relevé ne signifie pas prix 0, le dernier prix connu garde son horodatage d'origine.
@@ -158,13 +160,37 @@ Suite prévue du projet: [docs/roadmap.md](docs/roadmap.md).
 
 Le numéro de version (`MAJEUR.MINEUR.CORRECTIF`) est défini à un seul endroit: `__version__` dans `src/opendofusdata/__init__.py`. `pyproject.toml` et la page À propos le lisent. Pour publier une version: modifie ce numéro, mets à jour la feuille de route, commite sur `main`, puis crée le tag `vX.Y.Z` (par exemple `git tag -a v1.0.1 -m "v1.0.1"`).
 
+## Serveur de clés
+
+Le dossier `src/server/` contient un petit serveur HTTP (FastAPI) qui n'accepte que les requêtes portant une clé signée valide. Il est indépendant du client: son propre venv (`src/server/.venv`), ses dépendances verrouillées (`requirements.lock` pour l'exécution, `requirements-dev.lock` avec les outils de test pour le venv de dev; même méthode que le client) et ses tests, qui se lancent avec `.\src\server\dev.ps1 test` et dans le workflow CI (job `server-test`).
+
+- **Clés:** une clé est un jeton `odk1.<identifiant>.<signature>`, la signature étant un HMAC-SHA256 de l'identifiant avec un secret maître. Le serveur ne stocke aucune clé: il recalcule la signature à chaque requête et ne garde que la liste des identifiants révoqués.
+- **Secret maître:** `.\src\server\dev.ps1 new-secret` en génère un et affiche deux lignes: `KEY_SECRET=...` pour `src/server/.env` et `ADMIN_SECRET=...` pour le `.env` de l'administrateur (jamais versionnés). Sans secret valide (43 caractères au moins), le serveur refuse de démarrer.
+- **Lancement local:** `.\src\server\dev.ps1 run` (lit `src/server/.env`, écoute sur 127.0.0.1:8000). La base des révocations est `src/server/keys.db`, ou le fichier donné par `KEYSERVER_DB`.
+- **Authentification:** en-tête `Authorization: Bearer <clé>`; toute erreur (absente, mal formée, mal signée, révoquée) donne le même `401`.
+
+## Synchronisation et administration (client)
+
+Côté application, deux fonctions parlent au serveur de clés, toutes deux seulement sur action explicite.
+
+### Clé de synchronisation et test de connexion
+
+Dans Réglages, la carte *Synchronisation* garde la clé du joueur dans `config.json` (`sync_api_key`, champ masqué) et propose *Tester la connexion*: un `GET /check` avec `Authorization: Bearer <clé>`, en HTTPS seulement, sans suivre de redirection, avec un délai et une taille de réponse bornés (`https_json.py`). Rien ne part sans clic. L'adresse du serveur est `DEFAULT_SERVER_URL` (`sync_client.py`, à renseigner quand le domaine existe) ou `SERVER_URL` dans le `.env` placé à côté de `config.json`; sans adresse, le bouton de test est désactivé. Le format de clé (`sync_key.py`) est recopié du serveur et verrouillé par la même clé de test dans les deux suites.
+
+### Onglet Administration
+
+Un onglet *Administration* apparaît (en dernier dans le menu) seulement si le `.env` placé à côté de `config.json` contient `ADMIN_SECRET` (43 caractères au moins, la valeur donnée par `new-secret`) et si une adresse de serveur est connue (`SERVER_URL` ou `DEFAULT_SERVER_URL`). Sans cela l'onglet n'existe pas et rien n'est envoyé. L'onglet n'est qu'un confort: le serveur vérifie le jeton d'administration à chaque appel.
+
+- **Générer:** un pseudo, un clic. La clé est calculée sur ce PC (`admin_keys.py`, aucun appel réseau) et affichée avec un bouton *Copier*. Le registre `admin_keys.json` (à côté du `.env`) note le pseudo, l'identifiant et la date, jamais la clé: elle se recalcule avec *Copier la clé*. Sauvegarde ce fichier: sans lui, les clés déjà données restent valables, mais tu ne sais plus à qui. Pour repartir de zéro, génère un nouveau secret (`new-secret`) et remplace-le des deux côtés: toutes les clés sont alors à refaire.
+- **Révoquer:** après confirmation, l'application envoie l'identifiant au serveur (`POST /admin/revoke`, `Authorization: Bearer <jeton d'administration>` dérivé du secret, jamais le secret). La ligne n'est marquée révoquée qu'après la réponse `200`; en cas d'échec le registre reste inchangé.
+
 ## Tests et conventions
 
 ```powershell
 .\dev.ps1 test
 ```
 
-Les tests `pytest` utilisent des données synthétiques. Conventions de code (fonctions de 20 lignes maximum, modules de 200 lignes maximum, annotations de type): voir [CLAUDE.md](CLAUDE.md).
+Les tests `pytest` utilisent des données synthétiques. Ceux du serveur ont leur propre commande: `.\src\server\dev.ps1 test`. Un test de style (`tests/test_text_style.py`) interdit dans les textes les tirets typographiques longs et le point médian. Conventions de code (fonctions de 20 lignes maximum, modules de 200 lignes maximum, annotations de type): voir [CLAUDE.md](../CLAUDE.md).
 
 ## Remise à zéro des données
 

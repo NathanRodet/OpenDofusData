@@ -19,7 +19,8 @@ SUMMARY = (
     "Outil qui lit passivement le trafic réseau de Dofus 3 et range ce qu'il voit dans une base locale.\n"
     "Données collectées : prix HDV, brisage, familiers.\n"
     "Envoi de données : aucun pour l'instant. Rien n'est envoyé hors de ta machine, sauf la vérification "
-    "des mises à jour (une requête anonyme à GitHub, désactivable).\n"
+    "des mises à jour (une requête anonyme à GitHub, désactivable) et le test de connexion de la synchronisation, "
+    "seulement quand tu cliques dessus (il n'envoie que ta clé).\n"
     "Licence : tous droits réservés (code source public)."
 )
 REPOSITORY_LABEL = "Voir le dépôt"

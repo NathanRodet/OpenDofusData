@@ -31,3 +31,10 @@ def test_workflow_actions_are_pinned_to_a_commit() -> None:
 def test_setup_installs_the_lock_with_hash_checking() -> None:
     for path in ("dev.ps1", ".github/workflows/ci.yml"):
         assert "--require-hashes -r" in (ROOT / path).read_text(encoding="utf-8")
+
+
+def test_ci_runs_the_server_tests_with_the_hash_checked_dev_lock() -> None:
+    workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert "src/server/requirements-dev.lock" in workflow
+    assert "working-directory: src/server" in workflow
+    assert workflow.count("--require-hashes -r") >= 2

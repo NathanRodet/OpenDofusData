@@ -2,6 +2,9 @@
 
 import customtkinter
 
+from opendofusdata.admin_settings import AdminSettings, load_admin_settings
+from opendofusdata.env_file import env_file_path
+from opendofusdata.page_admin import AdminPage
 from opendofusdata.page_breaking import BreakingPage
 from opendofusdata.page_craft import CraftPage
 from opendofusdata.page_hdv import HdvPage
@@ -13,11 +16,17 @@ from opendofusdata.window_context import WindowContext
 
 PAGE_NAMES = ("HDV", "Brisage", "Craft", "Familiers", "Logs", "Réglages")
 SETTINGS_PAGE = "Réglages"
+ADMIN_PAGE = "Administration"
+
+
+def admin_settings(context: WindowContext) -> AdminSettings | None:
+    """The administrator settings of this PC (from the .env next to config.json), or None for a normal player."""
+    return load_admin_settings(env_file_path(context.config_path))
 
 
 def build_pages(parent: customtkinter.CTkBaseClass, context: WindowContext) -> dict[str, Page]:
-    """Create every page inside `parent`, keyed by menu name (same order as PAGE_NAMES)."""
-    return {
+    """Create every page inside `parent`, keyed by menu name (PAGE_NAMES, then Administration if configured)."""
+    pages: dict[str, Page] = {
         "HDV": HdvPage(parent, context),
         "Brisage": BreakingPage(parent, context),
         "Craft": CraftPage(parent, context),
@@ -25,3 +34,7 @@ def build_pages(parent: customtkinter.CTkBaseClass, context: WindowContext) -> d
         "Logs": LogsPage(parent, context),
         SETTINGS_PAGE: SettingsPage(parent, context),
     }
+    settings = admin_settings(context)
+    if settings is not None:
+        pages[ADMIN_PAGE] = AdminPage(parent, context, settings)
+    return pages

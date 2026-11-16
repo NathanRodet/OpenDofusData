@@ -18,3 +18,4 @@ version = {attr = "opendofusdata.__version__"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+include = ["opendofusdata*"]
