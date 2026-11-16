@@ -8,7 +8,9 @@ from opendofusdata.effects_csv import (EFFECTS_CSV_HEADER, EFFECTS_FILE, RUNES_C
                                        ItemEffects, Rune, StatLine, effects_rows, runes_rows)
 from opendofusdata.names_build import write_csv_atomically
 from opendofusdata.page_craft import CraftPage
+from opendofusdata.pet_favorites_store import CRAFT_FAVORITES_KEY
 from opendofusdata.records import LotPrice
+from opendofusdata.value_format import UNKNOWN_TEXT
 from opendofusdata.recipes_csv import DEFAULT_RECIPES_FILE, RECIPES_CSV_HEADER, Recipe, recipe_rows
 from tests.view_page_helpers import NOW, make_context, open_store
 
@@ -51,3 +53,91 @@ def test_craft_names_the_missing_price_when_nothing_is_selected(root, tmp_path) 
     page.refresh()
     assert page.table._shown == [] and any("Pierre" in label for label, _, _ in page.ingredients_list.rows)
     store.close()
+
+
+CAPE, FEATHER = 300, 202
+
+
+def two_crafts_context(tmp_path):
+    """HAT is fully priced; CAPE needs a feather nobody priced."""
+    context = make_context(tmp_path, {**NAMES, CAPE: "Cape", FEATHER: "Plume"})
+    context.data_directory = tmp_path
+    recipes = [Recipe(HAT, ((WOOD, 2), (STONE, 1))), Recipe(CAPE, ((WOOD, 1), (FEATHER, 1)))]
+    write_csv_atomically(RECIPES_CSV_HEADER, recipe_rows(recipes), tmp_path / DEFAULT_RECIPES_FILE)
+    return context
+
+
+def shown_names(page: CraftPage) -> list[str]:
+    return [row.cells[0] for row in page.table._shown]
+
+
+def open_page(root, tmp_path) -> CraftPage:
+    store = open_store(tmp_path)
+    fill(store)
+    store.save_lot_price(LotPrice(CAPE, "Brial", 1, 800, STAMP))
+    store.close()
+    page = CraftPage(root, two_crafts_context(tmp_path), clock=lambda: NOW)
+    page.refresh()
+    return page
+
+
+def test_incomplete_crafts_are_hidden_by_default_and_shown_with_the_checkbox(root, tmp_path) -> None:
+    page = open_page(root, tmp_path)
+    assert shown_names(page) == ["Chapeau"]
+    page.incomplete_box.select()
+    page.refresh()
+    assert shown_names(page) == ["Chapeau", "Cape"]  # complete first, incomplete last
+    cape = page.table._shown[1]
+    assert cape.cells[1] == "800"
+    assert cape.cells[3] == UNKNOWN_TEXT  # no margin: shown as unknown, nothing crashes
+
+
+def test_an_incomplete_craft_names_what_is_missing_in_its_detail(root, tmp_path) -> None:
+    page = open_page(root, tmp_path)
+    page.incomplete_box.select()
+    page.refresh()
+    page._selected = CAPE
+    page._refresh_detail()
+    labels = [(label, value) for label, value, _ in page.ingredients_list.rows]
+    assert ("Plume ×1", "prix inconnu") in labels
+    assert any(label.startswith("Prix") and value != "" for label, value in labels)
+
+
+def test_a_favorite_craft_stays_visible_even_incomplete_and_is_marked(root, tmp_path) -> None:
+    page = open_page(root, tmp_path)
+    page.incomplete_box.select()
+    page.refresh()
+    page._selected = CAPE
+    page._refresh_detail()
+    page.favorite_box.select()
+    page._toggle_favorite()
+    page.incomplete_box.deselect()
+    page.refresh()
+    assert shown_names(page) == ["Chapeau", "★ Cape"]
+
+
+def test_favorites_only_keeps_just_the_favorites(root, tmp_path) -> None:
+    page = open_page(root, tmp_path)
+    page._selected = HAT
+    page._refresh_detail()
+    page.favorite_box.select()
+    page._toggle_favorite()
+    page.favorites_only.select()
+    page.refresh()
+    assert shown_names(page) == ["★ Chapeau"]
+    page.favorite_box.deselect()  # unticking the box removes the favorite
+    page._toggle_favorite()
+    page.refresh()
+    assert shown_names(page) == []
+
+
+def test_craft_favorites_do_not_touch_the_pet_favorites(root, tmp_path) -> None:
+    from opendofusdata.pet_favorites_store import load_favorites
+
+    page = open_page(root, tmp_path)
+    page._selected = HAT
+    page._refresh_detail()
+    page.favorite_box.select()
+    page._toggle_favorite()
+    assert load_favorites(page._context.config_path) == set()
+    assert load_favorites(page._context.config_path, CRAFT_FAVORITES_KEY) == {HAT}
