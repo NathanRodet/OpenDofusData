@@ -32,7 +32,7 @@ function Invoke-Setup {
 
 function Invoke-Test {
     Assert-VenvExists
-    & $VenvPython -m pytest $ProjectRoot
+    & $VenvPython -m pytest (Join-Path $ProjectRoot "tests")  # the server tests have their own venv and command
 }
 
 function Invoke-Program {
