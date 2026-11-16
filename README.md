@@ -60,7 +60,7 @@ OpenDofusData listens while you play and turns what it understands into tables, 
 |---|---|
 | **HDV** (market) | Every item whose listing you opened: latest price, 24 h median, units sold, 24 h / 7 d / 30 d price curves, lot prices ×1 / ×10 / ×100 / ×1000 and the full history of snapshots. |
 | **Brisage** (breaking) | Your breakings, item by item: lowest market price, average breaking coefficient and average plus-value (value of the runes obtained minus the item price). Click an item to see the plus-value rune by rune, in classic breaking and in focus on the most profitable stat. |
-| **Craft** | Every craft whose prices are all known, from most to least profitable, with the detail of its resources. |
+| **Craft** | Every craft whose prices are all known, from most to least profitable, with the detail of its resources. Tick *Afficher les crafts incomplets* to also list the crafts with a missing price (the detail says which), and mark crafts as **favorites** (stored locally): a favorite stays listed even when a price is missing, and *Favoris seulement* keeps only them. |
 | **Familiers** (pets) | How much XP a resource gives a pet and what one XP point costs you, cheapest first. Add your own observed XP for *x* resources, see the **price stop** at 25 kamas per XP, mark resources as **favorites** (stored locally, with a "favorites only" filter), and open the **Coverage** tab to see how many resources have a known coefficient and which ones are still missing (filterable by category). |
 | **Logs** | What is being captured right now, filterable by type, period and name. |
 | **Réglages** (settings) | Game server, database location, item names, the price used for estimates, updates. |
