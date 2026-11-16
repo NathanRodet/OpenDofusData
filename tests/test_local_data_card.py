@@ -78,7 +78,7 @@ def test_purge_button_asks_for_confirmation_and_cancel_deletes_nothing(root, tmp
     card = make_card(root, tmp_path, purge, confirm=lambda text: texts.append(text) or False)
     card.purge_now()
     assert purge.calls == [] and len(texts) == 1
-    assert "7 jours" in texts[0] and "favoris" in texts[0].lower()
+    assert "14 jours" in texts[0] and "favoris" in texts[0].lower()
 
 
 def test_purge_button_runs_in_the_background_and_shows_the_count(root, tmp_path) -> None:

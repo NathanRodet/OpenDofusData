@@ -9,7 +9,7 @@ from opendofusdata.sync_rules import valid_price_data
 from opendofusdata.sync_schema import ORIGIN_LOCAL, ORIGIN_REMOTE
 
 MIN_RESEND_SECONDS = 3600
-SEND_MAX_AGE_DAYS = 7  # the server keeps readings seven days: older ones are never worth sending
+SEND_MAX_AGE_DAYS = 14  # the server keeps readings fourteen days: older ones are never worth sending
 SKIPPED = "skipped"  # synced_at of a row left out on purpose (never a reference for the resend filter)
 DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 UNSENT_SQL = f"""

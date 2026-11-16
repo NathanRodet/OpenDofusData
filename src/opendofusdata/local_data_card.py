@@ -1,4 +1,4 @@
-"""The "Données locales" card of the Réglages page: optional purge of readings older than seven days."""
+"""The "Données locales" card of the Réglages page: optional purge of readings older than fourteen days."""
 
 import sqlite3
 from collections.abc import Callable

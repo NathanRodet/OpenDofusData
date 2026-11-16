@@ -198,7 +198,7 @@ Les joueurs envoient les prix de lots de l'HDV qu'ils observent et récupèrent 
 
 - **Paramètres de requête:** le garde-fou n'accepte, pour ces deux routes `GET`, que les paramètres déclarés, chacun une seule fois, en entiers décimaux de 1 à 12 chiffres, sans encodage en pourcentage; tout le reste donne `400`. Un `GET` avec un corps est refusé. **Toute route ajoutée doit être déclarée dans `ALLOWED_ROUTES`.**
 - **Identité:** `key_id` est le code de 11 caractères de la clé émettrice, un pseudonyme (jamais la clé, sa signature ni le pseudo de l'administrateur). Il permet de révoquer une clé et, au choix, de supprimer ses relevés. Les relevés d'une clé ne lui sont jamais renvoyés.
-- **Rétention:** 7 jours, purge quotidienne (aussi au démarrage), sur la date d'observation. Base: le même fichier que la liste des révocations (`keys.db`).
+- **Rétention:** 14 jours, purge quotidienne (aussi au démarrage), sur la date d'observation. Base: le même fichier que la liste des révocations (`keys.db`).
 - **Révocation:** `POST /admin/revoke` accepte `{"key_id": "...", "purge": true|false}` (`false` par défaut). La clé est révoquée d'abord, puis ses relevés sont supprimés si `purge` est vrai; réponse `{"revoked": true, "purged": n}`. Sans purge, les relevés restent servis jusqu'à la fin de la rétention.
 - **Limite connue (voulue):** une purge côté serveur ne retire pas ce que les clients ont déjà récupéré (`source_key_id` rendrait possible une propagation plus tard).
 

@@ -156,7 +156,7 @@ def send_all_at(store: PriceStore) -> None:
 
 def test_rows_older_than_the_retention_are_never_sent(store: PriceStore) -> None:
     add(store, 1, 100, "2026-11-01T10:00:00Z")
-    add(store, 2, 100, "2026-11-10T12:00:01Z")
+    add(store, 2, 100, "2026-11-02T12:00:01Z")
     assert [row.item_id for row in pending_at(store)] == [2]
     assert store.connection.execute("SELECT COUNT(*) FROM lot_prices WHERE synced_at IS NULL").fetchone() == (1,)
 

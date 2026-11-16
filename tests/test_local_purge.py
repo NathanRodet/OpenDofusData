@@ -1,4 +1,4 @@
-"""The optional local purge: rows older than seven days go, the latest price of each key and all user data stay."""
+"""The optional local purge: rows older than fourteen days go, the latest price of each key and all user data stay."""
 
 from datetime import datetime, timezone
 
@@ -13,8 +13,8 @@ NOW = datetime(2026, 11, 16, 12, 0, 0, tzinfo=timezone.utc)
 OLD = "2026-11-01T10:00:00Z"
 OLDER = "2026-10-20T10:00:00Z"
 RECENT = "2026-11-15T10:00:00Z"
-JUST_OVER = "2026-11-09T11:59:59Z"
-JUST_UNDER = "2026-11-09T12:00:01Z"
+JUST_OVER = "2026-11-02T11:59:59Z"
+JUST_UNDER = "2026-11-02T12:00:01Z"
 
 
 @pytest.fixture
@@ -35,8 +35,8 @@ def remaining(store: PriceStore, table: str = "lot_prices", column: str = "captu
     return [row[0] for row in store.connection.execute(f"SELECT {column} FROM {table} ORDER BY {column}")]
 
 
-def test_retention_is_seven_days() -> None:
-    assert LOCAL_RETENTION_DAYS == 7
+def test_retention_is_fourteen_days() -> None:
+    assert LOCAL_RETENTION_DAYS == 14
 
 
 def test_old_rows_are_deleted_but_the_latest_of_each_key_is_kept(store: PriceStore) -> None:
@@ -48,7 +48,7 @@ def test_old_rows_are_deleted_but_the_latest_of_each_key_is_kept(store: PriceSto
     assert result == PurgeResult(lot_prices=1, market_stats=0)
 
 
-def test_rows_within_seven_days_are_kept(store: PriceStore) -> None:
+def test_rows_within_fourteen_days_are_kept(store: PriceStore) -> None:
     lot(store, 1, OLD, 90)
     lot(store, 1, RECENT, 100)
     lot(store, 1, "2026-11-12T10:00:00Z", 95)
@@ -56,7 +56,7 @@ def test_rows_within_seven_days_are_kept(store: PriceStore) -> None:
     assert remaining(store) == ["2026-11-12T10:00:00Z", RECENT]
 
 
-def test_the_boundary_is_exactly_seven_days(store: PriceStore) -> None:
+def test_the_boundary_is_exactly_fourteen_days(store: PriceStore) -> None:
     lot(store, 1, JUST_OVER, 1)
     lot(store, 1, JUST_UNDER, 2)
     lot(store, 1, RECENT, 3)

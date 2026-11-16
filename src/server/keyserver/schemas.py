@@ -12,7 +12,7 @@ MAX_ITEM_ID = 10_000_000
 LOT_SIZES = (1, 10, 100, 1000)
 MAX_PRICE = 1_000_000_000_000
 MAX_QUERY_INTEGER = 999_999_999_999  # twelve digits, the most a query parameter may carry
-OBSERVATION_RETENTION_DAYS = 7  # a reading older than the journal keeps is refused: it would be purged at once
+OBSERVATION_RETENTION_DAYS = 14  # a reading older than the journal keeps is refused: it would be purged at once
 FUTURE_TOLERANCE = timedelta(minutes=5)
 # A letter or digit (accents included), then letters, digits, spaces, hyphens or underscores.
 SERVER_NAME_PATTERN = r"^[^\W_][\w -]{0,39}$"

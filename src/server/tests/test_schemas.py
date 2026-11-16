@@ -38,7 +38,7 @@ def refused(**changes: object) -> bool:
 def test_constants_are_the_planned_ones() -> None:
     assert (MAX_BATCH_READINGS, MAX_SERVER_NAME_LENGTH, MAX_ITEM_ID) == (2000, 40, 10_000_000)
     assert (LOT_SIZES, MAX_PRICE, MAX_QUERY_INTEGER) == ((1, 10, 100, 1000), 1_000_000_000_000, 999_999_999_999)
-    assert OBSERVATION_RETENTION_DAYS == 7
+    assert OBSERVATION_RETENTION_DAYS == 14
     assert FUTURE_TOLERANCE == timedelta(minutes=5)
 
 
@@ -80,7 +80,7 @@ def test_item_id_bounds(item_id: int, valid: bool) -> None:
 
 
 @pytest.mark.parametrize("moment, valid", [
-    ("2026-11-08T11:59:59Z", False), ("2026-11-08T12:00:00Z", True), ("2026-11-15T12:00:00Z", True),
+    ("2026-11-01T11:59:59Z", False), ("2026-11-01T12:00:00Z", True), ("2026-11-15T12:00:00Z", True),
     ("2020-01-01T00:00:00Z", False), ("2019-12-31T23:59:59Z", False),
     ("2026-11-15T12:05:00Z", True), ("2026-11-15T12:05:01Z", False), ("3000-01-01T00:00:00Z", False),
     ("2026-11-15T14:00:00+02:00", True), ("2026-11-15T15:00:00+02:00", False),

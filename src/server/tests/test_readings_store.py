@@ -25,8 +25,8 @@ def reading(item_id: int = 1, price: int = 100, minutes_ago: int = 5, server: st
     return Reading.model_construct(server=server, item_id=item_id, lot_size=lot_size, price=price, observed_at=moment)
 
 
-def test_retention_is_seven_days() -> None:
-    assert RETENTION_DAYS == 7
+def test_retention_is_fourteen_days() -> None:
+    assert RETENTION_DAYS == 14
 
 
 def test_add_batch_counts_accepted_and_duplicates(store: ReadingStore) -> None:
@@ -92,7 +92,7 @@ def test_latest_page_pages_with_after(store: ReadingStore) -> None:
 
 
 def test_purge_older_than_removes_only_old_readings(store: ReadingStore) -> None:
-    store.add_batch(BOB, [reading(item_id=1, minutes_ago=60 * 24 * 8), reading(item_id=2, minutes_ago=60 * 24 * 6)])
+    store.add_batch(BOB, [reading(item_id=1, minutes_ago=60 * 24 * 15), reading(item_id=2, minutes_ago=60 * 24 * 13)])
     assert store.purge_older_than(NOW - timedelta(days=RETENTION_DAYS)) == 1
     assert [stored.item_id for stored in store.changes_since(ALICE, 0, 10)] == [2]
 

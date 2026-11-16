@@ -1,4 +1,4 @@
-"""The seven day retention: the cutoff, the purge loop and the production factory."""
+"""The fourteen day retention: the cutoff, the purge loop and the production factory."""
 
 import sqlite3
 import threading
@@ -23,9 +23,9 @@ def test_purge_interval_is_one_day() -> None:
     assert PURGE_INTERVAL_SECONDS == 86_400
 
 
-def test_purge_expired_uses_the_seven_day_cutoff() -> None:
+def test_purge_expired_uses_the_fourteen_day_cutoff() -> None:
     store = open_readings(":memory:")
-    store.add_batch("AAAAAAAAAAA", [reading(1, timedelta(days=6, hours=23)), reading(2, timedelta(days=7, hours=1))])
+    store.add_batch("AAAAAAAAAAA", [reading(1, timedelta(days=13, hours=23)), reading(2, timedelta(days=14, hours=1))])
     assert purge_expired(store, NOW) == 1
     assert [stored.item_id for stored in store.changes_since("BBBBBBBBBBB", 0, 10)] == [1]
     store.close()

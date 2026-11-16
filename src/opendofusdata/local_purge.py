@@ -1,4 +1,4 @@
-"""The optional purge of the local database: readings older than seven days go, the latest of each key stays.
+"""The optional purge of the local database: readings older than fourteen days go, the latest of each key stays.
 
 Only `lot_prices` and `market_stats` are touched. Favorites and manual pet observations live in the config file,
 and names, servers, breakings, pet upgrades and the sync state are other tables: none of them is ever purged.
@@ -16,7 +16,7 @@ from opendofusdata.purge_options import purge_enabled
 
 logger = logging.getLogger(__name__)
 
-LOCAL_RETENTION_DAYS = 7
+LOCAL_RETENTION_DAYS = 14
 DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 BUSY_TIMEOUT_SECONDS = 30.0
 PURGE_SQL = """
@@ -42,7 +42,7 @@ def _purge_table(connection: sqlite3.Connection, table: str, key: str, cutoff: s
 
 
 def purge_old_readings(connection: sqlite3.Connection, now: datetime) -> PurgeResult:
-    """Delete the price and statistics rows older than seven days, except the latest row of each key."""
+    """Delete the price and statistics rows older than fourteen days, except the latest row of each key."""
     cutoff = (now - timedelta(days=LOCAL_RETENTION_DAYS)).strftime(DATE_FORMAT)
     with connection:
         lots = _purge_table(connection, "lot_prices", LOT_KEY, cutoff)
