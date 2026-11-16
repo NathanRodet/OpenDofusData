@@ -1,52 +1,30 @@
-"""Titled sections of cards laid out in equal columns (the structure of the Réglages page)."""
+"""Titled sections of the Réglages page: a heading and a panel of rows, in one left-aligned column."""
 
 import customtkinter
 
-from opendofusdata.ui_theme import CARD_MIN_WIDTH, MUTED_COLOR, PADDING, TINY_PADDING, TRANSPARENT
+from opendofusdata.settings_rows import make_panel
+from opendofusdata.ui_theme import COLUMN_WIDTH, PADDING, SECTION_TITLE_SIZE, TEXT_COLOR, TINY_PADDING, TRANSPARENT
 from opendofusdata.ui_widgets import make_label
-
-MAX_COLUMNS = 2
-CARD_GAP = 6
-HEADING_SIZE = 13
 
 
 class SettingsSections:
-    """Each section is a heading and a grid of cards; all the cards of a section share the column width."""
+    """Each section is a heading above a panel; every panel has the width of the column."""
 
     def __init__(self, body: customtkinter.CTkBaseClass) -> None:
-        self._body = body
-        self._grids: list[tuple[str, customtkinter.CTkFrame]] = []
+        self.content = customtkinter.CTkFrame(body, fg_color=TRANSPARENT, corner_radius=0)
+        self.content.pack(anchor="nw")
+        self.content.grid_columnconfigure(0, minsize=COLUMN_WIDTH, weight=0)  # fixed column, whatever the window
+        self._next_row = 0
         self.headings: list[customtkinter.CTkLabel] = []
-        self.sections: list[tuple[str, list[customtkinter.CTkBaseClass]]] = []
-        self._columns = 0
+        self.sections: list[tuple[str, customtkinter.CTkFrame]] = []
 
     def add(self, title: str) -> customtkinter.CTkFrame:
-        """Start a section; the returned frame is the parent of the cards of that section."""
-        heading = make_label(self._body, title, HEADING_SIZE, bold=True, color=MUTED_COLOR, anchor="w")
-        heading.pack(fill="x", padx=PADDING, pady=(PADDING, TINY_PADDING))
-        grid = customtkinter.CTkFrame(self._body, fg_color=TRANSPARENT, corner_radius=0)
-        grid.pack(fill="x")
+        """Start a section; the returned panel is the parent of its rows."""
+        heading = make_label(self.content, title, SECTION_TITLE_SIZE, bold=True, color=TEXT_COLOR, anchor="w")
+        heading.grid(row=self._next_row, column=0, sticky="ew", padx=TINY_PADDING, pady=(PADDING, TINY_PADDING))
+        panel = make_panel(self.content)
+        panel.grid(row=self._next_row + 1, column=0, sticky="ew")
+        self._next_row += 2
         self.headings.append(heading)
-        self._grids.append((title, grid))
-        return grid
-
-    def collect(self) -> None:
-        """Remember the cards created in each section (they were packed into it) and lay them out."""
-        self.sections = [(title, grid.pack_slaves()) for title, grid in self._grids]
-        self._columns = 0
-        self.reflow(CARD_MIN_WIDTH)
-
-    def reflow(self, width: int) -> None:
-        """As many columns of at least CARD_MIN_WIDTH as fit, at most MAX_COLUMNS."""
-        columns = min(MAX_COLUMNS, max(1, width // CARD_MIN_WIDTH))
-        if columns == self._columns:
-            return
-        self._columns = columns
-        for (_, grid), (_, cards) in zip(self._grids, self.sections):
-            for index in range(MAX_COLUMNS):
-                used = index < columns
-                grid.grid_columnconfigure(index, weight=1 if used else 0, uniform="cards" if used else "")
-            for card in cards:
-                card.pack_forget()
-            for index, card in enumerate(cards):
-                card.grid(row=index // columns, column=index % columns, sticky="nsew", padx=CARD_GAP, pady=CARD_GAP)
+        self.sections.append((title, panel))
+        return panel

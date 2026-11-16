@@ -15,16 +15,17 @@ from opendofusdata.client_settings import (
 from opendofusdata.names_refresh import refresh_reference_data
 from opendofusdata.settings_about import AboutCard, UpdatesCard, open_url
 from opendofusdata.settings_names import NamesCard, Refresh
-from opendofusdata.settings_sections import SettingsSections
 from opendofusdata.settings_prices import PricesCard
+from opendofusdata.settings_rows import make_row
+from opendofusdata.settings_sections import SettingsSections
 from opendofusdata.sync_client import resolve_server_url
 from opendofusdata.local_data_card import LocalDataCard
 from opendofusdata.sync_settings_card import SyncSettingsCard
 from opendofusdata.ui_theme import (
-    ACCENT_COLOR, ERROR_COLOR, MUTED_COLOR, PADDING, SWITCH_WIDTH, TINY_PADDING, TITLE_SIZE,
-    TRANSPARENT, WRAP_LENGTH,
+    ACCENT_COLOR, COMPACT_BUTTON_HEIGHT, COMPACT_BUTTON_WIDTH, ERROR_COLOR, MUTED_COLOR, PADDING, SWITCH_WIDTH,
+    TITLE_SIZE, TRANSPARENT, WRAP_LENGTH,
 )
-from opendofusdata.ui_widgets import make_button, make_card, make_card_title, make_label
+from opendofusdata.ui_widgets import make_button, make_label
 from opendofusdata.window_context import WindowContext
 
 logger = logging.getLogger(__name__)
@@ -33,6 +34,7 @@ TITLE = "Réglages"
 SUBTITLE = "Un changement de serveur ou de base relance la capture."
 SECTION_TITLES = ("Capture", "Données de référence", "Synchronisation", "Application")
 SERVER_LABEL = "Serveur de jeu"
+SERVER_NOTE = "Un changement relance la capture."
 DATABASE_LABEL = "Base de données"
 UPDATE_LABEL = "Vérifier les mises à jour au démarrage"
 SAVED_MESSAGE = "Enregistré."
@@ -70,7 +72,6 @@ class SettingsPage:
         self._body.pack(fill="both", expand=True, padx=PADDING, pady=PADDING)
         self._sections = SettingsSections(self._body)
         self._build_cards(refresh, open_page)
-        self.frame.bind("<Configure>", lambda event: self.reflow(event.width))
 
     def _build_cards(self, refresh: Refresh, open_page: Callable[[str], None]) -> None:
         context = self._context
@@ -88,48 +89,39 @@ class SettingsPage:
         self.update_switch = self._add_update_row(application)
         self.updates_card = UpdatesCard(application, context, open_page)
         self.about_card = AboutCard(application, open_page)
-        self._sections.collect()
 
     @property
-    def sections(self) -> list[tuple[str, list]]:
-        """The sections and their cards (for the layout tests)."""
+    def sections(self) -> list[tuple[str, customtkinter.CTkFrame]]:
+        """The sections and their panels (for the layout tests)."""
         return self._sections.sections
 
     @property
     def section_headings(self) -> list:
         return self._sections.headings
 
-    def reflow(self, width: int) -> None:
-        """Lay the cards out in as many columns of at least CARD_MIN_WIDTH as fit (two at most)."""
-        self._sections.reflow(width)
-
     def _add_server_row(self, body: customtkinter.CTkFrame) -> customtkinter.CTkOptionMenu:
         current = self._context.session.server
         names = list(self._context.server_names)
         values = names if current in names else [current, *names]
-        card = make_card(body)
-        make_card_title(card, SERVER_LABEL).pack(side="left", padx=PADDING, pady=PADDING)
-        menu = customtkinter.CTkOptionMenu(card, values=values, command=self.choose_server,
-                                           fg_color=ACCENT_COLOR)
+        row = make_row(body, SERVER_LABEL, SERVER_NOTE)
+        menu = customtkinter.CTkOptionMenu(row.controls, values=values, command=self.choose_server,
+                                           fg_color=ACCENT_COLOR, width=COMPACT_BUTTON_WIDTH,
+                                           height=COMPACT_BUTTON_HEIGHT)
         menu.set(current)
-        menu.pack(side="right", padx=PADDING)
+        menu.pack()
         return menu
 
     def _add_database_card(self, body: customtkinter.CTkFrame) -> customtkinter.CTkLabel:
-        card = make_card(body)
-        make_card_title(card, DATABASE_LABEL).pack(fill="x", padx=PADDING, pady=(PADDING, TINY_PADDING))
-        label = make_label(card, self._context.session.database_path, color=MUTED_COLOR, anchor="w",
-                           justify="left", wraplength=WRAP_LENGTH)
-        label.pack(fill="x", padx=PADDING)
-        make_button(card, CHANGE_DATABASE_LABEL, self.change_database).pack(pady=PADDING)
-        return label
+        row = make_row(body, DATABASE_LABEL, self._context.session.database_path)
+        make_button(row.controls, CHANGE_DATABASE_LABEL, self.change_database, COMPACT_BUTTON_WIDTH,
+                    COMPACT_BUTTON_HEIGHT).pack()
+        return row.description_label
 
     def _add_update_row(self, body: customtkinter.CTkFrame) -> customtkinter.CTkSwitch:
-        card = make_card(body)
-        make_card_title(card, UPDATE_LABEL).pack(side="left", padx=PADDING, pady=PADDING)
-        switch = customtkinter.CTkSwitch(card, text="", width=SWITCH_WIDTH, progress_color=ACCENT_COLOR,
+        row = make_row(body, UPDATE_LABEL)
+        switch = customtkinter.CTkSwitch(row.controls, text="", width=SWITCH_WIDTH, progress_color=ACCENT_COLOR,
                                          command=self._update_toggled)
-        switch.pack(side="right", padx=PADDING)
+        switch.pack()
         if update_check_enabled(load_config(self._context.config_path)):
             switch.select()
         self._context.updates.enabled = bool(switch.get())

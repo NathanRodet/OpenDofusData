@@ -10,8 +10,12 @@ from opendofusdata.app_config import load_config, save_config
 from opendofusdata.background import BackgroundTask, TaskSnapshot, TaskState
 from opendofusdata.local_purge import LOCAL_RETENTION_DAYS, PurgeResult, purge_database_file
 from opendofusdata.purge_options import config_with_purge, purge_enabled
-from opendofusdata.ui_theme import ERROR_COLOR, MUTED_COLOR, PADDING, SUCCESS_COLOR, TINY_PADDING, WRAP_LENGTH
-from opendofusdata.ui_widgets import make_button, make_card, make_card_title, make_label
+from opendofusdata.settings_rows import SettingRow, make_row
+from opendofusdata.ui_theme import (
+    COMPACT_BUTTON_HEIGHT, COMPACT_BUTTON_WIDTH, ERROR_COLOR, MUTED_COLOR, ROW_WRAP, SMALL_PADDING, SUCCESS_COLOR,
+    TRANSPARENT,
+)
+from opendofusdata.ui_widgets import make_button, make_label
 from opendofusdata.window_context import WindowContext
 
 TITLE = "Données locales"
@@ -48,20 +52,21 @@ class LocalDataCard:
         self._context, self._purge, self._confirm = context, purge, confirm
         self._shown_snapshot: TaskSnapshot | None = None
         self.task = BackgroundTask(self._run_purge, (PurgeFailed,))
-        self._build(make_card(parent))
+        self._build(make_row(parent, TITLE, NOTE))
         self.render()
 
-    def _build(self, card: customtkinter.CTkFrame) -> None:
-        make_card_title(card, TITLE).pack(fill="x", padx=PADDING, pady=(PADDING, TINY_PADDING))
-        make_label(card, NOTE, color=MUTED_COLOR, anchor="w", justify="left",
-                   wraplength=WRAP_LENGTH).pack(fill="x", padx=PADDING)
-        self.auto_box = customtkinter.CTkCheckBox(card, text=AUTO_LABEL, command=self.toggle_auto)
-        self.auto_box.pack(anchor="w", padx=PADDING, pady=PADDING)
+    def _build(self, row: SettingRow) -> None:
+        line = customtkinter.CTkFrame(row.body, fg_color=TRANSPARENT, corner_radius=0)
+        line.pack(fill="x")
+        self.auto_box = customtkinter.CTkCheckBox(line, text=AUTO_LABEL, command=self.toggle_auto)
+        self.auto_box.pack(side="left")
         (self.auto_box.select if purge_enabled(load_config(self._context.config_path)) else self.auto_box.deselect)()
-        self.purge_button = make_button(card, PURGE_LABEL, self.purge_now)
-        self.purge_button.pack(pady=(0, TINY_PADDING))
-        self.status_label = make_label(card, "", color=MUTED_COLOR, anchor="w", justify="left", wraplength=WRAP_LENGTH)
-        self.status_label.pack(fill="x", padx=PADDING, pady=PADDING)
+        self.purge_button = make_button(line, PURGE_LABEL, self.purge_now, COMPACT_BUTTON_WIDTH,
+                                        COMPACT_BUTTON_HEIGHT)
+        self.purge_button.pack(side="right")
+        self.status_label = make_label(row.body, "", color=MUTED_COLOR, anchor="w", justify="left",
+                                       wraplength=ROW_WRAP)
+        self.status_label.pack(fill="x", pady=(SMALL_PADDING, 0))
 
     def toggle_auto(self) -> None:
         """Save the automatic purge setting, following the check box."""

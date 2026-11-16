@@ -36,11 +36,11 @@ def make_card_title(parent: customtkinter.CTkBaseClass, text: str) -> customtkin
 
 def make_button(
     parent: customtkinter.CTkBaseClass, text: str, command: Callable[[], None],
-    width: int = PAGE_BUTTON_WIDTH,
+    width: int = PAGE_BUTTON_WIDTH, height: int = BUTTON_HEIGHT,
 ) -> customtkinter.CTkButton:
     """An accent button of fixed size."""
     return customtkinter.CTkButton(
-        parent, text=text, command=command, width=width, height=BUTTON_HEIGHT,
+        parent, text=text, command=command, width=width, height=height,
         corner_radius=CORNER_RADIUS, fg_color=ACCENT_COLOR, hover_color=ACCENT_HOVER_COLOR)
 
 

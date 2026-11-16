@@ -1,4 +1,4 @@
-"""The Réglages page is organised in titled sections whose cards share the same width and height per row."""
+"""The Réglages page: titled sections of compact rows, readable colours, controls that are not oversized."""
 
 import pytest
 
@@ -6,47 +6,80 @@ pytest.importorskip("customtkinter")
 
 from opendofusdata.local_data_card import AUTO_LABEL
 from opendofusdata.page_settings import SECTION_TITLES, SettingsPage
+from opendofusdata.settings_rows import SettingRow
+from opendofusdata.ui_theme import (
+    CARD_COLOR, COLUMN_WIDTH, COMPACT_BUTTON_HEIGHT, COMPACT_BUTTON_WIDTH, MUTED_COLOR, TEXT_COLOR, WINDOW_COLOR,
+)
 from tests.test_page_settings import make_context
 
-MAX_CHECKBOX_LABEL = 48  # longer labels do not fit a card and get cut off (CTkCheckBox cannot wrap)
+MAX_CHECKBOX_LABEL = 48  # longer labels do not fit a row and get cut off (CTkCheckBox cannot wrap)
+MIN_TEXT_CONTRAST = 4.5  # WCAG AA for normal text
 
 
 def make_page(root, tmp_path) -> SettingsPage:
     return SettingsPage(root, make_context(tmp_path), lambda current: None)
 
 
+def luminance(color: str) -> float:
+    channels = [int(color[index:index + 2], 16) / 255 for index in (1, 3, 5)]
+    linear = [value / 12.92 if value <= 0.03928 else ((value + 0.055) / 1.055) ** 2.4 for value in channels]
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+
+def contrast(foreground: str, background: str) -> float:
+    lighter, darker = sorted((luminance(foreground), luminance(background)), reverse=True)
+    return (lighter + 0.05) / (darker + 0.05)
+
+
+def rows_of(panel) -> list[SettingRow]:
+    return [child for child in panel.pack_slaves() if isinstance(child, SettingRow)]
+
+
 def test_the_page_has_the_planned_sections_in_order(root, tmp_path) -> None:
     page = make_page(root, tmp_path)
     assert [title for title, _ in page.sections] == list(SECTION_TITLES)
     assert SECTION_TITLES == ("Capture", "Données de référence", "Synchronisation", "Application")
-
-
-def test_every_section_has_a_heading_and_at_least_one_card(root, tmp_path) -> None:
-    page = make_page(root, tmp_path)
-    for title, cards in page.sections:
-        assert cards, title
     assert len(page.section_headings) == len(SECTION_TITLES)
 
 
-@pytest.mark.parametrize("width, expected", [(380, 1), (700, 1), (800, 2), (1654, 2)])
-def test_columns_follow_the_width_but_never_exceed_two(root, tmp_path, width: int, expected: int) -> None:
+def test_every_section_is_a_panel_of_rows(root, tmp_path) -> None:
     page = make_page(root, tmp_path)
-    page.reflow(width)
-    for title, cards in page.sections:
-        columns = {card.grid_info()["column"] for card in cards}
-        assert len(columns) <= expected, title
-    assert max(card.grid_info()["column"] for _, cards in page.sections for card in cards) == expected - 1
+    counts = {title: len(rows_of(panel)) for title, panel in page.sections}
+    assert counts == {"Capture": 2, "Données de référence": 2, "Synchronisation": 2, "Application": 3}
 
 
-def test_cards_of_a_row_stretch_to_the_same_height(root, tmp_path) -> None:
+def test_rows_are_separated_by_a_divider_and_the_first_has_none(root, tmp_path) -> None:
     page = make_page(root, tmp_path)
-    page.reflow(1654)
-    for _, cards in page.sections:
-        for card in cards:
-            assert set(card.grid_info()["sticky"]) == set("nsew")
+    for title, panel in page.sections:
+        children = panel.pack_slaves()
+        assert isinstance(children[0], SettingRow), title
+        assert len(children) == 2 * len(rows_of(panel)) - 1, title  # row, divider, row, divider, ... row
 
 
-def test_the_automatic_purge_label_fits_in_a_card() -> None:
+def test_secondary_text_is_readable_on_the_panel_and_on_the_window() -> None:
+    assert contrast(MUTED_COLOR, CARD_COLOR) >= MIN_TEXT_CONTRAST + 1  # comfortable, not just compliant
+    assert contrast(MUTED_COLOR, WINDOW_COLOR) >= MIN_TEXT_CONTRAST
+    assert contrast(TEXT_COLOR, CARD_COLOR) >= 7
+
+
+def test_buttons_of_the_page_are_compact(root, tmp_path) -> None:
+    page = make_page(root, tmp_path)
+    assert COMPACT_BUTTON_HEIGHT <= 30 and COMPACT_BUTTON_WIDTH <= 160
+    for button in (page.names_card.button, page.sync_card.save_button, page.sync_card.test_button,
+                   page.local_data_card.purge_button):
+        assert button.cget("height") == COMPACT_BUTTON_HEIGHT
+        assert button.cget("width") <= COMPACT_BUTTON_WIDTH
+
+
+def test_the_column_does_not_stretch_with_the_window(root, tmp_path) -> None:
+    page = make_page(root, tmp_path)
+    root.update_idletasks()
+    for _, panel in page.sections:
+        assert panel.winfo_reqwidth() <= COLUMN_WIDTH
+        assert not any(row.winfo_reqheight() >= 200 for row in rows_of(panel))  # no empty frame at its default 200 px
+
+
+def test_the_automatic_purge_label_fits_in_a_row() -> None:
     assert len(AUTO_LABEL) <= MAX_CHECKBOX_LABEL
 
 

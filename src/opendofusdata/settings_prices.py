@@ -7,8 +7,8 @@ import customtkinter
 from opendofusdata.app_config import load_config
 from opendofusdata.client_settings import config_with_price_mode, price_mode_from_config
 from opendofusdata.price_rules import PRICE_MODE_LABELS
-from opendofusdata.ui_theme import ACCENT_COLOR, MUTED_COLOR, PADDING, TINY_PADDING, WRAP_LENGTH
-from opendofusdata.ui_widgets import make_card, make_card_title, make_label
+from opendofusdata.settings_rows import make_row
+from opendofusdata.ui_theme import ACCENT_COLOR, COMPACT_BUTTON_HEIGHT, COMPACT_BUTTON_WIDTH
 from opendofusdata.window_context import WindowContext
 
 TITLE = "Prix utilisé pour les estimations"
@@ -21,14 +21,12 @@ class PricesCard:
 
     def __init__(self, parent: customtkinter.CTkFrame, context: WindowContext, save: Save) -> None:
         self._save = save
-        card = make_card(parent)
-        make_card_title(card, TITLE).pack(fill="x", padx=PADDING, pady=(PADDING, TINY_PADDING))
-        make_label(card, NOTE, color=MUTED_COLOR, anchor="w", justify="left",
-                   wraplength=WRAP_LENGTH).pack(fill="x", padx=PADDING)
-        self.menu = customtkinter.CTkOptionMenu(card, values=list(PRICE_MODE_LABELS.values()),
-                                                command=self.choose, fg_color=ACCENT_COLOR)
+        row = make_row(parent, TITLE, NOTE)
+        self.menu = customtkinter.CTkOptionMenu(row.controls, values=list(PRICE_MODE_LABELS.values()),
+                                                command=self.choose, fg_color=ACCENT_COLOR,
+                                                width=COMPACT_BUTTON_WIDTH, height=COMPACT_BUTTON_HEIGHT)
         self.menu.set(PRICE_MODE_LABELS[price_mode_from_config(load_config(context.config_path))])
-        self.menu.pack(pady=PADDING)
+        self.menu.pack()
 
     def choose(self, label: str) -> None:
         """Save the mode whose label was chosen."""

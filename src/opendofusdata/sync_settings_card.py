@@ -7,13 +7,17 @@ import customtkinter
 from opendofusdata.background import BackgroundTask, TaskSnapshot, TaskState
 from opendofusdata.sync_client import ConnectionResult, check_connection
 from opendofusdata.sync_key import clean_key, key_format_ok, load_sync_key, save_sync_key
-from opendofusdata.ui_theme import ERROR_COLOR, MUTED_COLOR, PADDING, SUCCESS_COLOR, TINY_PADDING, WRAP_LENGTH
-from opendofusdata.ui_widgets import make_button, make_card, make_card_title, make_label
+from opendofusdata.settings_rows import SettingRow, make_row
+from opendofusdata.ui_theme import (
+    COMPACT_BUTTON_HEIGHT, COMPACT_BUTTON_WIDTH, ERROR_COLOR, MUTED_COLOR, PADDING, ROW_WRAP, SMALL_PADDING,
+    SUCCESS_COLOR, TRANSPARENT,
+)
+from opendofusdata.ui_widgets import make_button, make_label
 from opendofusdata.window_context import WindowContext
 
 MASK_CHARACTER = "*"
-ENTRY_WIDTH = 300
-TITLE = "Synchronisation"
+ENTRY_WIDTH = 220
+TITLE = "Clé de synchronisation"
 NOTE = ("Colle ici la clé donnée par l'administrateur. Dès qu'elle est enregistrée, tes prix de l'HDV sont envoyés "
         "au serveur et ceux des autres joueurs récupérés; retire la clé pour arrêter. Le test de connexion "
         "n'envoie que ta clé, quand tu cliques dessus.")
@@ -46,29 +50,29 @@ class SyncSettingsCard:
         self._pending_key = ""
         self._shown_snapshot: TaskSnapshot | None = None
         self.task = BackgroundTask(self._run_test, (SyncTestFailed,))
-        self._build(make_card(parent))
+        self._build(make_row(parent, TITLE, NOTE))
         self.render()
 
-    def _build(self, card: customtkinter.CTkFrame) -> None:
-        make_card_title(card, TITLE).pack(fill="x", padx=PADDING, pady=(PADDING, TINY_PADDING))
-        make_label(card, NOTE, color=MUTED_COLOR, anchor="w", justify="left",
-                   wraplength=WRAP_LENGTH).pack(fill="x", padx=PADDING)
-        self.entry = customtkinter.CTkEntry(card, show=MASK_CHARACTER, width=ENTRY_WIDTH)
-        self.entry.pack(padx=PADDING, pady=(PADDING, TINY_PADDING))
+    def _build(self, row: SettingRow) -> None:
+        line = customtkinter.CTkFrame(row.body, fg_color=TRANSPARENT, corner_radius=0)
+        line.pack(fill="x")
+        self.entry = customtkinter.CTkEntry(line, show=MASK_CHARACTER, width=ENTRY_WIDTH, height=COMPACT_BUTTON_HEIGHT)
+        self.entry.pack(side="left")
         saved_key = load_sync_key(self._config_path)
         if saved_key:
             self.entry.insert(0, saved_key)
-        self.show_box = customtkinter.CTkCheckBox(card, text=SHOW_LABEL, command=self.toggle_visibility)
-        self.show_box.pack(padx=PADDING)
-        self.save_button = make_button(card, SAVE_LABEL, self.save)
-        self.save_button.pack(pady=(PADDING, TINY_PADDING))
-        self.test_button = make_button(card, TEST_LABEL, self.test)
-        self.test_button.pack()
-        self.status_label = make_label(card, "", color=MUTED_COLOR, anchor="w", justify="left", wraplength=WRAP_LENGTH)
-        self.status_label.pack(fill="x", padx=PADDING, pady=PADDING)
-        self.sync_status_label = make_label(card, "", color=MUTED_COLOR, anchor="w", justify="left",
-                                            wraplength=WRAP_LENGTH)
-        self.sync_status_label.pack(fill="x", padx=PADDING, pady=(0, PADDING))
+        self.show_box = customtkinter.CTkCheckBox(line, text=SHOW_LABEL, command=self.toggle_visibility, width=20)
+        self.show_box.pack(side="left", padx=PADDING)
+        self.save_button = make_button(line, SAVE_LABEL, self.save, COMPACT_BUTTON_WIDTH, COMPACT_BUTTON_HEIGHT)
+        self.save_button.pack(side="left")
+        self.test_button = make_button(line, TEST_LABEL, self.test, COMPACT_BUTTON_WIDTH, COMPACT_BUTTON_HEIGHT)
+        self.test_button.pack(side="left", padx=SMALL_PADDING)
+        self.status_label = make_label(row.body, "", color=MUTED_COLOR, anchor="w", justify="left",
+                                       wraplength=ROW_WRAP)
+        self.status_label.pack(fill="x", pady=(SMALL_PADDING, 0))
+        self.sync_status_label = make_label(row.body, "", color=MUTED_COLOR, anchor="w", justify="left",
+                                            wraplength=ROW_WRAP)
+        self.sync_status_label.pack(fill="x")
         if not self._server_url:
             self._set_status(NOT_CONFIGURED_TEXT, MUTED_COLOR)
 

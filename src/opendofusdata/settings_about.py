@@ -8,8 +8,11 @@ import customtkinter
 from opendofusdata import __version__
 from opendofusdata.app_links import REPOSITORY_URL
 from opendofusdata.background import TaskState
-from opendofusdata.ui_theme import ACCENT_COLOR, ERROR_COLOR, MUTED_COLOR, PADDING, TINY_PADDING, WRAP_LENGTH
-from opendofusdata.ui_widgets import make_button, make_card, make_card_title, make_label
+from opendofusdata.settings_rows import make_row
+from opendofusdata.ui_theme import (
+    ACCENT_COLOR, COMPACT_BUTTON_HEIGHT, COMPACT_BUTTON_WIDTH, ERROR_COLOR, MUTED_COLOR, ROW_WRAP, TINY_PADDING,
+)
+from opendofusdata.ui_widgets import make_button, make_label
 from opendofusdata.updates import is_allowed_url
 from opendofusdata.window_context import WindowContext
 
@@ -20,11 +23,13 @@ SUMMARY = (
     "Données collectées : prix HDV, brisage, familiers.\n"
     "Envoi de données : seulement si tu enregistres une clé de synchronisation (carte Synchronisation): "
     "tes prix de l'HDV sont alors envoyés au serveur et ceux des autres joueurs récupérés; retire la clé pour "
-    "arrêter. Sans clé, rien ne quitte ta machine, sauf la vérification des mises à jour (une requête anonyme à GitHub, désactivable) et le test "
-    "de connexion, seulement quand tu cliques dessus (il n'envoie que ta clé).\n"
+    "arrêter. Sans clé, rien ne quitte ta machine, sauf la vérification des mises à jour (une requête anonyme à "
+    "GitHub, désactivable) et le test de connexion, seulement quand tu cliques dessus (il n'envoie que ta clé).\n"
     "Licence : tous droits réservés (code source public)."
 )
 REPOSITORY_LABEL = "Voir le dépôt"
+ACTION_BUTTON_WIDTH = 200  # "Mettre à jour et relancer" needs more room than the other buttons
+ABOUT_WRAP = 680
 CHECK_LABEL = "Rechercher les mises à jour"
 CHECKING_LABEL = "Vérification..."
 INSTALL_LABEL = "Mettre à jour et relancer"
@@ -47,14 +52,14 @@ class UpdatesCard:
     def __init__(self, parent: customtkinter.CTkFrame, context: WindowContext,
                  open_page: Callable[[str], None] = open_url) -> None:
         self._context, self._open_page = context, open_page
-        card = make_card(parent)
-        make_card_title(card, UPDATES_TITLE).pack(fill="x", padx=PADDING, pady=(PADDING, TINY_PADDING))
-        self.version_label = make_label(card, f"Version {__version__}", color=MUTED_COLOR, anchor="w")
-        self.version_label.pack(fill="x", padx=PADDING)
-        self.update_label = make_label(card, "", anchor="w", justify="left", wraplength=WRAP_LENGTH)
-        self.update_label.pack(fill="x", padx=PADDING, pady=TINY_PADDING)
-        self.action_button = make_button(card, CHECK_LABEL, self._on_action)
-        self.action_button.pack(pady=PADDING)
+        row = make_row(parent, UPDATES_TITLE)
+        self.version_label = make_label(row.body, f"Version {__version__}", color=MUTED_COLOR, anchor="w")
+        self.version_label.pack(fill="x")
+        self.update_label = make_label(row.body, "", anchor="w", justify="left", wraplength=ROW_WRAP)
+        self.update_label.pack(fill="x", pady=TINY_PADDING)
+        self.action_button = make_button(row.controls, CHECK_LABEL, self._on_action, ACTION_BUTTON_WIDTH,
+                                         COMPACT_BUTTON_HEIGHT)
+        self.action_button.pack()
 
     def _status(self) -> tuple[str, str]:
         updates = self._context.updates
@@ -101,9 +106,9 @@ class AboutCard:
     """What the tool collects and sends, and the link to the repository."""
 
     def __init__(self, parent: customtkinter.CTkFrame, open_page: Callable[[str], None] = open_url) -> None:
-        card = make_card(parent)
-        make_card_title(card, ABOUT_TITLE).pack(fill="x", padx=PADDING, pady=(PADDING, TINY_PADDING))
-        self.summary_label = make_label(card, SUMMARY, color=MUTED_COLOR, anchor="w", justify="left",
-                                       wraplength=WRAP_LENGTH)
-        self.summary_label.pack(fill="x", padx=PADDING)
-        make_button(card, REPOSITORY_LABEL, lambda: open_page(REPOSITORY_URL)).pack(pady=PADDING)
+        row = make_row(parent, ABOUT_TITLE)
+        self.summary_label = make_label(row.body, SUMMARY, color=MUTED_COLOR, anchor="w", justify="left",
+                                        wraplength=ABOUT_WRAP)
+        self.summary_label.pack(fill="x")
+        make_button(row.controls, REPOSITORY_LABEL, lambda: open_page(REPOSITORY_URL), COMPACT_BUTTON_WIDTH,
+                    COMPACT_BUTTON_HEIGHT).pack()

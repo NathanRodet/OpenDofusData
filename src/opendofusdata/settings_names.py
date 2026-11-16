@@ -9,8 +9,9 @@ import customtkinter
 from opendofusdata.background import BackgroundTask, TaskState
 from opendofusdata.names_fetch import NamesFetchError, TransientFetchError
 from opendofusdata.names_refresh import RefreshResult, loaded_item_count
-from opendofusdata.ui_theme import ERROR_COLOR, MUTED_COLOR, PADDING, TINY_PADDING, WRAP_LENGTH
-from opendofusdata.ui_widgets import make_button, make_card, make_card_title, make_label
+from opendofusdata.settings_rows import make_row
+from opendofusdata.ui_theme import COMPACT_BUTTON_HEIGHT, COMPACT_BUTTON_WIDTH, ERROR_COLOR, MUTED_COLOR
+from opendofusdata.ui_widgets import make_button, make_label
 from opendofusdata.window_context import WindowContext
 
 TITLE = "Noms d'objets"
@@ -33,15 +34,12 @@ class NamesCard:
         self._context, self._refresh = context, refresh
         self._count = loaded_item_count(context.session.database_path)
         self.task = BackgroundTask(self._download, FAILURES)
-        card = make_card(parent)
-        make_card_title(card, TITLE).pack(fill="x", padx=PADDING, pady=(PADDING, TINY_PADDING))
-        self.status_label = make_label(card, "", color=MUTED_COLOR, anchor="w", justify="left",
-                                       wraplength=WRAP_LENGTH)
-        self.status_label.pack(fill="x", padx=PADDING)
-        make_label(card, NOTE, color=MUTED_COLOR, anchor="w", justify="left",
-                   wraplength=WRAP_LENGTH).pack(fill="x", padx=PADDING, pady=TINY_PADDING)
-        self.button = make_button(card, BUTTON_TEXT, self.task.start)
-        self.button.pack(pady=PADDING)
+        row = make_row(parent, TITLE, NOTE)
+        self.status_label = make_label(row.body, "", color=MUTED_COLOR, anchor="w", justify="left")
+        self.status_label.pack(fill="x")
+        self.button = make_button(row.controls, BUTTON_TEXT, self.task.start, COMPACT_BUTTON_WIDTH,
+                                  COMPACT_BUTTON_HEIGHT)
+        self.button.pack()
         self.render()
 
     def _download(self) -> str:
