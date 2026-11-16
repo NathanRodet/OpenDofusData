@@ -1,7 +1,6 @@
 """What the Brisage page shows: one row per broken object with its value and plus-value."""
 
 import sqlite3
-from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -28,20 +27,6 @@ class BreakingRow:
     hdv_value: float | None
     runes_value: RunesValue
     plus_value: float | None
-
-
-@dataclass(frozen=True)
-class BreakingDetail:
-    """The detail panel of one object: coefficient history and the runes of its last breaking."""
-
-    item_id: int
-    name: str
-    last_coefficient: float
-    mean_coefficient: float
-    count: int
-    points: list[tuple[datetime, float, int]]
-    last_runes: list[tuple[str, int, float | None]]
-    last_row: BreakingRow
 
 
 def _estimated_unit_price(book: PriceBook, item_id: int) -> float | None:
@@ -72,15 +57,3 @@ def breaking_rows(connection: sqlite3.Connection, server: str, window: Window, n
             if broken.server == server and low <= broken.captured_at <= high]
     return sorted(rows, key=_plus_value_order)
 
-
-def breaking_detail(rows: Sequence[BreakingRow], item_id: int, name_of: ItemLabeler, book: PriceBook,
-                    mode: str) -> BreakingDetail | None:
-    """Coefficient history and last runes of one object; None when it was never broken in these rows."""
-    own = sorted((row for row in rows if row.item_id == item_id), key=lambda row: row.moment)
-    if not own:
-        return None
-    last = own[-1]
-    last_runes = [(name_of(rune_id), quantity, book.unit_price(rune_id, mode)) for rune_id, quantity in last.runes]
-    points = [(row.moment, row.coefficient, sum(quantity for _, quantity in row.runes)) for row in own]
-    mean = sum(row.coefficient for row in own) / len(own)
-    return BreakingDetail(item_id, name_of(item_id), last.coefficient, mean, len(own), points, last_runes, last)

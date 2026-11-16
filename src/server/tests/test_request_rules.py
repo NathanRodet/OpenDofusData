@@ -68,9 +68,11 @@ def test_content_type_is_ignored_when_there_is_no_body() -> None:
 def test_allowed_routes_and_query_parameters_are_the_planned_ones() -> None:
     assert ALLOWED_ROUTES["/readings"] == frozenset({"GET", "POST"})
     assert ALLOWED_ROUTES["/readings/latest"] == frozenset({"GET"})
+    assert ALLOWED_ROUTES["/readings/mine"] == frozenset({"GET"})
     assert ALLOWED_ROUTES["/admin/revoke"] == frozenset({"POST"})
     assert QUERY_PARAMETERS == {("/readings", "GET"): frozenset({"since", "limit"}),
-                                ("/readings/latest", "GET"): frozenset({"after", "limit"})}
+                                ("/readings/latest", "GET"): frozenset({"after", "limit"}),
+                                ("/readings/mine", "GET"): frozenset({"after", "limit"})}
 
 
 def test_declared_get_routes_accept_their_own_parameters() -> None:

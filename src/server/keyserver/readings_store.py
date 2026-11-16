@@ -24,6 +24,7 @@ INSERT_SQL = ("INSERT OR IGNORE INTO readings (key_id, server, item_id, lot_size
               "VALUES (?, ?, ?, ?, ?, ?)")
 COLUMNS = "seq, key_id, server, item_id, lot_size, price, observed_at"
 CHANGES_SQL = (f"SELECT {COLUMNS} FROM readings WHERE key_id != ? AND seq > ? ORDER BY seq LIMIT ?")
+OWN_SQL = f"SELECT {COLUMNS} FROM readings WHERE key_id = ? AND seq > ? ORDER BY seq LIMIT ?"
 LATEST_SQL = f"""
     SELECT {COLUMNS} FROM (
         SELECT {COLUMNS}, ROW_NUMBER() OVER (
@@ -78,6 +79,11 @@ class ReadingStore:
         """The newest reading of each (server, item, lot) among the other keys, after order number `after`."""
         with self._lock:
             return [_stored(row) for row in self._connection.execute(LATEST_SQL, (key_id, after, limit))]
+
+    def own_page(self, key_id: str, after: int, limit: int) -> list[StoredReading]:
+        """The readings this key sent itself after order number `after` (a player restoring their own history)."""
+        with self._lock:
+            return [_stored(row) for row in self._connection.execute(OWN_SQL, (key_id, after, limit))]
 
     def highest_seq(self) -> int:
         """The order number of the last stored reading (0 when empty)."""

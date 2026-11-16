@@ -16,7 +16,7 @@ class StatList(customtkinter.CTkFrame):
     """Rows of label / value; rebuilt only when the content changes."""
 
     def __init__(self, parent: tkinter.Misc) -> None:
-        super().__init__(parent, fg_color=STAT_ROW_COLOR, corner_radius=SMALL_PADDING)
+        super().__init__(parent, fg_color=STAT_ROW_COLOR, corner_radius=SMALL_PADDING, width=1, height=1)
         self._shown: tuple[StatRow, ...] = ()
         self.grid_columnconfigure(1, weight=VALUE_COLUMN_WEIGHT)
 

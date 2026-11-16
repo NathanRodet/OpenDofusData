@@ -4,7 +4,6 @@ from datetime import datetime
 
 from opendofusdata.capture_session import CaptureStatus, SessionSnapshot
 from opendofusdata.game_servers import UNKNOWN_SERVER
-from opendofusdata.log_feed import TIME_FORMAT
 from opendofusdata.time_filters import elapsed_text
 
 NO_RECORD_TEXT = "aucun pour l'instant"
@@ -35,34 +34,15 @@ def error_detail_text(snapshot: SessionSnapshot) -> str:
     return ""
 
 
-def records_text(count: int) -> str:
-    """'0 enregistrement', '1 enregistrement', '2 enregistrements' (French plural)."""
-    return f"{count} enregistrement" + ("s" if count > 1 else "")
-
-
 def total_records(snapshot: SessionSnapshot) -> int:
     """Prices plus statistics recorded during this session."""
     return snapshot.price_count + snapshot.stats_count
-
-
-def server_text(snapshot: SessionSnapshot) -> str:
-    """Server line; asks the player to choose one while it is still 'unknown'."""
-    if snapshot.server == UNKNOWN_SERVER:
-        return UNCHOSEN_SERVER_TEXT
-    return f"Serveur : {snapshot.server}"
 
 
 def counts_text(snapshot: SessionSnapshot) -> str:
     """Records saved during this session."""
     return (f"Prix enregistrés : {snapshot.price_count}\n"
             f"Statistiques enregistrées : {snapshot.stats_count}")
-
-
-def last_record_text(snapshot: SessionSnapshot) -> str:
-    """Local time of the last record, or a placeholder."""
-    moment = snapshot.last_record_at
-    shown = NO_RECORD_TEXT if moment is None else moment.astimezone().strftime(TIME_FORMAT)
-    return f"Dernier enregistrement : {shown}"
 
 
 def button_label(snapshot: SessionSnapshot) -> str:

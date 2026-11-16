@@ -27,6 +27,11 @@ INSERT_REMOTE_SQL = f"""
     INSERT OR IGNORE INTO lot_prices
         (item_id, server, lot_size, price, captured_at, origin, synced_at, source_key_id)
     VALUES (?, ?, ?, ?, ?, '{ORIGIN_REMOTE}', ?, ?)"""
+INSERT_OWN_SQL = f"""
+    INSERT INTO lot_prices (item_id, server, lot_size, price, captured_at, origin, synced_at)
+    SELECT ?, ?, ?, ?, ?, '{ORIGIN_LOCAL}', ?
+    WHERE NOT EXISTS (SELECT 1 FROM lot_prices WHERE origin = '{ORIGIN_LOCAL}' AND item_id = ? AND server = ?
+                      AND lot_size = ? AND captured_at = ?)"""
 
 
 class PendingReading(NamedTuple):
@@ -86,6 +91,16 @@ def insert_remote(connection: sqlite3.Connection, readings: Sequence[Mapping[str
         connection.executemany(INSERT_REMOTE_SQL, [
             (item["item_id"], item["server"], item["lot_size"], item["price"], item["observed_at"], moment,
              item["key_id"]) for item in readings])
+    return connection.total_changes - before
+
+
+def insert_own(connection: sqlite3.Connection, readings: Sequence[Mapping[str, object]], moment: str) -> int:
+    """Store readings this player sent earlier (local, already synced), skipping the ones already here."""
+    before = connection.total_changes
+    with connection:
+        connection.executemany(INSERT_OWN_SQL, [
+            (item["item_id"], item["server"], item["lot_size"], item["price"], item["observed_at"], moment,
+             item["item_id"], item["server"], item["lot_size"], item["observed_at"]) for item in readings])
     return connection.total_changes - before
 
 

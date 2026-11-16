@@ -28,10 +28,16 @@ NO_SELECTION_TEXT = "Sélectionne un objet pour voir son détail."
 HISTORY_HEIGHT = 140
 LOTS_TITLE = "Prix par lot"
 HISTORY_TITLE = "Derniers relevés"
+NO_FIGURE_TEXT = "-"
 
 
 def _number_text(value: int | None) -> str:
     return UNKNOWN_TEXT if value is None else format_kamas(float(value))
+
+
+def _cell_text(value: int | None) -> str:
+    """A table cell: a dash when the figure was never seen (market statistics exist only for opened items)."""
+    return NO_FIGURE_TEXT if value is None else format_kamas(float(value))
 
 
 class HdvPage(ViewPage):
@@ -73,8 +79,8 @@ class HdvPage(ViewPage):
         """One row per item captured inside the window."""
         now = self._clock()
         rows = hdv_rows(connection, server, window, self._context.name_of, self._context.type_of)
-        return [TableRow(row.item_id, (row.name, row.type_name, _number_text(row.last_price),
-                                       _number_text(row.median_24h), _number_text(row.sold_24h),
+        return [TableRow(row.item_id, (row.name, row.type_name, _cell_text(row.last_price),
+                                       _cell_text(row.median_24h), _cell_text(row.sold_24h),
                                        elapsed_text(row.last_seen, now)),
                          (row.name.casefold(), row.type_name, row.last_price, row.median_24h, row.sold_24h,
                           row.last_seen)) for row in rows]

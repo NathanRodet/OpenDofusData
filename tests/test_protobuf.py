@@ -6,7 +6,6 @@ from opendofusdata.protobuf import (
     read_varint,
     to_signed,
     try_decode_fields,
-    zigzag_decode,
 )
 
 
@@ -70,12 +69,6 @@ def test_try_decode_fields_returns_none_on_garbage() -> None:
 
 def test_try_decode_fields_returns_fields() -> None:
     assert try_decode_fields(b"\x08\x01") == [(1, 0, 1)]
-
-
-def test_zigzag_decode() -> None:
-    assert zigzag_decode(1) == -1
-    assert zigzag_decode(2) == 1
-    assert zigzag_decode(0) == 0
 
 
 def test_to_signed() -> None:

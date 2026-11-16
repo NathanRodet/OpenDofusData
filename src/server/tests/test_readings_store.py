@@ -109,3 +109,17 @@ def test_highest_seq_is_zero_when_empty_then_grows(store: ReadingStore) -> None:
     assert store.highest_seq() == 0
     store.add_batch(ALICE, [reading()])
     assert store.highest_seq() == 1
+
+
+def test_own_page_returns_only_the_readings_of_that_key_in_order(store: ReadingStore) -> None:
+    store.add_batch(ALICE, [reading(item_id=1), reading(item_id=2)])
+    store.add_batch(BOB, [reading(item_id=3)])
+    assert [stored.item_id for stored in store.own_page(ALICE, 0, 10)] == [1, 2]
+    assert store.own_page(BOB, 0, 10)[0].key_id == BOB
+
+
+def test_own_page_pages_with_after(store: ReadingStore) -> None:
+    store.add_batch(ALICE, [reading(item_id=number) for number in range(1, 5)])
+    first = store.own_page(ALICE, 0, 3)
+    second = store.own_page(ALICE, first[-1].seq, 3)
+    assert [stored.item_id for stored in first + second] == [1, 2, 3, 4]

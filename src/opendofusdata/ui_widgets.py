@@ -7,8 +7,8 @@ import customtkinter
 
 from opendofusdata.capture_session import SessionSnapshot
 from opendofusdata.ui_theme import (
-    ACCENT_COLOR, ACCENT_HOVER_COLOR, BODY_SIZE, BUTTON_HEIGHT, CARD_COLOR, CORNER_RADIUS,
-    CARD_TITLE_SIZE, PAGE_BUTTON_WIDTH, SMALL_PADDING, TEXT_COLOR,
+    ACCENT_COLOR, ACCENT_HOVER_COLOR, BODY_SIZE, BUTTON_HEIGHT, CORNER_RADIUS,
+    CARD_TITLE_SIZE, PAGE_BUTTON_WIDTH, TEXT_COLOR,
 )
 
 
@@ -29,9 +29,13 @@ def make_label(
     return customtkinter.CTkLabel(parent, text=text, font=font, text_color=color, **options)
 
 
+CARD_TITLE_WRAP = 300  # inside a detail panel of DETAIL_WIDTH, next to its scrollbar and margins
+
+
 def make_card_title(parent: customtkinter.CTkBaseClass, text: str) -> customtkinter.CTkLabel:
-    """The bold title of a card or of a section of a detail panel."""
-    return make_label(parent, text, CARD_TITLE_SIZE, bold=True, anchor="w")
+    """The bold title of a card or of a section of a detail panel (long titles wrap instead of being cut)."""
+    return make_label(parent, text, CARD_TITLE_SIZE, bold=True, anchor="w", justify="left",
+                      wraplength=CARD_TITLE_WRAP)
 
 
 def make_button(
@@ -42,10 +46,3 @@ def make_button(
     return customtkinter.CTkButton(
         parent, text=text, command=command, width=width, height=height,
         corner_radius=CORNER_RADIUS, fg_color=ACCENT_COLOR, hover_color=ACCENT_HOVER_COLOR)
-
-
-def make_card(parent: customtkinter.CTkBaseClass) -> customtkinter.CTkFrame:
-    """A rounded grey block that spans the page column."""
-    card = customtkinter.CTkFrame(parent, fg_color=CARD_COLOR, corner_radius=CORNER_RADIUS)
-    card.pack(fill="x", pady=(0, SMALL_PADDING))
-    return card

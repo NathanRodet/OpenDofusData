@@ -9,6 +9,7 @@ from keyserver.schemas import MAX_BATCH_READINGS, MAX_QUERY_INTEGER, ReadingBatc
 
 READINGS_PATH = "/readings"
 LATEST_PATH = "/readings/latest"
+MINE_PATH = "/readings/mine"
 Cursor = Annotated[int, Query(ge=0, le=MAX_QUERY_INTEGER)]
 PageSize = Annotated[int, Query(ge=1, le=MAX_BATCH_READINGS)]
 
@@ -19,7 +20,7 @@ def _view(readings: list[StoredReading]) -> list[dict[str, object]]:
 
 
 def register_reading_routes(app: FastAPI, readings: ReadingStore) -> None:
-    """Add `POST /readings`, `GET /readings` and `GET /readings/latest` (user keys only)."""
+    """Add `POST /readings`, `GET /readings` and `GET /readings/latest` and `GET /readings/mine` (user keys only)."""
 
     @app.post(READINGS_PATH)
     def send(batch: ReadingBatch, request: Request) -> dict[str, int]:
@@ -37,3 +38,8 @@ def register_reading_routes(app: FastAPI, readings: ReadingStore) -> None:
         page = readings.latest_page(request.state.key_id, after, limit)
         return {"readings": _view(page), "next": page[-1].seq if page else after,
                 "as_of": as_of, "done": len(page) < limit}
+
+    @app.get(MINE_PATH)
+    def mine(request: Request, after: Cursor, limit: PageSize) -> dict[str, object]:
+        page = readings.own_page(request.state.key_id, after, limit)
+        return {"readings": _view(page), "next": page[-1].seq if page else after}

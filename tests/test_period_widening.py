@@ -88,3 +88,11 @@ def test_the_craft_page_never_widens_a_period_it_does_not_show(root, tmp_path) -
     page = CraftPage(root, make_context(tmp_path), clock=lambda: NOW)
     page.refresh()
     assert page.period_bar.selection().period == PERIOD_TODAY
+
+
+def test_the_widened_period_notice_is_highlighted(tmp_path, root) -> None:
+    from opendofusdata.ui_theme import ACCENT_COLOR
+
+    page = hdv_with(tmp_path, root, THREE_DAYS_AGO)
+    page.refresh()
+    assert page.notice.cget("text_color") == ACCENT_COLOR

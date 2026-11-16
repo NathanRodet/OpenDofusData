@@ -6,15 +6,17 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import NamedTuple
 
-from opendofusdata.sync_api import SYNC_PAGE_SIZE, SyncFailure, pull_changes, pull_latest_page, push_readings
+from opendofusdata.sync_api import SYNC_PAGE_SIZE, SyncFailure, pull_changes, pull_latest_page, pull_own_page, push_readings
 from opendofusdata.sync_client import UNEXPECTED_MESSAGE
 from opendofusdata.sync_rules import valid_cursor
 from opendofusdata.sync_store import (
-    DATE_FORMAT, clear_state, get_state, insert_remote, mark_sent, pending_readings, set_state,
+    DATE_FORMAT, clear_state, get_state, insert_own, insert_remote, mark_sent, pending_readings, set_state,
 )
 
 STATE_CURSOR = "cursor"
 STATE_LATEST_DONE = "latest_done"
+STATE_OWN_AFTER = "own_after"
+STATE_OWN_DONE = "own_done"
 STATE_LATEST_AFTER = "latest_after"
 STATE_LATEST_AS_OF = "latest_as_of"
 DONE_FLAG = "1"
@@ -111,13 +113,32 @@ def _receive_changes(connection: sqlite3.Connection, options: SyncOptions, clock
     raise SyncFailure(UNEXPECTED_MESSAGE)
 
 
+def _restore_own(connection: sqlite3.Connection, options: SyncOptions, clock: Clock, progress: Progress) -> None:
+    """Once per database: get back the readings this key sent before (a new or emptied database), page by page."""
+    after = _saved_cursor(connection, STATE_OWN_AFTER) or FIRST_CURSOR
+    for _ in range(MAX_SYNC_PAGES):
+        readings, following = pull_own_page(options.base_url, options.key, after)
+        if not readings:
+            set_state(connection, STATE_OWN_DONE, DONE_FLAG)
+            clear_state(connection, STATE_OWN_AFTER)
+            return
+        if following <= after:
+            raise SyncFailure(UNEXPECTED_MESSAGE)
+        progress.received += insert_own(connection, readings, _now(clock))
+        after = following
+        set_state(connection, STATE_OWN_AFTER, str(after))
+    raise SyncFailure(UNEXPECTED_MESSAGE)
+
+
 def _receive(connection: sqlite3.Connection, options: SyncOptions, clock: Clock, progress: Progress) -> None:
-    """Snapshot first when never done (or when the saved cursor is garbled), then the change feed."""
+    """Snapshot when never done (or when the saved cursor is garbled), then the changes, then own history once."""
     if get_state(connection, STATE_LATEST_DONE) == DONE_FLAG and _saved_cursor(connection, STATE_CURSOR) is None:
         clear_state(connection, STATE_LATEST_DONE, STATE_CURSOR)
     if get_state(connection, STATE_LATEST_DONE) != DONE_FLAG:
         _receive_latest(connection, options, clock, progress)
     _receive_changes(connection, options, clock, progress)
+    if get_state(connection, STATE_OWN_DONE) != DONE_FLAG:  # last: a server without this route must not stop the rest
+        _restore_own(connection, options, clock, progress)
 
 
 def sync_once(connection: sqlite3.Connection, options: SyncOptions,

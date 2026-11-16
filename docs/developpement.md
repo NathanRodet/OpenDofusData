@@ -186,7 +186,7 @@ Un onglet *Administration* apparaît (en dernier dans le menu) seulement si le `
 
 ## Synchronisation des prix
 
-Les joueurs envoient les prix de lots de l'HDV qu'ils observent et récupèrent ceux des autres. Conception: [spécification](superpowers/specs/2026-11-16-player-sync-design.md) et [plan](superpowers/plans/2026-11-16-player-sync.md).
+Les joueurs envoient les prix de lots de l'HDV qu'ils observent et récupèrent ceux des autres.
 
 **Serveur** (routes authentifiées par clé utilisateur, jamais par le jeton d'administration):
 
@@ -194,6 +194,7 @@ Les joueurs envoient les prix de lots de l'HDV qu'ils observent et récupèrent 
 |---|---|
 | `POST /readings` | Envoie 1 à 2000 relevés `{server, item_id, lot_size, price, observed_at}`; réponse `{accepted, duplicates}` (un relevé déjà reçu est un doublon, pas une erreur) |
 | `GET /readings?since=N&limit=L` | Relevés des autres clés arrivés après le numéro d'ordre N (`limit` de 1 à 2000); réponse `{readings, next}`; chaque relevé porte `seq` et `key_id` |
+| `GET /readings/mine?after=K&limit=L` | Les relevés envoyés par la clé elle-même (restauration de son historique sur une base neuve), par pages; réponse `{readings, next}` |
 | `GET /readings/latest?after=K&limit=L` | Premier lancement d'un joueur: dernier relevé de chaque (serveur, objet, lot) des autres clés, par pages; réponse `{readings, next, as_of, done}` |
 
 - **Paramètres de requête:** le garde-fou n'accepte, pour ces deux routes `GET`, que les paramètres déclarés, chacun une seule fois, en entiers décimaux de 1 à 12 chiffres, sans encodage en pourcentage; tout le reste donne `400`. Un `GET` avec un corps est refusé. **Toute route ajoutée doit être déclarée dans `ALLOWED_ROUTES`.**
@@ -206,7 +207,7 @@ Les joueurs envoient les prix de lots de l'HDV qu'ils observent et récupèrent 
 
 - **Réglages, carte Synchronisation:** pas de case à cocher: enregistrer une clé (avec une adresse de serveur) active l'envoi et la récupération, la retirer les arrête (un ancien `sync_send` ou `sync_receive` dans `config.json` est ignoré). Un fil d'arrière-plan lance un tour toutes les 5 minutes (attente doublée, plafonnée à 1 heure, tant que le serveur est injoignable; pause tant que la clé refusée n'a pas été remplacée) et relit les réglages à chaque tour.
 - **Base locale:** `lot_prices` gagne `origin` (`local` ou `remote`), `synced_at` et `source_key_id`; la table `sync_state` garde le curseur. Les bases existantes sont migrées sans perte. Un prix identique au dernier relevé réellement envoyé depuis moins d'une heure pour la même clé n'est pas renvoyé, et rien de plus vieux que 14 jours ni de refusé d'avance par le serveur (prix, nom de serveur) n'est envoyé. Si l'envoi échoue (par exemple un `422` quand l'heure du PC est fausse), la récupération continue. Les relevés reçus ne sont jamais renvoyés.
-- **Récupération:** au premier tour `GET /readings/latest` page par page, puis seulement `GET /readings` depuis le curseur. Tout ce que le serveur renvoie est validé avant insertion (types, bornes, nom de serveur sans symbole ni caractère invisible), les boucles de pages sont plafonnées, le snapshot interrompu reprend où il s'était arrêté et `reset-data` remet la position de synchro à zéro.
+- **Récupération:** au premier tour `GET /readings/latest` page par page, puis seulement `GET /readings` depuis le curseur. Une seule fois par base, en dernier, `GET /readings/mine` rend au joueur ses propres relevés des 14 derniers jours (enregistrés comme locaux et déjà envoyés, sans doublon avec ce qu'il a déjà); un échec de cette étape n'empêche pas la récupération des prix des autres. Tout ce que le serveur renvoie est validé avant insertion (types, bornes, nom de serveur sans symbole ni caractère invisible), les boucles de pages sont plafonnées, le snapshot interrompu reprend où il s'était arrêté et `reset-data` remet la position de synchro à zéro.
 - **Purge locale optionnelle:** carte *Données locales* (case « au lancement » décochée par défaut, `purge_old_data`, et bouton *Purger maintenant* avec confirmation). Supprime les lignes de `lot_prices` et `market_stats` de plus de 14 jours en gardant toujours la plus récente de chaque (objet, serveur, lot) ou (objet, serveur, période). Ne touche jamais aux favoris et observations manuelles de familiers (dans `config.json`), ni aux noms, serveurs, brisages, améliorations de familiers et à l'état de synchro.
 - **Administration:** pour chaque clé, *Révoquer* ou *Révoquer et supprimer ses relevés*, chacune avec sa confirmation.
 

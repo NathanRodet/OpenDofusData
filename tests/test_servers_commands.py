@@ -90,26 +90,6 @@ def test_servers_default_path() -> None:
     assert cli.build_parser().parse_args(["servers"]).servers == "data/servers.csv"
 
 
-def test_known_server_gets_the_canonical_spelling(tmp_path: Path, capsys) -> None:
-    path = make_servers(tmp_path / "servers.csv")
-    assert servers_commands.resolve_server_name("draconiros", str(path)) == "Draconiros"
-    assert capsys.readouterr().out == ""
-
-
-def test_unknown_server_warns_once_and_is_kept(tmp_path: Path, capsys) -> None:
-    path = make_servers(tmp_path / "servers.csv")
-    assert servers_commands.resolve_server_name("Inconnu", str(path)) == "Inconnu"
-    lines = capsys.readouterr().out.splitlines()
-    assert lines == ["serveur « Inconnu » absent de la liste (servers-update pour la mettre à jour)"]
-
-
-def test_default_name_and_missing_file_stay_silent(tmp_path: Path, capsys) -> None:
-    path = make_servers(tmp_path / "servers.csv")
-    assert servers_commands.resolve_server_name("unknown", str(path)) == "unknown"
-    assert servers_commands.resolve_server_name("X", str(tmp_path / "absent.csv")) == "X"
-    assert capsys.readouterr().out == ""
-
-
 def test_run_command_stores_the_canonical_name(tmp_path: Path, monkeypatch) -> None:
     make_servers(tmp_path / "data" / "servers.csv")
     monkeypatch.chdir(tmp_path)

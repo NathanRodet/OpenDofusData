@@ -35,7 +35,7 @@ PLUS_VALUE_COLUMN = 3
 BREAKINGS_TITLE = "Brisages de l'objet sélectionné"
 NO_SELECTION_TEXT = "Sélectionne un objet pour voir ses brisages et sa plus-value en classique et en focus."
 NO_EFFECTS_TEXT = "Effets de l'objet inconnus : clique sur « Télécharger les données de référence » dans Réglages."
-WRAP_LENGTH = DETAIL_WIDTH - 4 * PADDING
+WRAP_LENGTH = DETAIL_WIDTH - 6 * PADDING  # room for the margins and the scrollbar of the detail panel
 
 
 class BreakingPage(ViewPage):

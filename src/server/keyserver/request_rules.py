@@ -9,11 +9,13 @@ ACCEPTED_CHARSET_PARAMETER = "charset=utf-8"
 ALLOWED_ROUTES: dict[str, frozenset[str]] = {
     "/check": frozenset({"GET"}), "/admin/revoke": frozenset({"POST"}),
     "/readings": frozenset({"GET", "POST"}), "/readings/latest": frozenset({"GET"}),
+    "/readings/mine": frozenset({"GET"}),
 }
 # The only query strings that may reach a route: these parameter names, each once, as plain whole numbers.
 QUERY_PARAMETERS: dict[tuple[str, str], frozenset[str]] = {
     ("/readings", "GET"): frozenset({"since", "limit"}),
     ("/readings/latest", "GET"): frozenset({"after", "limit"}),
+    ("/readings/mine", "GET"): frozenset({"after", "limit"}),
 }
 QUERY_PAIR = re.compile(rb"([a-z]+)=([0-9]{1,12})")
 QUERY_SEPARATOR = b"&"

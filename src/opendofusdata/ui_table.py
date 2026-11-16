@@ -20,6 +20,7 @@ TAG_STRIPE = "stripe"
 ASCENDING_MARK = " ▲"
 DESCENDING_MARK = " ▼"
 SCROLLBAR_WIDTH = 14
+UNLAID_WIDTH = 1  # the width a widget reports before the window has laid it out
 
 
 @dataclass(frozen=True)
@@ -62,6 +63,15 @@ class DataTable(customtkinter.CTkFrame):
         self._tree = self._build_tree()
         self._refresh_headings()
 
+    def _fit_columns(self, event: tkinter.Event) -> None:
+        """Shrink the columns together when the table is narrower than their widths, so none is cut off."""
+        wanted = sum(column.width for column in self._columns)
+        if event.width <= UNLAID_WIDTH or not wanted:  # not laid out yet: keep the starting widths
+            return
+        factor = min(1.0, event.width / wanted)
+        for name, column in zip(self._tree["columns"], self._columns):
+            self._tree.column(name, width=max(column.width // 2, int(column.width * factor)))
+
     def _build_tree(self) -> ttk.Treeview:
         names = [str(index) for index in range(len(self._columns))]
         tree = ttk.Treeview(self, columns=names, show="headings", selectmode="browse", style=STYLE_NAME)
@@ -72,6 +82,7 @@ class DataTable(customtkinter.CTkFrame):
         tree.tag_configure(TAG_UP, foreground=UP_COLOR)
         tree.tag_configure(TAG_DOWN, foreground=DOWN_COLOR)
         tree.bind("<<TreeviewSelect>>", self._selection_changed)
+        tree.bind("<Configure>", self._fit_columns)
         tree.bind("<Double-1>", self._begin_edit)
         scrollbar = customtkinter.CTkScrollbar(self, width=SCROLLBAR_WIDTH, command=tree.yview)
         tree.configure(yscrollcommand=scrollbar.set)

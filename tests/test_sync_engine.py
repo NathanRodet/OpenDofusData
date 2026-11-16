@@ -34,6 +34,12 @@ class FakeServer:
         self.fail_push_after = None
         self.fail_push_only = False
         self.failure_after_pages = None
+        self.own_pages: list[tuple[list, int]] = []
+        self.own_calls: list[int] = []
+
+    def own(self, base_url, key, after):
+        self.own_calls.append(after)
+        return self.own_pages.pop(0) if self.own_pages else ([], after)
 
     def push(self, base_url, key, readings):
         self.calls.append("push")
@@ -63,6 +69,7 @@ def server(monkeypatch: pytest.MonkeyPatch) -> FakeServer:
     monkeypatch.setattr(sync_engine, "push_readings", fake.push)
     monkeypatch.setattr(sync_engine, "pull_latest_page", fake.latest)
     monkeypatch.setattr(sync_engine, "pull_changes", fake.changes)
+    monkeypatch.setattr(sync_engine, "pull_own_page", fake.own)
     return fake
 
 
@@ -218,3 +225,44 @@ def test_a_garbled_cursor_falls_back_to_a_fresh_snapshot(store: PriceStore, serv
     assert outcome.message == DONE_MESSAGE
     assert server.calls[0] == "latest:0"
     assert get_state(store.connection, STATE_CURSOR) == "4"
+
+
+def mine(item_id: int, seq: int, observed_at: str = "2026-11-15T09:00:00Z") -> dict[str, object]:
+    return {"seq": seq, "key_id": "AAAAAAAAAAA", "server": "Brial", "item_id": item_id, "lot_size": 1,
+            "price": 70, "observed_at": observed_at}
+
+
+def test_an_empty_database_gets_its_own_readings_back_as_sent_local_rows(store: PriceStore, server: FakeServer) -> None:
+    server.own_pages = [([mine(1, 5), mine(2, 6)], 6)]
+    server.latest_pages = [LatestPage([], 0, 0, True)]
+    outcome = run(store, SyncOptions(BASE, KEY, False, True))
+    rows = store.connection.execute("SELECT item_id, origin, synced_at FROM lot_prices ORDER BY item_id").fetchall()
+    assert rows == [(1, "local", "2026-11-16T12:00:00Z"), (2, "local", "2026-11-16T12:00:00Z")]
+    assert outcome.received == 2 and server.own_calls == [0, 6]
+
+
+def test_the_own_restore_runs_once_per_database(store: PriceStore, server: FakeServer) -> None:
+    server.latest_pages = [LatestPage([], 0, 0, True)]
+    run(store, SyncOptions(BASE, KEY, False, True))
+    run(store, SyncOptions(BASE, KEY, False, True))
+    assert server.own_calls == [0]
+
+
+def test_restoring_never_duplicates_a_reading_the_player_already_has(store: PriceStore, server: FakeServer) -> None:
+    store.save_lot_price(LotPrice(1, "Brial", 1, 70, "2026-11-15T09:00:00Z"))
+    server.own_pages = [([mine(1, 5)], 5)]
+    server.latest_pages = [LatestPage([], 0, 0, True)]
+    run(store, SyncOptions(BASE, KEY, False, True))
+    assert store.connection.execute("SELECT COUNT(*) FROM lot_prices").fetchone() == (1,)
+
+
+def test_a_failing_own_restore_does_not_stop_the_other_players_data(store: PriceStore, server: FakeServer,
+                                                                    monkeypatch: pytest.MonkeyPatch) -> None:
+    def refused(base_url, key, after):
+        raise SyncFailure("Serveur injoignable")
+
+    monkeypatch.setattr(sync_engine, "pull_own_page", refused)
+    server.latest_pages = [LatestPage([remote(7)], 1, 1, True)]
+    outcome = run(store, SyncOptions(BASE, KEY, False, True))
+    assert outcome.received == 1 and outcome.message == "Serveur injoignable"
+    assert get_state(store.connection, STATE_LATEST_DONE) == "1"

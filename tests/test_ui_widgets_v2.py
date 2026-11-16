@@ -89,3 +89,39 @@ def test_rows_alternate_their_background(root) -> None:
     table.set_rows([row("a", 1), row("b", 2), row("c", 3)])
     tags = [table._tree.item(str(index), "tags") for index in range(3)]
     assert ["stripe" in item for item in tags] == [False, True, False]
+
+
+class Resized:
+    """The part of a Configure event the table reads."""
+
+    def __init__(self, width: int) -> None:
+        self.width = width
+
+
+def column_widths(table: DataTable) -> list[int]:
+    return [int(table._tree.column(name, "width")) for name in table._tree["columns"]]
+
+
+def test_columns_shrink_together_when_the_table_is_narrower_than_their_widths(root) -> None:
+    table = DataTable(root, [Column("A", 300), Column("B", 300), Column("C", 300)], lambda key: None, (0, False))
+    table._fit_columns(Resized(450))
+    assert column_widths(table) == [150, 150, 150]
+
+
+def test_columns_never_shrink_below_half_their_width(root) -> None:
+    table = DataTable(root, [Column("A", 300), Column("B", 300)], lambda key: None, (0, False))
+    table._fit_columns(Resized(100))
+    assert column_widths(table) == [150, 150]
+
+
+def test_columns_return_to_their_widths_when_the_table_is_wide_enough(root) -> None:
+    table = DataTable(root, [Column("A", 300), Column("B", 300)], lambda key: None, (0, False))
+    table._fit_columns(Resized(300))
+    table._fit_columns(Resized(900))
+    assert column_widths(table) == [300, 300]
+
+
+def test_an_unlaid_table_keeps_its_starting_widths(root) -> None:
+    table = DataTable(root, [Column("A", 300)], lambda key: None, (0, False))
+    table._fit_columns(Resized(1))
+    assert column_widths(table) == [300]

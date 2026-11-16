@@ -45,7 +45,3 @@ def item_labelers_for_database(path: str) -> tuple[ItemLabeler, ItemTyper]:
         logger.warning("noms d'objets illisibles dans %s (%s)", path, error)
         return unknown
 
-
-def item_labeler_for_database(path: str) -> ItemLabeler:
-    """Name lookup read from a database file; 'N/A' when it is absent or unreadable (never creates it)."""
-    return item_labelers_for_database(path)[0]

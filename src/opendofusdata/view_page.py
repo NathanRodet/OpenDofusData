@@ -15,7 +15,7 @@ from opendofusdata.time_filters import PeriodSelection, Window, period_window
 from opendofusdata.ui_period import PeriodBar
 from opendofusdata.ui_split import SplitLayout
 from opendofusdata.ui_table import Column, DataTable
-from opendofusdata.ui_theme import MUTED_COLOR, PADDING, SMALL_PADDING, TITLE_SIZE, TRANSPARENT
+from opendofusdata.ui_theme import ACCENT_COLOR, MUTED_COLOR, PADDING, SMALL_PADDING, TITLE_SIZE, TRANSPARENT
 from opendofusdata.ui_widgets import make_label
 from opendofusdata.view_connection import open_view_connection
 from opendofusdata.window_context import WindowContext
@@ -136,7 +136,9 @@ class ViewPage:
         text = self.search_entry.get().strip().casefold()
         shown = [row for row in self._rows if text in row.cells[self._name_column].casefold()]
         truncated = self.table.set_rows(shown)
-        self.notice.configure(text=TRUNCATED_NOTICE if truncated else self._widened_text())
+        widened = "" if truncated else self._widened_text()
+        self.notice.configure(text=TRUNCATED_NOTICE if truncated else widened,
+                              text_color=ACCENT_COLOR if widened else MUTED_COLOR)
         self._refresh_detail()
 
     def _widened_text(self) -> str:

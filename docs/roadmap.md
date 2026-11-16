@@ -9,7 +9,7 @@
 
 ## Fait
 
-- **Fenêtre du client (V2):** `opendofusdata window`, fenêtre CustomTkinter pleine taille et responsive, menu HDV / Brisage / Familiers / Logs / Réglages, tableaux triables, filtres par période, détails avec courbes datées, estimations de brisage (plus-value) et de familiers (kamas par XP), prix utilisé réglable. Tout est collecté en permanence. Conception: [superpowers/specs/2026-11-12-client-redesign-design.md](superpowers/specs/2026-11-12-client-redesign-design.md). Pas de démarrage automatique avec Windows, plus de lien vers un site.
+- **Fenêtre du client (V2):** `opendofusdata window`, fenêtre CustomTkinter pleine taille et responsive, menu HDV / Brisage / Familiers / Logs / Réglages, tableaux triables, filtres par période, détails avec courbes datées, estimations de brisage (plus-value) et de familiers (kamas par XP), prix utilisé réglable. Tout est collecté en permanence. Conception:. Pas de démarrage automatique avec Windows, plus de lien vers un site.
 - **Remise à zéro:** `reset-data --yes` sauvegarde puis efface les données collectées (faite sur la base du propriétaire le 2026-11-13).
 - **Noms d'objets pour les joueurs:** bouton « Télécharger les données de référence » dans Réglages (api.dofusdb.fr, une fois, à la demande): noms et serveurs chargés dans la base, recettes et effets écrits en CSV pour les pages Craft et Brisage.
 - **Exécutable:** `.\dev.ps1 build` produit `dist\OpenDofusData.exe` (PyInstaller, sans console) et son SHA-256. Base, config et journal dans `%APPDATA%\OpenDofusData`.

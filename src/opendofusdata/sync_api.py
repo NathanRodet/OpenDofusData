@@ -14,6 +14,7 @@ SYNC_PAGE_SIZE = 2000
 HTTP_UNPROCESSABLE = 422
 REJECTED_MESSAGE = "Le serveur a refusé des relevés (vérifie l'heure de ton PC)"
 READINGS_PATH = "/readings"
+MINE_PATH = "/readings/mine"
 LATEST_PATH = "/readings/latest"
 KEY_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{11}$")
 DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
@@ -91,3 +92,9 @@ def pull_latest_page(base_url: str, key: str, after: int) -> LatestPage:
     if not valid_cursor(as_of) or not isinstance(done, bool):
         raise SyncFailure(UNEXPECTED_MESSAGE)
     return LatestPage(readings, following, as_of, done)
+
+
+def pull_own_page(base_url: str, key: str, after: int) -> tuple[list[dict[str, object]], int]:
+    """One page of the readings this key sent itself (restoring a player's history on a new database)."""
+    answer = _call(base_url, "GET", f"{MINE_PATH}?after={after}&limit={SYNC_PAGE_SIZE}", key)
+    return _readings_and_next(answer)

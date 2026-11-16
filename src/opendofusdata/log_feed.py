@@ -15,7 +15,6 @@ from opendofusdata.session_counters import RecordSink
 MAX_LOG_LINES = 200
 TIME_FORMAT = "%H:%M:%S"
 NameLookup = Callable[[int], str]
-LOG_COLUMNS = ("Heure", "Type", "Objet", "Détail", "Valeur")
 HDV_LABEL = CATEGORY_LABELS[CATEGORY_HDV]
 PET_LABEL = "Familier"
 NOTICE_DETAIL = "ignorée"
@@ -27,24 +26,6 @@ ITEM_SEPARATOR = ", "
 PERIOD_UNITS = {"h": "h", "d": "j"}  # hours stay h, days become j (jours)
 PERIOD_LABELS = {period: f"stats {period[:-1]} {PERIOD_UNITS[period[-1]]}" for period in MARKET_PERIODS}
 LOT_DETAIL = "lot ×{size}"
-
-
-LOG_COLUMN_WIDTHS = (8, 9, 40, 10, 10)
-COLUMN_SEPARATOR = "  "
-ELLIPSIS = "…"
-
-
-def shorten(text: str, width: int) -> str:
-    """Cut a text to `width` characters, ending with an ellipsis when it was longer."""
-    return text if len(text) <= width else text[: width - 1] + ELLIPSIS
-
-
-def format_log_line(cells: tuple[str, ...]) -> str:
-    """One monospace line: fixed-width columns, the last (value) right-aligned."""
-    last = len(cells) - 1
-    parts = [shorten(cell, width).rjust(width) if index == last else shorten(cell, width).ljust(width)
-             for index, (cell, width) in enumerate(zip(cells, LOG_COLUMN_WIDTHS))]
-    return COLUMN_SEPARATOR.join(parts)
 
 
 @dataclass(frozen=True)

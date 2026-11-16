@@ -97,11 +97,6 @@ def to_signed(value: int) -> int:
     return value - UINT64_MODULUS if value >= INT64_SIGN_BIT else value
 
 
-def zigzag_decode(value: int) -> int:
-    """Decode a ZigZag-encoded integer (sint32/sint64)."""
-    return (value >> 1) ^ -(value & 1)
-
-
 def first_field(fields: list[Field], number: int, wire_type: int) -> int | bytes | None:
     """Value of the first occurrence of a field with the expected wire type."""
     for field_number, field_wire_type, value in fields:

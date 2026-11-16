@@ -34,7 +34,6 @@ TITLE = "Réglages"
 SUBTITLE = "Un changement de serveur ou de base relance la capture."
 SECTION_TITLES = ("Capture", "Données de référence", "Synchronisation", "Application")
 SERVER_LABEL = "Serveur de jeu"
-SERVER_NOTE = "Un changement relance la capture."
 DATABASE_LABEL = "Base de données"
 UPDATE_LABEL = "Vérifier les mises à jour au démarrage"
 SAVED_MESSAGE = "Enregistré."
@@ -103,7 +102,7 @@ class SettingsPage:
         current = self._context.session.server
         names = list(self._context.server_names)
         values = names if current in names else [current, *names]
-        row = make_row(body, SERVER_LABEL, SERVER_NOTE)
+        row = make_row(body, SERVER_LABEL)
         menu = customtkinter.CTkOptionMenu(row.controls, values=values, command=self.choose_server,
                                            fg_color=ACCENT_COLOR, width=COMPACT_BUTTON_WIDTH,
                                            height=COMPACT_BUTTON_HEIGHT)

@@ -74,7 +74,6 @@ class AdminPage:
         self.rows.pack(fill="x")
 
     def _build_generator(self, panel: customtkinter.CTkFrame) -> None:
-        self._generator_panel = panel
         bar = customtkinter.CTkFrame(panel, fg_color=TRANSPARENT, corner_radius=0)
         bar.pack(fill="x", padx=PADDING, pady=PADDING)
         self.label_entry = customtkinter.CTkEntry(bar, placeholder_text=ENTRY_PLACEHOLDER, width=ENTRY_WIDTH,

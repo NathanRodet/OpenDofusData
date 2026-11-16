@@ -3,8 +3,7 @@
 from datetime import datetime, timezone
 
 from opendofusdata.log_feed import (
-    LOG_COLUMN_WIDTHS, LOG_COLUMNS, FeedWriter, LogFeed, entry_from_record, format_log_line,
-    format_log_row, format_number, shorten,
+    FeedWriter, LogFeed, entry_from_record, format_log_row, format_number,
 )
 from opendofusdata.records import LotPrice, MarketStats
 
@@ -81,40 +80,3 @@ def test_feed_writer_forwards_then_feeds() -> None:
     FeedWriter(Sink(), feed, lambda: MOMENT).submit(record)
     assert forwarded == [record] and len(feed.entries()) == 1
 
-
-def test_shorten_adds_an_ellipsis_and_never_exceeds_the_width() -> None:
-    assert shorten("Âme capturée : Fourapin le Chaud", 12) == "Âme capturé…"
-    assert len(shorten("x" * 100, 26)) == 26
-
-
-def test_shorten_keeps_short_text_unchanged() -> None:
-    assert shorten("Rune Ra Vi", 26) == "Rune Ra Vi"
-    assert shorten("abc", 3) == "abc"
-
-
-def test_log_line_has_fixed_width_columns_and_right_aligned_value() -> None:
-    short = format_log_line(("14:32:05", "HDV", "Rune Ra Vi", "lot ×1", "1 240"))
-    long = format_log_line(("14:31:40", "HDV", "Âme capturée : Fourapin le Chaud", "lot ×1", "82 985"))
-    assert len(short) == len(long) == sum(LOG_COLUMN_WIDTHS) + 2 * (len(LOG_COLUMN_WIDTHS) - 1)
-    assert short.endswith("   1 240") and long.endswith("  82 985")
-
-
-def test_header_line_uses_the_same_widths() -> None:
-    assert len(format_log_line(LOG_COLUMNS)) == len(format_log_line(("a", "b", "c", "d", "e")))
-
-
-def test_every_log_column_has_a_width() -> None:
-    assert len(LOG_COLUMNS) == len(LOG_COLUMN_WIDTHS)
-
-
-def test_long_item_names_are_shown_in_full_up_to_the_column_width() -> None:
-    name_width = LOG_COLUMN_WIDTHS[2]
-    fitting = "x" * name_width
-    assert fitting in format_log_line(("14:32:05", "HDV", fitting, "lot ×1", "1"))
-    cut = format_log_line(("14:32:05", "HDV", fitting + "y", "lot ×1", "1"))
-    assert fitting not in cut and "…" in cut
-
-
-def test_the_name_column_fits_the_longest_known_item_names() -> None:
-    longest_known = "Âme capturée : Vétaurine des profondeurs"
-    assert len(longest_known) <= LOG_COLUMN_WIDTHS[2]

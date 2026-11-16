@@ -7,8 +7,8 @@ from pathlib import Path
 
 from opendofusdata.capture_errors import EXIT_OK, fail
 from opendofusdata.commands import format_table
-from opendofusdata.game_servers import (DEFAULT_SERVERS_PATH, UNKNOWN_SERVER, GameServer,
-                                       canonical_name, load_servers)
+from opendofusdata.game_servers import (DEFAULT_SERVERS_PATH, GameServer,
+                                       load_servers)
 from opendofusdata.names_build import NamesFetchError
 from opendofusdata.names_commands import INTERRUPTED_MESSAGE
 from opendofusdata.names_fetch import (
@@ -17,7 +17,6 @@ from opendofusdata.names_fetch import (
     Sleep,
     http_get_json,
 )
-from opendofusdata.server_choice import UNLISTED_WARNING
 from opendofusdata.servers_fetch import ServersSummary, download_game_servers
 
 DEV_RUN = r".\dev.ps1 run"
@@ -85,18 +84,6 @@ def servers_command(arguments: argparse.Namespace) -> int:
             for server in sorted(servers, key=_sort_key)]
     print(format_table(SERVER_HEADERS, rows))
     return EXIT_OK
-
-
-def resolve_server_name(name: str, path: str = DEFAULT_SERVERS_PATH) -> str:
-    """Return the listed spelling of a --server name; warn once if the list lacks it."""
-    servers = load_servers(path)
-    if not servers or name == UNKNOWN_SERVER:
-        return name
-    canonical = canonical_name(servers, name)
-    if canonical is None:
-        print(UNLISTED_WARNING.format(name=name))
-        return name
-    return canonical
 
 
 SERVER_COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {

@@ -49,11 +49,15 @@ def changes_call(client: TestClient, headers: dict[str, str]):
     return client.get("/readings?since=0&limit=10", headers=headers)
 
 
+def mine_call(client: TestClient, headers: dict[str, str]):
+    return client.get("/readings/mine?after=0&limit=10", headers=headers)
+
+
 def latest_call(client: TestClient, headers: dict[str, str]):
     return client.get("/readings/latest?after=0&limit=10", headers=headers)
 
 
-@pytest.mark.parametrize("call", [post_call, changes_call, latest_call])
+@pytest.mark.parametrize("call", [post_call, changes_call, latest_call, mine_call])
 def test_reading_routes_require_a_user_key(client: TestClient, revocations: RevocationStore, call) -> None:
     revoked_id = "RRRRRRRRRRR"
     revocations.revoke(revoked_id)
@@ -141,3 +145,12 @@ def test_as_of_is_read_before_the_page_so_a_concurrent_reading_is_never_skipped(
     answer = client.get("/readings/latest?after=0&limit=10", headers=ALICE).json()
     newest = readings.highest_seq()
     assert answer["as_of"] < newest  # the reading that arrived after the page must be fetched by the next /readings call
+
+
+def test_mine_returns_only_the_readings_of_the_calling_key(client: TestClient) -> None:
+    send(client, ALICE, reading_body(1), reading_body(2))
+    send(client, BOB, reading_body(3))
+    answer = client.get("/readings/mine?after=0&limit=10", headers=ALICE).json()
+    assert [item["item_id"] for item in answer["readings"]] == [1, 2]
+    assert answer["next"] == answer["readings"][-1]["seq"]
+    assert client.get("/readings/mine?after=0&limit=10", headers=BOB).json()["readings"][0]["item_id"] == 3

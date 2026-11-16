@@ -2,7 +2,7 @@
 
 import pytest
 
-from opendofusdata.breaking_view_data import breaking_detail, breaking_rows
+from opendofusdata.breaking_view_data import breaking_rows
 from opendofusdata.price_book import PriceBook
 from opendofusdata.records import BrokenItem, LotPrice, MarketStats
 from opendofusdata.storage import PriceStore
@@ -64,23 +64,6 @@ def test_the_server_and_the_window_filter_rows(store) -> None:
     rows, _ = rows_of(store, (datetime(2026, 11, 12, 11, 0, tzinfo=timezone.utc), None))
     assert rows == []
     assert len(rows_of(store)[0]) == 1
-
-
-def test_detail_averages_the_coefficients_and_lists_the_last_runes(store) -> None:
-    for coefficient, stamp in ((0.44, "08:00"), (0.31, "09:00"), (0.41, "10:00"), (0.44, "11:00")):
-        store.save_record(broken(CAPE, coefficient, stamp))
-    rows, book = rows_of(store)
-    detail = breaking_detail(rows, CAPE, name_of, book, "last")
-    assert detail.count == 4 and detail.mean_coefficient == pytest.approx(0.40)
-    assert detail.last_coefficient == 0.44
-    assert detail.last_runes[0] == ("Ga Pa", 3, 11200.0)
-    assert [coefficient for _, coefficient, _ in detail.points] == [0.44, 0.31, 0.41, 0.44]
-
-
-def test_empty_database_and_unknown_item(store) -> None:
-    rows, book = rows_of(store)
-    assert rows == []
-    assert breaking_detail(rows, CAPE, name_of, book, "last") is None
 
 
 def test_the_object_hdv_value_is_the_cheapest_listing_else_the_last_sale(store) -> None:

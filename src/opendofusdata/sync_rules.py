@@ -10,7 +10,6 @@ LOT_SIZES = (1, 10, 100, 1000)
 MAX_ITEM_ID = 10_000_000
 MAX_PRICE = 1_000_000_000_000
 MAX_CURSOR = 999_999_999_999  # twelve digits, the most a query parameter may carry
-MAX_SERVER_NAME_LENGTH = 40
 # A letter or digit (accents included), then letters, digits, spaces, hyphens or underscores.
 SERVER_NAME_PATTERN = re.compile(r"^[^\W_][\w -]{0,39}$")
 INVISIBLE_CATEGORIES = frozenset({"Cc", "Cf", "Cs", "Co", "Cn", "Zl", "Zp"})

@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from opendofusdata.breaking_store import broken_items
 from opendofusdata.capture_session import CaptureSession
 from opendofusdata.categories import CATEGORY_BREAKING, category_of
-from opendofusdata.log_feed import LogFeed, entry_from_record, format_log_line, format_log_row
+from opendofusdata.log_feed import LogFeed, entry_from_record, format_log_row
 from opendofusdata.records import BrokenItem
 from opendofusdata.run_pipeline import make_envelope_handler
 from opendofusdata.storage import PriceStore, StoreWriter
