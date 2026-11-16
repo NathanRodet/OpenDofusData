@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import NamedTuple
 
+from keyserver.event_store import EventStore
 from keyserver.schemas import OBSERVATION_RETENTION_DAYS, Reading
 
 RETENTION_DAYS = OBSERVATION_RETENTION_DAYS
@@ -59,6 +60,7 @@ class ReadingStore:
         with self._lock, self._connection:
             for statement in SCHEMA_STATEMENTS:
                 self._connection.execute(statement)
+        self.events = EventStore(connection, self._lock)  # breakings and pet upgrades live in the same file
 
     def add_batch(self, key_id: str, readings: Sequence[Reading]) -> tuple[int, int]:
         """Store the readings of one key; returns (accepted, duplicates). Known readings are ignored."""
@@ -91,15 +93,17 @@ class ReadingStore:
             return self._connection.execute("SELECT COALESCE(MAX(seq), 0) FROM readings").fetchone()[0]
 
     def purge_older_than(self, cutoff: datetime) -> int:
-        """Delete the readings observed before the cutoff; returns how many."""
+        """Delete the readings and events observed before the cutoff; returns how many."""
         with self._lock, self._connection:
-            return self._connection.execute(
+            old = self._connection.execute(
                 "DELETE FROM readings WHERE observed_at < ?", (int(cutoff.timestamp()),)).rowcount
+        return old + self.events.purge_older_than(cutoff)
 
     def purge_key(self, key_id: str) -> int:
-        """Delete every reading sent by this key; returns how many."""
+        """Delete every reading and event sent by this key; returns how many."""
         with self._lock, self._connection:
-            return self._connection.execute("DELETE FROM readings WHERE key_id = ?", (key_id,)).rowcount
+            own = self._connection.execute("DELETE FROM readings WHERE key_id = ?", (key_id,)).rowcount
+        return own + self.events.purge_key(key_id)
 
     def close(self) -> None:
         """Close the database file."""

@@ -1,4 +1,4 @@
-"""One synchronisation round: send the new local prices, then fetch the other players' prices."""
+"""One synchronisation round: the prices, then the breakings and pet upgrades: send ours, fetch the others'."""
 
 import sqlite3
 from collections.abc import Callable
@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import NamedTuple
 
+from opendofusdata.event_sync import sync_events
 from opendofusdata.sync_api import SYNC_PAGE_SIZE, SyncFailure, pull_changes, pull_latest_page, pull_own_page, push_readings
 from opendofusdata.sync_client import UNEXPECTED_MESSAGE
 from opendofusdata.sync_rules import valid_cursor
@@ -155,6 +156,7 @@ def sync_once(connection: sqlite3.Connection, options: SyncOptions,
     try:
         if options.receive:
             _receive(connection, options, clock, progress)
+        sync_events(connection, options, clock, progress)  # breakings and pet upgrades follow the prices
     except SyncFailure as failure:
         return SyncOutcome(progress.sent, progress.received, failure.refused, str(failure))
     return SyncOutcome(progress.sent, progress.received, False, str(problem) if problem else DONE_MESSAGE)

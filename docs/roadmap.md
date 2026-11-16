@@ -38,10 +38,10 @@ Le guide pour capturer de nouveaux cas: [new-categories.md](new-categories.md).
 
 ## Synchronisation et serveur
 
-Fait (branche `player-sync`, pas encore publié): serveur d'authentification par clés signées dans `src/server/` (révocation avec ou sans suppression des relevés de la clé, limites de requête, schémas stricts), synchronisation des prix de lots de l'HDV dans les deux sens (actifs dès qu'une clé est enregistrée, journal de 14 jours côté serveur, identifiant de la clé émettrice gardé avec chaque relevé), carte Synchronisation des Réglages, purge locale optionnelle des relevés de plus de 14 jours et onglet Administration. Détails dans [developpement.md](developpement.md).
+Fait (branche `player-sync`, pas encore publié): serveur d'authentification par clés signées dans `src/server/` (révocation avec ou sans suppression des relevés de la clé, limites de requête, schémas stricts), synchronisation dans les deux sens des prix de lots de l'HDV, des brisages et des améliorations de familiers (actifs dès qu'une clé est enregistrée, journal de 14 jours côté serveur, identifiant de la clé émettrice gardé avec chaque relevé), carte Synchronisation des Réglages, purge locale optionnelle des relevés de plus de 14 jours et onglet Administration. Détails dans [developpement.md](developpement.md).
 
 Reste à faire:
-- Synchroniser aussi les statistiques de marché, le brisage et les familiers (même mécanisme, un réglage par catégorie).
+- Synchroniser aussi les statistiques de marché (le brisage et les améliorations de familiers le sont déjà, sans réglage par catégorie).
 - Propagation de la purge d'une clé aux clients (le serveur publierait les clés purgées, les clients effaceraient les lignes dont `source_key_id` correspond): volontairement hors périmètre pour l'instant.
 - Protection contre les données falsifiées (médiane entre contributeurs), reportée par le propriétaire, puis SaaS d'affichage des prix.
 

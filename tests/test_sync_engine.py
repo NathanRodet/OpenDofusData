@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from opendofusdata import sync_engine
+from opendofusdata import event_sync, sync_engine
 from opendofusdata.records import LotPrice
 from opendofusdata.storage import PriceStore
 from opendofusdata.sync_api import LatestPage, SyncFailure
@@ -70,6 +70,9 @@ def server(monkeypatch: pytest.MonkeyPatch) -> FakeServer:
     monkeypatch.setattr(sync_engine, "pull_latest_page", fake.latest)
     monkeypatch.setattr(sync_engine, "pull_changes", fake.changes)
     monkeypatch.setattr(sync_engine, "pull_own_page", fake.own)
+    monkeypatch.setattr(event_sync, "push_events", lambda base_url, key, kind, events: len(events))
+    monkeypatch.setattr(event_sync, "pull_event_changes", lambda base_url, key, kind, since: ([], since))
+    monkeypatch.setattr(event_sync, "pull_event_own", lambda base_url, key, kind, after: ([], after))
     return fake
 
 
@@ -266,3 +269,25 @@ def test_a_failing_own_restore_does_not_stop_the_other_players_data(store: Price
     outcome = run(store, SyncOptions(BASE, KEY, False, True))
     assert outcome.received == 1 and outcome.message == "Serveur injoignable"
     assert get_state(store.connection, STATE_LATEST_DONE) == "1"
+
+
+def test_a_failing_event_step_is_reported_after_the_prices_were_received(store: PriceStore, server: FakeServer,
+                                                                         monkeypatch: pytest.MonkeyPatch) -> None:
+    def unreachable(base_url, key, kind, since):
+        raise SyncFailure("Serveur injoignable")
+
+    monkeypatch.setattr(event_sync, "pull_event_changes", unreachable)
+    server.latest_pages = [LatestPage([remote(7)], 1, 1, True)]
+    outcome = run(store, SyncOptions(BASE, KEY, False, True))
+    assert outcome.received == 1 and outcome.message == "Serveur injoignable"
+
+
+def test_breakings_are_sent_in_the_same_round_as_the_prices(store: PriceStore, server: FakeServer,
+                                                            monkeypatch: pytest.MonkeyPatch) -> None:
+    from opendofusdata.records import BrokenItem
+
+    sent: list = []
+    monkeypatch.setattr(event_sync, "push_events", lambda base_url, key, kind, events: sent.append(kind.path) or 1)
+    store.save_record(BrokenItem("Brial", 1, 2, 0.5, ((10, 3),), "2026-11-16T10:00:00Z"))
+    outcome = run(store, SyncOptions(BASE, KEY, True, False))
+    assert sent == ["/brisages"] and outcome.sent == 1 and outcome.message == DONE_MESSAGE

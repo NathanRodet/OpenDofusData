@@ -72,7 +72,14 @@ def test_allowed_routes_and_query_parameters_are_the_planned_ones() -> None:
     assert ALLOWED_ROUTES["/admin/revoke"] == frozenset({"POST"})
     assert QUERY_PARAMETERS == {("/readings", "GET"): frozenset({"since", "limit"}),
                                 ("/readings/latest", "GET"): frozenset({"after", "limit"}),
-                                ("/readings/mine", "GET"): frozenset({"after", "limit"})}
+                                ("/readings/mine", "GET"): frozenset({"after", "limit"}),
+                                ("/brisages", "GET"): frozenset({"since", "limit"}),
+                                ("/brisages/mine", "GET"): frozenset({"after", "limit"}),
+                                ("/familiers", "GET"): frozenset({"since", "limit"}),
+                                ("/familiers/mine", "GET"): frozenset({"after", "limit"})}
+    for path in ("/brisages", "/familiers"):
+        assert ALLOWED_ROUTES[path] == frozenset({"GET", "POST"})
+        assert ALLOWED_ROUTES[f"{path}/mine"] == frozenset({"GET"})
 
 
 def test_declared_get_routes_accept_their_own_parameters() -> None:

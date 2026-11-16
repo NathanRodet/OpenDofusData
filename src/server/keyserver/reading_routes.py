@@ -4,6 +4,7 @@ from typing import Annotated
 
 from fastapi import FastAPI, Query, Request
 
+from keyserver.event_routes import register_event_routes
 from keyserver.readings_store import ReadingStore, StoredReading
 from keyserver.schemas import MAX_BATCH_READINGS, MAX_QUERY_INTEGER, ReadingBatch
 
@@ -21,6 +22,8 @@ def _view(readings: list[StoredReading]) -> list[dict[str, object]]:
 
 def register_reading_routes(app: FastAPI, readings: ReadingStore) -> None:
     """Add `POST /readings`, `GET /readings` and `GET /readings/latest` and `GET /readings/mine` (user keys only)."""
+
+    register_event_routes(app, readings.events)
 
     @app.post(READINGS_PATH)
     def send(batch: ReadingBatch, request: Request) -> dict[str, int]:

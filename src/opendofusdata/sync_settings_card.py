@@ -20,9 +20,8 @@ from opendofusdata.window_context import WindowContext
 MASK_CHARACTER = "*"
 ENTRY_WIDTH = 220
 TITLE = "Clé de synchronisation"
-NOTE = ("Colle ici la clé donnée par l'administrateur. Dès qu'elle est enregistrée, tes prix de l'HDV sont envoyés "
-        "au serveur et ceux des autres joueurs récupérés; retire la clé pour arrêter. Le test de connexion "
-        "n'envoie que ta clé, quand tu cliques dessus.")
+NOTE = ("Colle ici la clé de l'administrateur. Une fois enregistrée, tes prix HDV, brisages et familiers sont "
+        "envoyés et ceux des autres joueurs récupérés; retire-la pour arrêter. Le test n'envoie que ta clé.")
 STATUS_PREFIX = "Synchronisation: "
 SHOW_LABEL = "Afficher la clé"
 SAVE_LABEL = "Enregistrer"

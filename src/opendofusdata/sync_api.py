@@ -45,7 +45,7 @@ def _valid_reading(item: object) -> bool:
             and isinstance(item.get("observed_at"), str) and DATE_PATTERN.fullmatch(item["observed_at"]) is not None)
 
 
-def _call(base_url: str, method: str, path: str, key: str, body: dict[str, object] | None = None) -> dict[str, object]:
+def call_server(base_url: str, method: str, path: str, key: str, body: dict[str, object] | None = None) -> dict[str, object]:
     """One authenticated request; raises SyncFailure for a refused key, a network problem or an odd answer."""
     try:
         status, answer = request_json(base_url, method, path, token=key, body=body,
@@ -72,7 +72,7 @@ def push_readings(base_url: str, key: str, readings: Sequence[PendingReading]) -
     """Send these readings; returns how many the server accepted (the others were known already)."""
     body = {"readings": [{"server": item.server, "item_id": item.item_id, "lot_size": item.lot_size,
                           "price": item.price, "observed_at": item.captured_at} for item in readings]}
-    accepted = _call(base_url, "POST", READINGS_PATH, key, body).get("accepted")
+    accepted = call_server(base_url, "POST", READINGS_PATH, key, body).get("accepted")
     if not is_whole_number(accepted):
         raise SyncFailure(UNEXPECTED_MESSAGE)
     return accepted
@@ -80,13 +80,13 @@ def push_readings(base_url: str, key: str, readings: Sequence[PendingReading]) -
 
 def pull_changes(base_url: str, key: str, since: int) -> tuple[list[dict[str, object]], int]:
     """The other players' readings after order number `since`, and the cursor to continue from."""
-    answer = _call(base_url, "GET", f"{READINGS_PATH}?since={since}&limit={SYNC_PAGE_SIZE}", key)
+    answer = call_server(base_url, "GET", f"{READINGS_PATH}?since={since}&limit={SYNC_PAGE_SIZE}", key)
     return _readings_and_next(answer)
 
 
 def pull_latest_page(base_url: str, key: str, after: int) -> LatestPage:
     """One page of the latest price of every (server, item, lot) among the other players."""
-    answer = _call(base_url, "GET", f"{LATEST_PATH}?after={after}&limit={SYNC_PAGE_SIZE}", key)
+    answer = call_server(base_url, "GET", f"{LATEST_PATH}?after={after}&limit={SYNC_PAGE_SIZE}", key)
     readings, following = _readings_and_next(answer)
     as_of, done = answer.get("as_of"), answer.get("done")
     if not valid_cursor(as_of) or not isinstance(done, bool):
@@ -96,5 +96,5 @@ def pull_latest_page(base_url: str, key: str, after: int) -> LatestPage:
 
 def pull_own_page(base_url: str, key: str, after: int) -> tuple[list[dict[str, object]], int]:
     """One page of the readings this key sent itself (restoring a player's history on a new database)."""
-    answer = _call(base_url, "GET", f"{MINE_PATH}?after={after}&limit={SYNC_PAGE_SIZE}", key)
+    answer = call_server(base_url, "GET", f"{MINE_PATH}?after={after}&limit={SYNC_PAGE_SIZE}", key)
     return _readings_and_next(answer)
