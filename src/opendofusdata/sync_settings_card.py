@@ -1,10 +1,12 @@
 """The "Synchronisation" card of the Réglages page: the player's key and a connection test."""
 
+import time
 from collections.abc import Callable
 
 import customtkinter
 
 from opendofusdata.background import BackgroundTask, TaskSnapshot, TaskState
+from opendofusdata.sync_counts import read_counts_text
 from opendofusdata.sync_client import ConnectionResult, check_connection
 from opendofusdata.sync_key import clean_key, key_format_ok, load_sync_key, save_sync_key
 from opendofusdata.settings_rows import SettingRow, make_row
@@ -31,6 +33,7 @@ REMOVED_TEXT = "Clé retirée."
 SAVE_FAILED_TEXT = "La clé n'a pas pu être enregistrée (voir le fichier de log)."
 MISSING_KEY_TEXT = "Colle d'abord ta clé."
 BAD_FORMAT_TEXT = "Format de clé invalide (elle ressemble à odk1.xxxxxxxxxxx.yyyy...)."
+COUNTS_REFRESH_SECONDS = 5.0  # the page renders often, the counters need not follow every tick
 NOT_CONFIGURED_TEXT = "Serveur de synchronisation non configuré."
 Check = Callable[[str, str], ConnectionResult]
 Status = Callable[[], str]
@@ -46,7 +49,8 @@ class SyncSettingsCard:
     def __init__(self, parent: customtkinter.CTkFrame, context: WindowContext, check: Check = check_connection,
                  server_url: str | None = None, status: Status = lambda: "") -> None:
         self._config_path, self._check, self._server_url = context.config_path, check, server_url
-        self._worker_status = status
+        self._worker_status, self._context = status, context
+        self._counts_text, self._counts_read_at = "", float("-inf")
         self._pending_key = ""
         self._shown_snapshot: TaskSnapshot | None = None
         self.task = BackgroundTask(self._run_test, (SyncTestFailed,))
@@ -127,7 +131,17 @@ class SyncSettingsCard:
     def _render_status(self) -> None:
         """Show the last message of the background synchronisation, if any."""
         message = self._worker_status()
-        self.sync_status_label.configure(text=f"{STATUS_PREFIX}{message}" if message else "")
+        text = f"{STATUS_PREFIX}{message}" if message else ""
+        counts = self._counts_line() if message else ""
+        self.sync_status_label.configure(text="\n".join((text, counts)) if counts else text)
+
+    def _counts_line(self) -> str:
+        """The sent and received counters, read again at most every few seconds."""
+        now = time.monotonic()
+        if now - self._counts_read_at >= COUNTS_REFRESH_SECONDS:
+            self._counts_read_at = now
+            self._counts_text = read_counts_text(self._context.session.database_path)
+        return self._counts_text
 
     def _show_snapshot(self, snapshot: TaskSnapshot) -> None:
         if snapshot.state is TaskState.RUNNING:

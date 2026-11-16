@@ -174,3 +174,20 @@ def test_card_shows_the_worker_status(root, tmp_path) -> None:
     status[0] = "Serveur injoignable"
     card.render()
     assert "Serveur injoignable" in card.sync_status_label.cget("text")
+
+
+def test_card_shows_the_counters_under_the_status_and_follows_new_data(root, tmp_path, monkeypatch) -> None:
+    from opendofusdata import sync_settings_card
+    from opendofusdata.storage import PriceStore
+
+    connection = PriceStore(str(tmp_path / "old.db")).connection
+    card = SyncSettingsCard(customtkinter.CTkFrame(root), make_context(tmp_path), FakeCheck(), URL,
+                            lambda: "Synchronisation terminée")
+    card.render()
+    assert "Reçus des autres joueurs : 0" in card.sync_status_label.cget("text")
+    connection.execute("INSERT INTO lot_prices (item_id, server, lot_size, price, captured_at, origin) "
+                       "VALUES (1, 'Brial', 1, 10, '2026-11-16T10:00:00Z', 'remote')")
+    connection.commit()
+    monkeypatch.setattr(sync_settings_card, "COUNTS_REFRESH_SECONDS", 0.0)
+    card.render()
+    assert "Reçus des autres joueurs : 1" in card.sync_status_label.cget("text")
