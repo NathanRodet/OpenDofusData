@@ -141,3 +141,20 @@ def test_craft_favorites_do_not_touch_the_pet_favorites(root, tmp_path) -> None:
     page._toggle_favorite()
     assert load_favorites(page._context.config_path) == set()
     assert load_favorites(page._context.config_path, CRAFT_FAVORITES_KEY) == {HAT}
+
+
+def test_craft_picks_up_recipes_downloaded_while_the_page_was_open(root, tmp_path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)  # no data/recipes.csv fallback
+    store = open_store(tmp_path)
+    fill(store)
+    context = make_context(tmp_path, NAMES)
+    context.data_directory = tmp_path
+    page = CraftPage(root, context, clock=lambda: NOW)
+    page.refresh()
+    assert page.table._shown == []
+    write_csv_atomically(RECIPES_CSV_HEADER, recipe_rows([Recipe(HAT, ((WOOD, 2), (STONE, 1)))]),
+                         tmp_path / DEFAULT_RECIPES_FILE)
+    context.reference_data_changed()
+    page.refresh()
+    assert [row.cells[0] for row in page.table._shown] == ["Chapeau"]
+    store.close()

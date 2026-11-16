@@ -2,6 +2,7 @@
 
 import argparse
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 from opendofusdata.capture_errors import EXIT_OK, fail
@@ -32,10 +33,10 @@ def add_recipes_command(commands: argparse._SubParsersAction) -> None:
 
 
 def download_recipes(output: Path, fetch: FetchJson = http_get_json, request_delay: float = REQUEST_DELAY_SECONDS,
-                     sleep: Sleep = time.sleep) -> int:
+                     sleep: Sleep = time.sleep, progress: Callable[[str], None] = print) -> int:
     """Download every recipe and write the CSV atomically; returns how many recipes were written."""
     requester = Requester(fetch, sleep, request_delay)
-    raw = collect_all(requester, RECIPES_PATH, RECIPES_SELECT, PAGE_SIZE, print)
+    raw = collect_all(requester, RECIPES_PATH, RECIPES_SELECT, PAGE_SIZE, progress)
     recipes = build_recipes(raw)
     write_csv_atomically(RECIPES_CSV_HEADER, recipe_rows(recipes), output)
     return len(recipes)

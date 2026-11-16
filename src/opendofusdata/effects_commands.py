@@ -2,6 +2,7 @@
 
 import argparse
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 from opendofusdata.capture_errors import EXIT_OK, fail
@@ -63,11 +64,11 @@ def power_rates_of(raw_effects: list[object]) -> dict[int, float]:
 
 
 def download_effects(directory: Path, fetch: FetchJson = http_get_json, request_delay: float = REQUEST_DELAY_SECONDS,
-                     sleep: Sleep = time.sleep) -> tuple[int, int]:
+                     sleep: Sleep = time.sleep, progress: Callable[[str], None] = print) -> tuple[int, int]:
     """Download items and stat weights, write both CSV files; returns (items with effects, runes)."""
     requester = Requester(fetch, sleep, request_delay)
-    raw_items = collect_all(requester, "/items", ITEMS_SELECT, PAGE_SIZE, print)
-    rates = power_rates_of(collect_all(requester, "/effects", EFFECTS_SELECT, PAGE_SIZE, print))
+    raw_items = collect_all(requester, "/items", ITEMS_SELECT, PAGE_SIZE, progress)
+    rates = power_rates_of(collect_all(requester, "/effects", EFFECTS_SELECT, PAGE_SIZE, progress))
     items = sorted(filter(None, map(item_effects_of, raw_items)), key=lambda item: item.item_id)
     runes = build_runes(raw_items, rates)
     write_csv_atomically(EFFECTS_CSV_HEADER, effects_rows(items), directory / EFFECTS_FILE)

@@ -28,6 +28,11 @@ class WindowContext:
     restart_capture: Callable[[], None] = field(default=lambda: None)
     type_of: NameLookup = field(default=lambda item_id: UNKNOWN_ITEM_TYPE)
     sync_status: Callable[[], str] = field(default=lambda: "")
+    reference_generation: int = 0
+
+    def reference_data_changed(self) -> None:
+        """Tell the pages that the recipe and effect files were downloaded again."""
+        self.reference_generation += 1
 
     def use_item_names(self, database_path: str) -> None:
         """Read the item names and types of a database (after a download or a database change)."""

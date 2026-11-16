@@ -26,7 +26,7 @@ COLUMNS = (Column("Objet", 240), Column("Prix HDV le plus bas", 170, True), Colu
            Column("Marge", 140, True), Column("Marge %", 100, True), Column("Prix le plus ancien", 150))
 MARGIN_COLUMN = 3
 NO_SELECTION_TEXT = "Sélectionne un craft pour voir ses ressources."
-NO_RECIPES_TEXT = "Aucune recette : lance « recipes-update » pour télécharger les recettes (DofusDB)."
+NO_RECIPES_TEXT = "Aucune recette : clique sur « Télécharger les données de référence » dans Réglages."
 PERCENT_FORMAT = "{:+.0f} %"
 UNKNOWN_PRICE_TEXT = "prix inconnu"
 MISSING_LIMIT = 15
@@ -47,6 +47,7 @@ class CraftPage(ViewPage):
         super().__init__(parent, context, TITLE, COLUMNS, (MARGIN_COLUMN, True), 0, **options)
         self.period_bar.pack_forget()
         self._recipes: list[Recipe] | None = None
+        self._recipes_generation = -1
         self._craft_rows: dict[int, CraftRow] = {}
         self._favorites: set[int] = set()
         self._build_filters()
@@ -83,7 +84,8 @@ class CraftPage(ViewPage):
 
     def load_rows(self, connection: sqlite3.Connection, server: str, window: Window) -> list[TableRow]:
         """The crafts to list (see `_is_listed`), the complete ones first."""
-        if self._recipes is None:
+        if self._recipes is None or self._recipes_generation != self._context.reference_generation:
+            self._recipes_generation = self._context.reference_generation
             self._recipes = (load_recipes(self._context.data_directory / DEFAULT_RECIPES_FILE)
                              or load_recipes(DEFAULT_RECIPES_PATH))
         rows = craft_rows(connection, server, self._recipes)

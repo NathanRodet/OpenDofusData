@@ -6,6 +6,7 @@ pytest.importorskip("customtkinter")
 
 from opendofusdata.local_data_card import AUTO_LABEL
 from opendofusdata.page_settings import SECTION_TITLES, SettingsPage
+from opendofusdata.settings_names import REFERENCE_BUTTON_WIDTH
 from opendofusdata.settings_rows import SettingRow
 from opendofusdata.ui_theme import (
     CARD_COLOR, COLUMN_WIDTH, COMPACT_BUTTON_HEIGHT, COMPACT_BUTTON_WIDTH, MUTED_COLOR, TEXT_COLOR, WINDOW_COLOR,
@@ -68,7 +69,8 @@ def test_buttons_of_the_page_are_compact(root, tmp_path) -> None:
     for button in (page.names_card.button, page.sync_card.save_button, page.sync_card.test_button,
                    page.local_data_card.purge_button):
         assert button.cget("height") == COMPACT_BUTTON_HEIGHT
-        assert button.cget("width") <= COMPACT_BUTTON_WIDTH
+        assert button.cget("width") <= (REFERENCE_BUTTON_WIDTH if button is page.names_card.button
+                                        else COMPACT_BUTTON_WIDTH)
 
 
 def test_the_column_does_not_stretch_with_the_window(root, tmp_path) -> None:

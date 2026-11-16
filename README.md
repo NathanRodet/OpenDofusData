@@ -47,7 +47,7 @@ Double-click `OpenDofusData.exe`. The app is not code-signed, so Windows SmartSc
 
 **4. Pick your game server**
 
-Open **Réglages** and choose your server (the traffic does not reveal it). Capture restarts by itself with your choice. Optionally click **Télécharger les noms** to show item names instead of numbers.
+Open **Réglages** and choose your server (the traffic does not reveal it). Capture restarts by itself with your choice. Optionally click **Télécharger les données de référence** to show item names instead of numbers and to fill the Craft and Brisage pages (recipes and effects).
 
 That's it: play, and the pages fill up.
 
@@ -95,7 +95,7 @@ Updates are **never automatic**. At startup the app asks GitHub whether a newer 
 
 - Only game data is stored: item IDs, prices, quantities, timestamps and the game server you chose.
 - IP addresses, accounts, character names and chat are **never stored or sent**.
-- **Game data leaves your machine only once you save a synchronization key.** The only network requests the app makes by itself are the update check (`api.github.com`, can be disabled) and, only if you click *Télécharger les noms*, the download of item names from `api.dofusdb.fr`.
+- **Game data leaves your machine only once you save a synchronization key.** The only network requests the app makes by itself are the update check (`api.github.com`, can be disabled) and, only if you click *Télécharger les données de référence*, the download of item names, servers, recipes and effects from `api.dofusdb.fr`.
 - **Synchronization** needs a key given to you by the server owner. Saving it in **Réglages** switches sharing on: the app then sends, for each item you looked at in the market, its item ID, lot size (x1, x10, x100, x1000), total price, the time you saw it and the game server you chose, with your key in the request header, and downloads what the others sent. Removing the key stops it. *Tester la connexion* sends your key, and nothing else, only when you click.
 - **What other players see:** each price you send carries the 11-character code of your key. It is a pseudonym that lets the server owner revoke a key (and optionally delete its prices); it is not linked to your account or your character. The server keeps prices for 7 days. Your IP address is never stored and never read by the server application.
 - The source code is public so this behavior can be verified.

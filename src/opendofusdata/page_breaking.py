@@ -34,7 +34,7 @@ BREAKING_COLUMNS = (Column("Il y a", 110), Column("Quantité", 90, True), Column
 PLUS_VALUE_COLUMN = 3
 BREAKINGS_TITLE = "Brisages de l'objet sélectionné"
 NO_SELECTION_TEXT = "Sélectionne un objet pour voir ses brisages et sa plus-value en classique et en focus."
-NO_EFFECTS_TEXT = "Effets de l'objet inconnus : lance « effects-update » pour les télécharger (DofusDB)."
+NO_EFFECTS_TEXT = "Effets de l'objet inconnus : clique sur « Télécharger les données de référence » dans Réglages."
 WRAP_LENGTH = DETAIL_WIDTH - 4 * PADDING
 
 
@@ -45,6 +45,7 @@ class BreakingPage(ViewPage):
         super().__init__(parent, context, TITLE, ITEM_COLUMNS, (PLUS_VALUE_COLUMN, True), 0, **options)
         self._by_item: dict[int, list[BreakingRow]] = {}
         self._effects: dict[int, ItemEffects] | None = None
+        self._effects_generation = -1
         self._runes: list[Rune] = []
         self._detail_shown: object = None
         make_card_title(self.split.main, BREAKINGS_TITLE).pack(fill="x", pady=(PADDING, SMALL_PADDING))
@@ -64,7 +65,8 @@ class BreakingPage(ViewPage):
         self.blocks_frame.pack(fill="x", padx=PADDING, pady=PADDING)
 
     def _load_data(self) -> None:
-        if self._effects is None:
+        if self._effects is None or self._effects_generation != self._context.reference_generation:
+            self._effects_generation = self._context.reference_generation
             directory = self._context.data_directory
             self._effects = load_item_effects(directory / EFFECTS_FILE) or load_item_effects("data/" + EFFECTS_FILE)
             self._runes = load_runes(directory / RUNES_FILE) or load_runes("data/" + RUNES_FILE)

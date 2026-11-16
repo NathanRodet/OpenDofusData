@@ -15,19 +15,23 @@ from tests.test_names_fetch import FakeApi
 ITEM_TYPES = [{"id": 1, "name": {"fr": "Ressource"}}]
 ITEMS = [
     {"id": 307, "typeId": 1, "level": 1, "name": {"fr": "Ailes de Moskito"}},
-    {"id": 376, "typeId": 1, "level": 20, "name": {"fr": "Aile du Tofu Maléfique"}},
+    {"id": 376, "typeId": 1, "level": 20, "name": {"fr": "Aile du Tofu Maléfique"},
+     "possibleEffects": [{"actionId": 125, "diceNum": 5, "diceSide": 8}]},
 ]
+RECIPES = [{"resultId": 376, "ingredientIds": [307], "quantities": [4]}]
+EFFECTS = [{"id": 125, "effectPowerRate": 0.5}]
 GAME_TYPES = [{"id": 0, "name": {"fr": "Classique"}}]
 SERVERS = [{"id": 293, "name": {"fr": "Tylezia"}, "gameTypeId": 0, "communityId": 2}]
 
 
 class FakeDofusDb(FakeApi):
-    """Serves the four collections the refresh downloads."""
+    """Serves the six collections the refresh downloads."""
 
     def __init__(self) -> None:
         super().__init__()
         self._collections = {"/items": ITEMS, "/item-types": ITEM_TYPES,
-                             "/servers": SERVERS, "/server-game-types": GAME_TYPES}
+                             "/servers": SERVERS, "/server-game-types": GAME_TYPES,
+                             "/recipes": RECIPES, "/effects": EFFECTS}
 
 
 def refresh(tmp_path: Path, fetch=None):
@@ -47,6 +51,26 @@ def test_refresh_creates_the_data_directory_and_keeps_the_csv_files(tmp_path) ->
     refresh(tmp_path)
     assert (tmp_path / "ref" / "items.csv").is_file()
     assert (tmp_path / "ref" / "servers.csv").is_file()
+
+
+def test_refresh_also_downloads_recipes_and_effects_and_reports_counts(tmp_path) -> None:
+    result = refresh(tmp_path)
+    assert (result.recipes, result.effects) == (1, 1)
+    for name in ("recipes.csv", "item_effects.csv", "runes.csv"):
+        assert (tmp_path / "ref" / name).is_file()
+
+
+def test_a_failing_recipes_download_raises_after_the_names_are_loaded(tmp_path) -> None:
+    api = FakeDofusDb()
+
+    def fetch(url: str) -> object:
+        if "/recipes" in url:
+            raise NamesFetchError("API indisponible")
+        return api(url)
+
+    with pytest.raises(NamesFetchError):
+        refresh(tmp_path, fetch)
+    assert loaded_item_count(str(tmp_path / "p.db")) == 2
 
 
 def test_refresh_keeps_the_captured_prices(tmp_path) -> None:

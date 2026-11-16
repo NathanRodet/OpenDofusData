@@ -179,7 +179,7 @@ def settings(root, context, refresh=None) -> SettingsPage:
 
 def test_names_card_reports_that_no_names_are_loaded(root, tmp_path) -> None:
     page = settings(root, make_context(tmp_path))
-    assert "Aucun nom chargé" in page.names_card.status_label.cget("text")
+    assert "Aucune donnée chargée" in page.names_card.status_label.cget("text")
 
 
 def test_names_download_loads_names_and_swaps_the_lookup(root, tmp_path) -> None:
@@ -192,6 +192,16 @@ def test_names_download_loads_names_and_swaps_the_lookup(root, tmp_path) -> None
     assert "3 objets" in page.names_card.status_label.cget("text")
     assert context.name_of is not before
     assert page.names_card.button.cget("state") == "normal"
+
+
+def test_the_download_button_names_every_reference_file_and_the_result_counts_them(root, tmp_path) -> None:
+    page = settings(root, make_context(tmp_path), lambda path, directory: RefreshResult(3, 1, 2, 4))
+    assert page.names_card.button.cget("text") == "Télécharger les données de référence"
+    page.names_card.button.invoke()
+    assert page.names_card.task.wait(WAIT_SECONDS)
+    page.render(page.names_card._context.session.snapshot())
+    text = page.names_card.status_label.cget("text")
+    assert all(part in text for part in ("3 objets", "1 serveurs", "2 recettes", "4 objets avec effets"))
 
 
 def test_names_download_failure_is_shown_and_keeps_the_lookup(root, tmp_path) -> None:

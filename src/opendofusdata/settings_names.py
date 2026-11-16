@@ -1,4 +1,4 @@
-"""The "Noms d'objets" card of the Réglages page: one-click download of item names and servers."""
+"""The reference data card of the Réglages page: one click downloads names, servers, recipes and effects."""
 
 import sqlite3
 from collections.abc import Callable
@@ -10,18 +10,20 @@ from opendofusdata.background import BackgroundTask, TaskState
 from opendofusdata.names_fetch import NamesFetchError, TransientFetchError
 from opendofusdata.names_refresh import RefreshResult, loaded_item_count
 from opendofusdata.settings_rows import make_row
-from opendofusdata.ui_theme import COMPACT_BUTTON_HEIGHT, COMPACT_BUTTON_WIDTH, ERROR_COLOR, MUTED_COLOR
+from opendofusdata.ui_theme import COMPACT_BUTTON_HEIGHT, ERROR_COLOR, MUTED_COLOR
 from opendofusdata.ui_widgets import make_button, make_label
 from opendofusdata.window_context import WindowContext
 
-TITLE = "Noms d'objets"
-NOTE = ("Facultatif. Télécharge les noms depuis api.dofusdb.fr (environ 430 requêtes, une seule fois) "
-        "pour les afficher dans les logs.")
-NONE_LOADED_TEXT = "Aucun nom chargé : les logs affichent N/A."
+TITLE = "Noms, recettes et effets"
+NOTE = ("Facultatif. Télécharge depuis api.dofusdb.fr les noms d'objets, les serveurs, les recettes de craft et "
+        "les effets de brisage (environ 1 000 requêtes, quelques minutes, une seule fois). Sans eux, les logs "
+        "affichent N/A et les pages Craft et Brisage restent vides.")
+NONE_LOADED_TEXT = "Aucune donnée chargée : les logs affichent N/A."
 LOADED_TEXT = "{count} objets chargés."
 RUNNING_TEXT = "Téléchargement en cours..."
-DONE_TEXT = "{items} objets et {servers} serveurs chargés."
-BUTTON_TEXT = "Télécharger les noms"
+DONE_TEXT = "{items} objets, {servers} serveurs, {recipes} recettes et {effects} objets avec effets chargés."
+BUTTON_TEXT = "Télécharger les données de référence"
+REFERENCE_BUTTON_WIDTH = 250  # the label is longer than the compact width
 BUSY_BUTTON_TEXT = "Téléchargement..."
 FAILURES = (NamesFetchError, TransientFetchError, sqlite3.Error, OSError)
 Refresh = Callable[[str, Path], RefreshResult]
@@ -37,7 +39,7 @@ class NamesCard:
         row = make_row(parent, TITLE, NOTE)
         self.status_label = make_label(row.body, "", color=MUTED_COLOR, anchor="w", justify="left")
         self.status_label.pack(fill="x")
-        self.button = make_button(row.controls, BUTTON_TEXT, self.task.start, COMPACT_BUTTON_WIDTH,
+        self.button = make_button(row.controls, BUTTON_TEXT, self.task.start, REFERENCE_BUTTON_WIDTH,
                                   COMPACT_BUTTON_HEIGHT)
         self.button.pack()
         self.render()
@@ -46,7 +48,9 @@ class NamesCard:
         result = self._refresh(self._context.session.database_path, self._context.data_directory)
         self._count = result.items
         self._context.use_item_names(self._context.session.database_path)
-        return DONE_TEXT.format(items=result.items, servers=result.servers)
+        self._context.reference_data_changed()
+        return DONE_TEXT.format(items=result.items, servers=result.servers, recipes=result.recipes,
+                                effects=result.effects)
 
     def _status_text(self) -> tuple[str, str]:
         snapshot = self.task.snapshot()

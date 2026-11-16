@@ -69,5 +69,21 @@ def test_missing_effects_are_explained(root, tmp_path) -> None:
     page = make_page(root, tmp_path, with_effects=False)
     page.refresh()
     page._selection_changed(SAC)
-    assert "effects-update" in page.info_label.cget("text")
+    assert "Télécharger les données de référence" in page.info_label.cget("text")
+    store.close()
+
+
+def test_breaking_picks_up_effects_downloaded_while_the_page_was_open(root, tmp_path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)  # no data/ fallback
+    store = open_store(tmp_path)
+    fill(store)
+    page = make_page(root, tmp_path, with_effects=False)
+    page.refresh()
+    page._selection_changed(CAPE)
+    assert not page._effects
+    item = ItemEffects(CAPE, 40, (StatLine(125, 40, 60),))
+    write_csv_atomically(EFFECTS_CSV_HEADER, effects_rows([item]), tmp_path / EFFECTS_FILE)
+    page._context.reference_data_changed()
+    page.refresh()
+    assert CAPE in page._effects
     store.close()
