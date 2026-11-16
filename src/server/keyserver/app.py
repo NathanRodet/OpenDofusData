@@ -10,7 +10,10 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from keyserver.admin_routes import register_admin_routes
 from keyserver.auth import BearerAuthMiddleware, KeyVerifier
 from keyserver.guards import BodyLimitMiddleware, RequestFormatMiddleware
+from keyserver.reading_routes import register_reading_routes
+from keyserver.readings_store import ReadingStore, open_readings
 from keyserver.request_rules import MAX_BODY_BYTES
+from keyserver.retention import start_purge_loop
 from keyserver.revocations import RevocationStore, open_revocations
 from keyserver.settings import Settings, load_settings
 from keyserver.signed_keys import admin_token
@@ -26,7 +29,7 @@ async def refuse_invalid_body(request: Request, error: Exception) -> JSONRespons
     return JSONResponse(INVALID_BODY, status_code=UNPROCESSABLE_STATUS)
 
 
-def create_app(settings: Settings, revocations: RevocationStore) -> FastAPI:
+def create_app(settings: Settings, revocations: RevocationStore, readings: ReadingStore) -> FastAPI:
     """The application; interactive docs are off (no front, nothing useless exposed)."""
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
@@ -35,7 +38,8 @@ def create_app(settings: Settings, revocations: RevocationStore) -> FastAPI:
         """Tell the player their key works."""
         return OK_BODY
 
-    register_admin_routes(app, revocations)
+    register_reading_routes(app, readings)
+    register_admin_routes(app, revocations, readings)
     app.add_exception_handler(RequestValidationError, refuse_invalid_body)
     # The last middleware added is the outermost: Host check, size limit, then authentication, then request format.
     app.add_middleware(RequestFormatMiddleware)
@@ -49,4 +53,6 @@ def create_app(settings: Settings, revocations: RevocationStore) -> FastAPI:
 def build_app() -> FastAPI:
     """The application configured from the environment (used with `uvicorn --factory`)."""
     settings = load_settings(os.environ)
-    return create_app(settings, open_revocations(settings.db_path))
+    readings = open_readings(settings.db_path)
+    start_purge_loop(readings)
+    return create_app(settings, open_revocations(settings.db_path), readings)

@@ -1,4 +1,4 @@
-"""Fixtures shared by the server tests: an in-memory revocation list and a client on the full application."""
+"""Fixtures shared by the server tests: in-memory stores and a client on the full application."""
 
 from collections.abc import Iterator
 from pathlib import Path
@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 
 from helpers import SECRET
 from keyserver.app import create_app
+from keyserver.readings_store import ReadingStore, open_readings
 from keyserver.revocations import RevocationStore, open_revocations
 from keyserver.settings import Settings
 
@@ -20,5 +21,12 @@ def revocations() -> Iterator[RevocationStore]:
 
 
 @pytest.fixture
-def client(revocations: RevocationStore) -> TestClient:
-    return TestClient(create_app(Settings(Path(":memory:"), SECRET, ("testserver",)), revocations))
+def readings() -> Iterator[ReadingStore]:
+    store = open_readings(":memory:")
+    yield store
+    store.close()
+
+
+@pytest.fixture
+def client(revocations: RevocationStore, readings: ReadingStore) -> TestClient:
+    return TestClient(create_app(Settings(Path(":memory:"), SECRET, ("testserver",)), revocations, readings))

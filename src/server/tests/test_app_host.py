@@ -6,13 +6,14 @@ from fastapi.testclient import TestClient
 
 from helpers import KEY_ID, SECRET, authorization
 from keyserver.app import create_app
+from keyserver.readings_store import open_readings
 from keyserver.revocations import RevocationStore
 from keyserver.settings import INTERNAL_HOST, Settings
 from keyserver.signed_keys import make_key
 
 
 def test_app_accepts_only_the_internal_host(revocations: RevocationStore) -> None:
-    app = create_app(Settings(Path(":memory:"), SECRET), revocations)
+    app = create_app(Settings(Path(":memory:"), SECRET), revocations, open_readings(":memory:"))
     key = authorization(make_key(SECRET, KEY_ID))
     assert INTERNAL_HOST == "keyserver.internal"
     accepted = TestClient(app, base_url=f"http://{INTERNAL_HOST}")

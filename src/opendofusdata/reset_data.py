@@ -16,8 +16,12 @@ def backup_path_for(database_path: Path, now: datetime) -> Path:
     return database_path.with_name(f"{database_path.stem}-backup-{stamp}{database_path.suffix}")
 
 
+def _all_tables(connection: sqlite3.Connection) -> set[str]:
+    return {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+
+
 def _existing_tables(connection: sqlite3.Connection) -> list[str]:
-    known = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+    known = _all_tables(connection)
     return [table for table in COLLECTED_TABLES if table in known]
 
 
@@ -45,6 +49,8 @@ def reset_collected_data(database_path: str, now: datetime) -> Path:
             connection.backup(copy)
         for table in _existing_tables(connection):
             connection.execute(f"DELETE FROM {table}")
+        if "sync_state" in _all_tables(connection):
+            connection.execute("DELETE FROM sync_state")  # the sync position: after a reset the snapshot must rerun
         connection.commit()
         connection.execute("VACUUM")
     return backup

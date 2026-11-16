@@ -171,7 +171,7 @@ Le dossier `src/server/` contient un petit serveur HTTP (FastAPI) qui n'accepte 
 
 ## Synchronisation et administration (client)
 
-Côté application, deux fonctions parlent au serveur de clés, toutes deux seulement sur action explicite.
+Côté application, trois fonctions parlent au serveur de clés: le test de connexion et l'administration sur action explicite, la synchronisation des prix seulement si le joueur l'a cochée (voir « Synchronisation des prix »).
 
 ### Clé de synchronisation et test de connexion
 
@@ -182,7 +182,33 @@ Dans Réglages, la carte *Synchronisation* garde la clé du joueur dans `config.
 Un onglet *Administration* apparaît (en dernier dans le menu) seulement si le `.env` placé à côté de `config.json` contient `ADMIN_SECRET` (43 caractères au moins, la valeur donnée par `new-secret`) et si une adresse de serveur est connue (`SERVER_URL` ou `DEFAULT_SERVER_URL`). Sans cela l'onglet n'existe pas et rien n'est envoyé. L'onglet n'est qu'un confort: le serveur vérifie le jeton d'administration à chaque appel.
 
 - **Générer:** un pseudo, un clic. La clé est calculée sur ce PC (`admin_keys.py`, aucun appel réseau) et affichée avec un bouton *Copier*. Le registre `admin_keys.json` (à côté du `.env`) note le pseudo, l'identifiant et la date, jamais la clé: elle se recalcule avec *Copier la clé*. Sauvegarde ce fichier: sans lui, les clés déjà données restent valables, mais tu ne sais plus à qui. Pour repartir de zéro, génère un nouveau secret (`new-secret`) et remplace-le des deux côtés: toutes les clés sont alors à refaire.
-- **Révoquer:** après confirmation, l'application envoie l'identifiant au serveur (`POST /admin/revoke`, `Authorization: Bearer <jeton d'administration>` dérivé du secret, jamais le secret). La ligne n'est marquée révoquée qu'après la réponse `200`; en cas d'échec le registre reste inchangé.
+- **Révoquer (avec ou sans suppression des relevés de la clé):** après confirmation, l'application envoie l'identifiant au serveur (`POST /admin/revoke`, `Authorization: Bearer <jeton d'administration>` dérivé du secret, jamais le secret). La ligne n'est marquée révoquée qu'après la réponse `200`; en cas d'échec le registre reste inchangé.
+
+## Synchronisation des prix
+
+Les joueurs envoient les prix de lots de l'HDV qu'ils observent et récupèrent ceux des autres. Conception: [spécification](superpowers/specs/2026-11-16-player-sync-design.md) et [plan](superpowers/plans/2026-11-16-player-sync.md).
+
+**Serveur** (routes authentifiées par clé utilisateur, jamais par le jeton d'administration):
+
+| Route | Rôle |
+|---|---|
+| `POST /readings` | Envoie 1 à 2000 relevés `{server, item_id, lot_size, price, observed_at}`; réponse `{accepted, duplicates}` (un relevé déjà reçu est un doublon, pas une erreur) |
+| `GET /readings?since=N&limit=L` | Relevés des autres clés arrivés après le numéro d'ordre N (`limit` de 1 à 2000); réponse `{readings, next}`; chaque relevé porte `seq` et `key_id` |
+| `GET /readings/latest?after=K&limit=L` | Premier lancement d'un joueur: dernier relevé de chaque (serveur, objet, lot) des autres clés, par pages; réponse `{readings, next, as_of, done}` |
+
+- **Paramètres de requête:** le garde-fou n'accepte, pour ces deux routes `GET`, que les paramètres déclarés, chacun une seule fois, en entiers décimaux de 1 à 12 chiffres, sans encodage en pourcentage; tout le reste donne `400`. Un `GET` avec un corps est refusé. **Toute route ajoutée doit être déclarée dans `ALLOWED_ROUTES`.**
+- **Identité:** `key_id` est le code de 11 caractères de la clé émettrice, un pseudonyme (jamais la clé, sa signature ni le pseudo de l'administrateur). Il permet de révoquer une clé et, au choix, de supprimer ses relevés. Les relevés d'une clé ne lui sont jamais renvoyés.
+- **Rétention:** 7 jours, purge quotidienne (aussi au démarrage), sur la date d'observation. Base: le même fichier que la liste des révocations (`keys.db`).
+- **Révocation:** `POST /admin/revoke` accepte `{"key_id": "...", "purge": true|false}` (`false` par défaut). La clé est révoquée d'abord, puis ses relevés sont supprimés si `purge` est vrai; réponse `{"revoked": true, "purged": n}`. Sans purge, les relevés restent servis jusqu'à la fin de la rétention.
+- **Limite connue (voulue):** une purge côté serveur ne retire pas ce que les clients ont déjà récupéré (`source_key_id` rendrait possible une propagation plus tard).
+
+**Client:**
+
+- **Réglages, carte Synchronisation:** deux cases, *Envoyer mes prix* et *Récupérer les prix des autres joueurs*, décochées par défaut (`sync_send`, `sync_receive` dans `config.json`); actives seulement avec une clé enregistrée et une adresse de serveur. Un fil d'arrière-plan lance un tour toutes les 5 minutes (attente doublée, plafonnée à 1 heure, tant que le serveur est injoignable; pause tant que la clé refusée n'a pas été remplacée) et relit les réglages à chaque tour.
+- **Base locale:** `lot_prices` gagne `origin` (`local` ou `remote`), `synced_at` et `source_key_id`; la table `sync_state` garde le curseur. Les bases existantes sont migrées sans perte. Un prix identique au dernier relevé réellement envoyé depuis moins d'une heure pour la même clé n'est pas renvoyé, et rien de plus vieux que 7 jours ni de refusé d'avance par le serveur (prix, nom de serveur) n'est envoyé. Si l'envoi échoue (par exemple un `422` quand l'heure du PC est fausse), la récupération continue. Les relevés reçus ne sont jamais renvoyés.
+- **Récupération:** au premier tour `GET /readings/latest` page par page, puis seulement `GET /readings` depuis le curseur. Tout ce que le serveur renvoie est validé avant insertion (types, bornes, nom de serveur sans symbole ni caractère invisible), les boucles de pages sont plafonnées, le snapshot interrompu reprend où il s'était arrêté et `reset-data` remet la position de synchro à zéro.
+- **Purge locale optionnelle:** carte *Données locales* (case « au lancement » décochée par défaut, `purge_old_data`, et bouton *Purger maintenant* avec confirmation). Supprime les lignes de `lot_prices` et `market_stats` de plus de 7 jours en gardant toujours la plus récente de chaque (objet, serveur, lot) ou (objet, serveur, période). Ne touche jamais aux favoris et observations manuelles de familiers (dans `config.json`), ni aux noms, serveurs, brisages, améliorations de familiers et à l'état de synchro.
+- **Administration:** pour chaque clé, *Révoquer* ou *Révoquer et supprimer ses relevés*, chacune avec sa confirmation.
 
 ## Tests et conventions
 

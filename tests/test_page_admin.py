@@ -42,8 +42,9 @@ class FakeRevoke:
     def __init__(self, result: RevokeResult = RevokeResult(True, "Clé révoquée")) -> None:
         self.result, self.calls = result, []
 
-    def __call__(self, base_url: str, secret: str, key_id: str) -> RevokeResult:
+    def __call__(self, base_url: str, secret: str, key_id: str, purge: bool = False) -> RevokeResult:
         self.calls.append((base_url, secret, key_id))
+        self.purges = [*getattr(self, "purges", []), purge]
         return self.result
 
 
@@ -204,3 +205,64 @@ def test_a_second_revocation_while_one_runs_is_ignored_and_never_marks_the_wrong
     revoked = {entry.label: entry.revoked_at is not None for entry in registry_of(tmp_path).entries()}
     assert calls == [ids["A"]]
     assert revoked == {"A": True, "B": False}
+
+
+def purge_and_wait(page: AdminPage, key_id: str) -> None:
+    page.revoke_and_purge(key_id)
+    assert page.task.wait(5)
+    page.render(None)
+
+
+def test_page_offers_both_revocation_choices_with_their_own_confirmation(root, tmp_path) -> None:
+    texts: list[str] = []
+    revoke = FakeRevoke()
+    page = make_page(root, tmp_path, revoke, confirm=lambda text: texts.append(text) or False)
+    generate(page, "Joueur Un")
+    key_id = registry_of(tmp_path).entries()[0].key_id
+    page.revoke(key_id)
+    page.revoke_and_purge(key_id)
+    assert len(texts) == 2 and texts[0] != texts[1]
+    assert "supprim" in texts[1].lower() and "supprim" not in texts[0].lower()
+    assert "Joueur Un" in texts[0] and "Joueur Un" in texts[1]
+
+
+def test_rows_have_a_revoke_and_purge_button(root, tmp_path) -> None:
+    page = make_page(root, tmp_path)
+    generate(page, "Joueur Un")
+    labels = [child.cget("text") for child in page.rows.winfo_children() if isinstance(child, customtkinter.CTkButton)]
+    assert "Révoquer" in labels and "Révoquer et supprimer ses relevés" in labels
+
+
+def test_revoke_with_purge_asks_the_server_for_the_purge_and_marks_the_row_after_the_answer(root, tmp_path) -> None:
+    revoke = FakeRevoke(RevokeResult(True, "Clé révoquée, 3 relevé(s) supprimé(s)"))
+    page = make_page(root, tmp_path, revoke)
+    generate(page, "Joueur Un")
+    key_id = registry_of(tmp_path).entries()[0].key_id
+    purge_and_wait(page, key_id)
+    assert revoke.calls == [(URL, SECRET, key_id)] and revoke.purges == [True]
+    assert registry_of(tmp_path).entries()[0].revoked_at is not None
+    assert page.message_label.cget("text") == "Clé révoquée, 3 relevé(s) supprimé(s)"
+
+
+def test_plain_revocation_does_not_ask_for_the_purge(root, tmp_path) -> None:
+    revoke = FakeRevoke()
+    page = make_page(root, tmp_path, revoke)
+    generate(page, "Joueur Un")
+    revoke_and_wait(page, registry_of(tmp_path).entries()[0].key_id)
+    assert revoke.purges == [False]
+
+
+def test_a_failed_purge_revocation_leaves_the_registry_unchanged(root, tmp_path) -> None:
+    page = make_page(root, tmp_path, FakeRevoke(RevokeResult(False, "Serveur injoignable")))
+    generate(page, "Joueur Un")
+    key_id = registry_of(tmp_path).entries()[0].key_id
+    purge_and_wait(page, key_id)
+    assert registry_of(tmp_path).entries()[0].revoked_at is None
+
+
+def test_cancelled_purge_confirmation_sends_nothing(root, tmp_path) -> None:
+    revoke = FakeRevoke()
+    page = make_page(root, tmp_path, revoke, confirm=lambda text: False)
+    generate(page, "Joueur Un")
+    page.revoke_and_purge(registry_of(tmp_path).entries()[0].key_id)
+    assert revoke.calls == [] and registry_of(tmp_path).entries()[0].revoked_at is None

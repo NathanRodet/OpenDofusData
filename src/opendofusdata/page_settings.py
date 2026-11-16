@@ -17,6 +17,7 @@ from opendofusdata.settings_about import AboutCard, UpdatesCard, open_url
 from opendofusdata.settings_names import NamesCard, Refresh
 from opendofusdata.settings_prices import PricesCard
 from opendofusdata.sync_client import resolve_server_url
+from opendofusdata.local_data_card import LocalDataCard
 from opendofusdata.sync_settings_card import SyncSettingsCard
 from opendofusdata.ui_theme import (
     ACCENT_COLOR, CARD_MIN_WIDTH, ERROR_COLOR, MUTED_COLOR, PADDING, SWITCH_WIDTH, TINY_PADDING, TITLE_SIZE,
@@ -79,7 +80,8 @@ class SettingsPage:
         self.names_card = NamesCard(self._body, context, refresh)
         self.prices_card = PricesCard(self._body, context, self._save)
         sync_address = resolve_server_url(env_file_path(context.config_path))
-        self.sync_card = SyncSettingsCard(self._body, context, server_url=sync_address)
+        self.sync_card = SyncSettingsCard(self._body, context, server_url=sync_address, status=context.sync_status)
+        self.local_data_card = LocalDataCard(self._body, context)
         self.update_switch = self._add_update_row(self._body)
         self.updates_card = UpdatesCard(self._body, context, open_page)
         self.about_card = AboutCard(self._body, open_page)

@@ -152,3 +152,51 @@ def test_the_settings_page_has_the_card_and_the_about_text_mentions_the_test(roo
     page = SettingsPage(root, make_context(tmp_path), lambda current: None)
     assert isinstance(page.sync_card, SyncSettingsCard)
     assert "test de connexion" in page.about_card.summary_label.cget("text").lower()
+
+
+def test_card_has_two_unchecked_send_and_receive_boxes(root, tmp_path) -> None:
+    card = make_card(root, tmp_path)
+    assert card.send_box.get() == 0
+    assert card.receive_box.get() == 0
+
+
+def test_saved_settings_are_shown_in_the_boxes(root, tmp_path) -> None:
+    (tmp_path / "config.json").write_text(json.dumps({"sync_send": True, "sync_receive": True}), encoding="utf-8")
+    card = make_card(root, tmp_path)
+    assert card.send_box.get() == 1
+    assert card.receive_box.get() == 1
+
+
+def test_boxes_are_disabled_without_key_or_server(root, tmp_path) -> None:
+    assert make_card(root, tmp_path, url=None).send_box.cget("state") == "disabled"
+    card = make_card(root, tmp_path)
+    assert card.send_box.cget("state") == "disabled" and card.receive_box.cget("state") == "disabled"
+    card.entry.insert(0, KEY)
+    card.save()
+    card.render()
+    assert card.send_box.cget("state") == "normal" and card.receive_box.cget("state") == "normal"
+
+
+def test_ticking_a_box_saves_the_setting_and_keeps_the_other_settings(root, tmp_path) -> None:
+    (tmp_path / "config.json").write_text(json.dumps({SYNC_KEY_CONFIG: KEY, "server": "Brial"}), encoding="utf-8")
+    card = make_card(root, tmp_path)
+    card.send_box.select()
+    card.toggle_send()
+    assert saved(tmp_path)["sync_send"] is True and saved(tmp_path)["server"] == "Brial"
+    card.receive_box.select()
+    card.toggle_receive()
+    assert saved(tmp_path)["sync_receive"] is True
+    card.send_box.deselect()
+    card.toggle_send()
+    assert saved(tmp_path)["sync_send"] is False and saved(tmp_path)["sync_receive"] is True
+
+
+def test_card_shows_the_worker_status(root, tmp_path) -> None:
+    status = ["Synchronisation terminée"]
+    card = SyncSettingsCard(customtkinter.CTkFrame(root), make_context(tmp_path), FakeCheck(), URL,
+                            lambda: status[0])
+    card.render()
+    assert "Synchronisation terminée" in card.sync_status_label.cget("text")
+    status[0] = "Serveur injoignable"
+    card.render()
+    assert "Serveur injoignable" in card.sync_status_label.cget("text")

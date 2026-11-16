@@ -40,9 +40,9 @@ def _build_request(base_url: str, method: str, path: str, token: str | None,
     return urllib.request.Request(base_url + path, data=data, headers=headers, method=method)
 
 
-def _parse_object(body: bytes) -> dict[str, object]:
+def _parse_object(body: bytes, max_bytes: int = MAX_RESPONSE_BYTES) -> dict[str, object]:
     """The JSON object in the body; BAD_RESPONSE when it is too big, not JSON or not an object."""
-    if len(body) > MAX_RESPONSE_BYTES:
+    if len(body) > max_bytes:
         raise HttpsFailure(BAD_RESPONSE)
     try:
         parsed = json.loads(body)
@@ -73,14 +73,15 @@ def _network_reason(error: Exception) -> str:
 
 def request_json(base_url: str, method: str, path: str, token: str | None = None,
                  body: dict[str, object] | None = None,
-                 opener: urllib.request.OpenerDirector = OPENER) -> tuple[int, dict[str, object]]:
+                 opener: urllib.request.OpenerDirector = OPENER,
+                 max_response_bytes: int = MAX_RESPONSE_BYTES) -> tuple[int, dict[str, object]]:
     """Send one request and return (status, JSON object); raises HttpsFailure for anything else."""
     if not base_url.startswith(HTTPS_PREFIX):
         raise HttpsFailure(INSECURE)
     request = _build_request(base_url, method, path, token, body)
     try:
         with opener.open(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
-            return response.status, _parse_object(response.read(MAX_RESPONSE_BYTES + 1))
+            return response.status, _parse_object(response.read(max_response_bytes + 1), max_response_bytes)
     except urllib.error.HTTPError as error:
         return _answer_from_http_error(error)
     except (urllib.error.URLError, http.client.HTTPException, OSError) as error:

@@ -1,6 +1,7 @@
 """The window command: server resolution, then the player window (GUI loaded lazily)."""
 
 import argparse
+import threading
 from collections.abc import Callable
 
 from opendofusdata import __version__
@@ -8,13 +9,17 @@ from opendofusdata.app_config import default_config_path, load_config
 from opendofusdata.capture_errors import EXIT_OK, fail
 from opendofusdata.capture_session import CaptureSession
 from opendofusdata.capture_stoppable import StoppableCapture, run_stoppable_capture
+from opendofusdata.env_file import env_file_path
 from opendofusdata.client_settings import (
     choose_database_path, default_database_path, server_names, update_check_enabled,
 )
 from opendofusdata.item_labels import item_labelers_for_database
+from opendofusdata.local_purge import startup_purge
 from opendofusdata.names_fetch import http_get_json
 from opendofusdata.run_pipeline import Clock, utc_now
 from opendofusdata.server_choice_commands import resolve_run_server
+from opendofusdata.sync_options import load_sync_options
+from opendofusdata.sync_worker import SyncWorker
 from opendofusdata.update_apply import can_self_update
 from opendofusdata.update_controller import UpdateController, check_for_update
 from opendofusdata.update_install import install_update
@@ -75,8 +80,16 @@ def window_command(
     database = choose_database_path(arguments.db, config, default_database_path())
     session = CaptureSession(database, arguments.server, arguments.interface, capture, now)
     name_of, type_of = item_labelers_for_database(database)
-    return show_window(WindowContext(session, config_path, server_names(), name_of,
-                                     build_update_controller(config), type_of=type_of))
+    worker = SyncWorker(lambda: session.database_path,
+                        lambda: load_sync_options(config_path, env_file_path(config_path)))
+    context = WindowContext(session, config_path, server_names(), name_of, build_update_controller(config),
+                            type_of=type_of, sync_status=worker.status)
+    threading.Thread(target=startup_purge, args=(config, database), name="startup-purge", daemon=True).start()
+    worker.start()
+    try:
+        return show_window(context)
+    finally:
+        worker.stop()
 
 
 WINDOW_COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {"window": window_command}

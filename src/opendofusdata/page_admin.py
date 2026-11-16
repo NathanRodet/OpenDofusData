@@ -3,12 +3,14 @@
 import logging
 from collections.abc import Callable
 from datetime import datetime
-from tkinter import messagebox
 
 import customtkinter
 
-from opendofusdata.admin_client import RevokeResult, revoke_key
+from opendofusdata.admin_client import revoke_key
 from opendofusdata.admin_keys import make_key, new_key_id
+from opendofusdata.admin_revocation import (
+    BUSY_TEXT, CONFIRM_PURGE_TEXT, CONFIRM_TEXT, REVOKING_TEXT, Confirm, RevokeFailed, Revoke, ask_confirmation,
+)
 from opendofusdata.admin_registry import (
     MAX_LABEL_LENGTH, AdminRegistry, KeyEntry, LabelExistsError, clean_label, registry_path, utc_now,
 )
@@ -37,21 +39,6 @@ COPIED_TEXT = "Clé copiée."
 BAD_LABEL_TEXT = f"Pseudo invalide (1 à {MAX_LABEL_LENGTH} caractères, sans retour à la ligne)."
 LABEL_EXISTS_TEXT = "Ce pseudo a déjà une clé active."
 SAVE_FAILED_TEXT = "Le registre n'a pas pu être enregistré (voir le fichier de log)."
-REVOKING_TEXT = "Révocation en cours..."
-BUSY_TEXT = "Une révocation est déjà en cours, attends qu'elle se termine."
-CONFIRM_TITLE = "Révoquer la clé"
-CONFIRM_TEXT = "Révoquer la clé de {label} ? Elle sera refusée par le serveur immédiatement."
-Revoke = Callable[[str, str, str], RevokeResult]
-Confirm = Callable[[str], bool]
-
-
-class RevokeFailed(Exception):
-    """The server did not revoke the key; the message is what the administrator reads."""
-
-
-def ask_confirmation(text: str) -> bool:
-    """Ask yes or no in a system dialog."""
-    return bool(messagebox.askyesno(CONFIRM_TITLE, text))
 
 
 class AdminPage:
@@ -62,7 +49,7 @@ class AdminPage:
                  clock: Callable[[], datetime] = utc_now) -> None:
         self._settings, self._revoke, self._confirm = settings, revoke, confirm
         self._registry = AdminRegistry(registry_path(env_file_path(context.config_path)), clock)
-        self._pending_key_id = ""
+        self._pending_key_id, self._pending_purge = "", False
         self._shown_snapshot: TaskSnapshot | None = None
         self.task = BackgroundTask(self._run_revocation, (RevokeFailed,))
         self.frame = customtkinter.CTkFrame(parent, fg_color=TRANSPARENT, corner_radius=0)
@@ -83,7 +70,7 @@ class AdminPage:
         self._build_new_key_panel()
         self._scroll = customtkinter.CTkScrollableFrame(self.frame, fg_color=TRANSPARENT)
         self._pack_scroll()
-        self.rows = AdminRows(self._scroll, self.copy_key, self.revoke)
+        self.rows = AdminRows(self._scroll, self.copy_key, self.revoke, self.revoke_and_purge)
         self.rows.pack(fill="x")
 
     def _pack_scroll(self) -> None:
@@ -162,21 +149,27 @@ class AdminPage:
         """Copy the key of a listed row (recomputed from its identifier and the secret)."""
         self._copy(make_key(self._settings.secret, key_id))
 
-    def revoke(self, key_id: str) -> None:
-        """After confirmation, ask the server to revoke the key (in the background)."""
+    def revoke(self, key_id: str, purge: bool = False) -> None:
+        """After confirmation, ask the server to revoke the key, and to delete its readings if `purge`."""
         if self.task.snapshot().state is TaskState.RUNNING:
             self._say(BUSY_TEXT, ERROR_COLOR)
             return
         entry = next((item for item in self.visible_entries if item.key_id == key_id), None)
-        if entry is None or not self._confirm(CONFIRM_TEXT.format(label=entry.label)):
+        question = (CONFIRM_PURGE_TEXT if purge else CONFIRM_TEXT).format(label=entry.label) if entry else ""
+        if entry is None or not self._confirm(question):
             return
-        self._pending_key_id = key_id
+        self._pending_key_id, self._pending_purge = key_id, purge
         if self.task.start():
             self.render(None)
 
+    def revoke_and_purge(self, key_id: str) -> None:
+        """Revoke the key and delete its readings from the server (own confirmation)."""
+        self.revoke(key_id, purge=True)
+
     def _run_revocation(self) -> str:
-        key_id = self._pending_key_id  # read once: the same key is revoked on the server and marked locally
-        result = self._revoke(self._settings.server_url, self._settings.secret, key_id)
+        key_id, purge = self._pending_key_id, self._pending_purge  # read once: same key and choice everywhere
+        arguments = (self._settings.server_url, self._settings.secret, key_id)
+        result = self._revoke(*arguments, True) if purge else self._revoke(*arguments)
         if not result.ok:
             raise RevokeFailed(result.message)
         self._registry.mark_revoked(key_id)

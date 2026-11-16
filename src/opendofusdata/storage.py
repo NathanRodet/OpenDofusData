@@ -10,6 +10,7 @@ from collections.abc import Iterator
 from opendofusdata.names_schema import NAMES_SCHEMA_STATEMENTS
 from opendofusdata.extra_store import EXTRA_SAVERS, prepare_extra_tables
 from opendofusdata.records import LOT_SIZES, MARKET_PERIODS, LotPrice, MarketStats, Record
+from opendofusdata.sync_schema import prepare_sync_schema
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +53,7 @@ class PriceStore:
             for statement in (*SCHEMA_STATEMENTS, *NAMES_SCHEMA_STATEMENTS):
                 connection.execute(statement)
             prepare_extra_tables(connection)
+            prepare_sync_schema(connection)
             connection.commit()
         except sqlite3.Error:
             connection.close()

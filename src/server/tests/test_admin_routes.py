@@ -1,12 +1,15 @@
 """The revocation route: admin token only, idempotent, strict body, nothing echoed or logged."""
 
 import logging
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from fastapi.testclient import TestClient
 
 from helpers import KEY_ID, SECRET, authorization
+from keyserver.readings_store import ReadingStore
 from keyserver.revocations import RevocationStore
+from keyserver.schemas import Reading
 from keyserver.signed_keys import admin_token, make_key
 
 KEY = make_key(SECRET, KEY_ID)
@@ -33,7 +36,7 @@ def test_admin_token_is_refused_on_user_routes(client: TestClient) -> None:
 def test_revoke_makes_the_key_fail_at_once_and_a_second_revoke_is_still_200(client: TestClient) -> None:
     assert client.get("/check", headers=authorization(KEY)).status_code == 200
     first = revoke(client)
-    assert (first.status_code, first.json()) == (200, {"revoked": True})
+    assert (first.status_code, first.json()) == (200, {"revoked": True, "purged": 0})
     assert client.get("/check", headers=authorization(KEY)).status_code == 401
     assert revoke(client).status_code == 200
 
@@ -83,3 +86,39 @@ def test_neither_the_key_nor_the_token_nor_the_secret_appears_in_the_logs(
         client.get("/check", headers=ADMIN)
     for private in (KEY, token, SECRET, KEY.split(".")[2]):
         assert private not in caplog.text
+
+
+def stored(readings: ReadingStore, key_id: str, count: int = 2) -> None:
+    moment = datetime.now(timezone.utc) - timedelta(minutes=1)
+    readings.add_batch(key_id, [Reading.model_construct(server="Brial", item_id=number, lot_size=1, price=10,
+                                                         observed_at=moment) for number in range(1, count + 1)])
+
+
+def test_revoke_without_purge_keeps_the_readings_and_answers_purged_zero(client: TestClient,
+                                                                         readings: ReadingStore) -> None:
+    stored(readings, KEY_ID)
+    response = client.post("/admin/revoke", json={"key_id": KEY_ID, "purge": False}, headers=ADMIN)
+    assert response.json() == {"revoked": True, "purged": 0}
+    assert len(readings.changes_since("CCCCCCCCCCC", 0, 10)) == 2
+
+
+def test_revoke_with_purge_deletes_only_that_key_readings(client: TestClient, readings: ReadingStore) -> None:
+    stored(readings, KEY_ID, 3)
+    stored(readings, "BBBBBBBBBBB", 1)
+    response = client.post("/admin/revoke", json={"key_id": KEY_ID, "purge": True}, headers=ADMIN)
+    assert response.json() == {"revoked": True, "purged": 3}
+    assert [item.key_id for item in readings.changes_since("CCCCCCCCCCC", 0, 10)] == ["BBBBBBBBBBB"]
+
+
+def test_revoke_with_purge_twice_is_still_200(client: TestClient, readings: ReadingStore) -> None:
+    stored(readings, KEY_ID)
+    body = {"key_id": KEY_ID, "purge": True}
+    assert client.post("/admin/revoke", json=body, headers=ADMIN).json()["purged"] == 2
+    again = client.post("/admin/revoke", json=body, headers=ADMIN)
+    assert (again.status_code, again.json()) == (200, {"revoked": True, "purged": 0})
+
+
+@pytest.mark.parametrize("purge", ["true", 1, None, "yes"])
+def test_revoke_body_rejects_a_non_boolean_purge(client: TestClient, purge: object) -> None:
+    response = client.post("/admin/revoke", json={"key_id": KEY_ID, "purge": purge}, headers=ADMIN)
+    assert (response.status_code, response.json()) == (422, {"detail": "invalid_body"})

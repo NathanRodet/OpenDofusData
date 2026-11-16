@@ -17,7 +17,7 @@ KEY_ID = "AAAAAAAAAAA"
 def answering(status: int, reply: dict | None = None):
     calls: list[tuple] = []
 
-    def fake(base_url, method, path, token=None, body=None, opener=None):
+    def fake(base_url, method, path, token=None, body=None, opener=None, **options):
         calls.append((base_url, method, path, token, body))
         return status, reply or {}
 
@@ -74,3 +74,28 @@ def test_neither_the_secret_nor_the_token_is_in_messages_or_logs(monkeypatch: py
             result = revoke_key(BASE, SECRET, KEY_ID)
             assert SECRET not in result.message and token not in result.message
     assert SECRET not in caplog.text and token not in caplog.text
+
+
+def test_default_revocation_sends_no_purge_field_and_asked_purge_sends_true(monkeypatch: pytest.MonkeyPatch) -> None:
+    fake = answering(200, {"revoked": True, "purged": 0})
+    monkeypatch.setattr(admin_client, "request_json", fake)
+    revoke_key(BASE, SECRET, KEY_ID)
+    revoke_key(BASE, SECRET, KEY_ID, purge=True)
+    assert fake.calls[0][4] == {"key_id": KEY_ID}
+    assert fake.calls[1][4] == {"key_id": KEY_ID, "purge": True}
+
+
+def test_revoke_message_mentions_the_purge_when_readings_were_deleted(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(admin_client, "request_json", answering(200, {"revoked": True, "purged": 3}))
+    assert revoke_key(BASE, SECRET, KEY_ID, purge=True) == RevokeResult(
+        True, "Clé révoquée, 3 relevé(s) supprimé(s)")
+
+
+def test_a_purge_that_deleted_nothing_gives_the_plain_message(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(admin_client, "request_json", answering(200, {"revoked": True, "purged": 0}))
+    assert revoke_key(BASE, SECRET, KEY_ID, purge=True) == RevokeResult(True, "Clé révoquée, aucun relevé à supprimer")
+
+
+def test_a_revocation_without_purge_never_claims_a_deletion(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(admin_client, "request_json", answering(200, {"revoked": True, "purged": 5}))
+    assert revoke_key(BASE, SECRET, KEY_ID) == RevokeResult(True, "Clé révoquée")

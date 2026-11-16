@@ -9,7 +9,6 @@ data/
 *.egg-info/
 build/
 dist/
-/prices.db
 .env
 admin_keys.json
 src/server/keys.db

@@ -86,12 +86,14 @@ def test_current_server_missing_from_the_list_is_still_shown(root, tmp_path) -> 
     assert SettingsPage(root, context, lambda current: None).server_menu.get() == "Inconnu"
 
 
-def test_about_page_names_the_app_and_says_nothing_is_sent(root, tmp_path) -> None:
+def test_about_page_names_the_app_and_says_sending_needs_the_players_consent(root, tmp_path) -> None:
     import customtkinter
 
     card = AboutCard(customtkinter.CTkFrame(root), lambda url: None)
-    assert "Rien n'est envoyé" in card.summary_label.cget("text")
-    assert "Envoi de données : aucun pour l'instant" in card.summary_label.cget("text")
+    text = card.summary_label.cget("text")
+    assert "seulement si tu l'autorises" in text
+    assert "décochées par défaut" in text
+    assert "rien ne quitte ta machine" in text
     updates = UpdatesCard(customtkinter.CTkFrame(root), make_context(tmp_path))
     assert updates.version_label.cget("text") == f"Version {__version__}"
 

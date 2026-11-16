@@ -99,7 +99,7 @@ def test_with_a_key_an_unexpected_query_string_is_400(client: TestClient) -> Non
 
 
 def test_with_a_key_a_body_that_is_not_json_is_415(client: TestClient) -> None:
-    response = client.request("GET", "/check", content=b"x", headers={"Content-Type": "text/plain", **authorization(KEY)})
+    response = client.request("POST", "/readings", content=b"x", headers={"Content-Type": "text/plain", **authorization(KEY)})
     assert response.status_code == 415
 
 

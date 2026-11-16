@@ -42,7 +42,7 @@ Entrées et conditions que la spécification suppose sans que les tests des tâc
 
 ---
 
-### Tâche 1: schémas du relevé de prix de lot et de la révocation
+### Task 1: schémas du relevé de prix de lot et de la révocation
 
 **Fichiers:**
 - Modifier: `src/server/keyserver/schemas.py`
@@ -57,7 +57,7 @@ Entrées et conditions que la spécification suppose sans que les tests des tâc
 - [ ] **Étape 4: tests verts**, puis la suite serveur complète.
 - [ ] **Étape 5: commit** `feat(server): price fields in the reading schema and purge option in the revoke body`.
 
-### Tâche 2: magasin de relevés du serveur
+### Task 2: magasin de relevés du serveur
 
 **Fichiers:**
 - Créer: `src/server/keyserver/readings_store.py`
@@ -73,7 +73,7 @@ Entrées et conditions que la spécification suppose sans que les tests des tâc
 - [ ] **Étape 4: tests verts**, puis la suite serveur.
 - [ ] **Étape 5: commit** `feat(server): reading store with batch insert, change feed, latest page and purges`.
 
-### Tâche 3: l'identifiant de la clé disponible pour les routes
+### Task 3: l'identifiant de la clé disponible pour les routes
 
 **Fichiers:**
 - Modifier: `src/server/keyserver/auth.py`
@@ -89,7 +89,7 @@ Entrées et conditions que la spécification suppose sans que les tests des tâc
 - [ ] **Étape 4: tests verts** et suite serveur.
 - [ ] **Étape 5: commit** `feat(server): expose the verified key id to the routes`.
 
-### Tâche 4: garde-fou des chaînes de requête, routes de synchro, révocation avec option de purge
+### Task 4: garde-fou des chaînes de requête, routes de synchro, révocation avec option de purge
 
 **Fichiers:**
 - Créer: `src/server/keyserver/reading_routes.py`
@@ -114,7 +114,7 @@ Entrées et conditions que la spécification suppose sans que les tests des tâc
 - [ ] **Étape 4: tests verts**, y compris la suite serveur complète.
 - [ ] **Étape 5: commit** `feat(server): REST reading routes, strict query parameters and revocation with optional purge`.
 
-### Tâche 5: rétention de 7 jours
+### Task 5: rétention de 7 jours
 
 **Fichiers:**
 - Créer: `src/server/keyserver/retention.py`
@@ -131,7 +131,7 @@ Entrées et conditions que la spécification suppose sans que les tests des tâc
 - [ ] **Étape 4: tests verts** et suite serveur.
 - [ ] **Étape 5: commit** `feat(server): seven day retention with a daily purge`.
 
-### Tâche 6: colonnes et état de synchro du client
+### Task 6: colonnes et état de synchro du client
 
 **Fichiers:**
 - Créer: `src/opendofusdata/sync_schema.py`
@@ -147,7 +147,7 @@ Entrées et conditions que la spécification suppose sans que les tests des tâc
 - [ ] **Étape 4: tests verts** (suite client complète).
 - [ ] **Étape 5: commit** `feat: sync columns, state table and migration for lot prices`.
 
-### Tâche 7: lecture et écriture des relevés de synchro (client)
+### Task 7: lecture et écriture des relevés de synchro (client)
 
 **Fichiers:**
 - Créer: `src/opendofusdata/sync_store.py`
@@ -163,7 +163,7 @@ Entrées et conditions que la spécification suppose sans que les tests des tâc
 - [ ] **Étape 4: tests verts.**
 - [ ] **Étape 5: commit** `feat: sync store (pending readings, remote insertion with the sender id, state)`.
 
-### Tâche 8: appels réseau de la synchro (client)
+### Task 8: appels réseau de la synchro (client)
 
 **Fichiers:**
 - Modifier: `src/opendofusdata/https_json.py` (paramètre `max_response_bytes`)
@@ -179,7 +179,7 @@ Entrées et conditions que la spécification suppose sans que les tests des tâc
 - [ ] **Étape 4: tests verts.**
 - [ ] **Étape 5: commit** `feat: sync network calls (push, changes, latest page)`.
 
-### Tâche 9: moteur de synchro (client)
+### Task 9: moteur de synchro (client)
 
 **Fichiers:**
 - Créer: `src/opendofusdata/sync_engine.py`
@@ -196,7 +196,7 @@ Entrées et conditions que la spécification suppose sans que les tests des tâc
 - [ ] **Étape 4: tests verts** et suite client.
 - [ ] **Étape 5: commit** `feat: sync engine (send, latest page, changes)`.
 
-### Tâche 10: réglages d'envoi et de récupération, fil d'arrière-plan
+### Task 10: réglages d'envoi et de récupération, fil d'arrière-plan
 
 **Fichiers:**
 - Créer: `src/opendofusdata/sync_options.py`, `src/opendofusdata/sync_worker.py`
@@ -213,7 +213,7 @@ Entrées et conditions que la spécification suppose sans que les tests des tâc
 - [ ] **Étape 4: tests verts** et suite client complète.
 - [ ] **Étape 5: commit** `feat: send and receive settings and the background sync worker`.
 
-### Tâche 11: révocation avec ou sans suppression des relevés (administration)
+### Task 11: révocation avec ou sans suppression des relevés (administration)
 
 **Fichiers:**
 - Modifier: `src/opendofusdata/admin_client.py`, `src/opendofusdata/page_admin.py` (et `admin_rows.py` si le bouton y vit)
@@ -229,7 +229,7 @@ Entrées et conditions que la spécification suppose sans que les tests des tâc
 - [ ] **Étape 4: tests verts** et suite client complète.
 - [ ] **Étape 5: commit** `feat: revoke with or without deleting the key readings from the Administration tab`.
 
-### Tâche 12: purge locale des relevés de plus de 7 jours
+### Task 12: purge locale des relevés de plus de 7 jours
 
 **Fichiers:**
 - Créer: `src/opendofusdata/local_purge.py`, `src/opendofusdata/purge_options.py`, `src/opendofusdata/local_data_card.py`
@@ -245,7 +245,7 @@ Entrées et conditions que la spécification suppose sans que les tests des tâc
 - [ ] **Étape 4: tests verts** et suite client complète.
 - [ ] **Étape 5: commit** `feat: optional local purge of readings older than 7 days (latest price per key and user data kept)`.
 
-### Tâche 13: documentation, confidentialité et consignes
+### Task 13: documentation, confidentialité et consignes
 
 **Fichiers:**
 - Modifier: `README.md`, `docs/developpement.md`, `docs/roadmap.md`, `CLAUDE.md`, `docs/superpowers/specs/2026-11-16-player-sync-design.md`, `src/opendofusdata/settings_about.py` si le résumé cite la synchro

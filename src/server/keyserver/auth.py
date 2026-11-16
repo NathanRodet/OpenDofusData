@@ -41,12 +41,16 @@ class KeyVerifier:
         self._secret = secret
         self._revocations = revocations
 
-    def is_valid(self, key: str) -> bool:
-        """True for a correctly signed, non-revoked key."""
+    def verified_key_id(self, key: str) -> str | None:
+        """The identifier of a correctly signed, non-revoked key, else None."""
         key_id = parse_key(key)
         if key_id is None or not signature_is_valid(self._secret, key):
-            return False
-        return not self._revocations.is_revoked(key_id)
+            return None
+        return None if self._revocations.is_revoked(key_id) else key_id
+
+    def is_valid(self, key: str) -> bool:
+        """True for a correctly signed, non-revoked key."""
+        return self.verified_key_id(key) is not None
 
 
 def is_admin_path(path: str) -> bool:
@@ -74,20 +78,24 @@ class BearerAuthMiddleware:
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "lifespan":
             await self._app(scope, receive, send)
-        elif scope["type"] == "http" and self._is_authorised(scope):
+        elif scope["type"] == "http" and self._authorise(scope):
             await self._app(scope, receive, send)
         elif scope["type"] == "http":
             await self._reject(send)
         else:
             await send({"type": "websocket.close", "code": WEBSOCKET_POLICY_CLOSE})
 
-    def _is_authorised(self, scope: Scope) -> bool:
+    def _authorise(self, scope: Scope) -> bool:
+        """True when the request may go on; a user key also leaves its identifier in `scope["state"]`."""
         token = bearer_token(_authorization_value(scope))
         if token is None:
             return False
         if is_admin_path(request_path(scope)):
             return self._is_admin_token(token)
-        return self._verifier.is_valid(token)
+        key_id = self._verifier.verified_key_id(token)
+        if key_id is not None:
+            scope.setdefault("state", {})["key_id"] = key_id
+        return key_id is not None
 
     def _is_admin_token(self, token: str) -> bool:
         if not self._admin_token:

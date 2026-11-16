@@ -68,3 +68,18 @@ def test_cli_with_yes_resets_and_reports_the_backup(tmp_path, capsys) -> None:
     assert cli.run(["reset-data", "--db", path, "--yes"], lambda *args: 0) == 0
     assert "Sauvegarde" in capsys.readouterr().out
     assert count(path, "lot_prices") == 0 and len(list(tmp_path.glob("*backup*"))) == 1
+
+
+def test_reset_also_forgets_the_sync_position(tmp_path) -> None:
+    path = str(tmp_path / "prices.db")
+    fill(path)
+    store = PriceStore(path)
+    from opendofusdata.sync_store import get_state, set_state
+    set_state(store.connection, "cursor", "42")
+    set_state(store.connection, "latest_done", "1")
+    store.close()
+    reset_collected_data(path, NOW)
+    store = PriceStore(path)
+    assert get_state(store.connection, "cursor") is None
+    assert get_state(store.connection, "latest_done") is None
+    store.close()

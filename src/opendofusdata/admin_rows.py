@@ -13,10 +13,12 @@ from opendofusdata.ui_widgets import make_label
 
 COPY_LABEL = "Copier la clé"
 REVOKE_LABEL = "Révoquer"
+REVOKE_PURGE_LABEL = "Révoquer et supprimer ses relevés"
 ACTIVE_TEXT = "Active"
 REVOKED_TEXT = "Révoquée le {date}"
 DATE_LENGTH = 10  # YYYY-MM-DD out of the ISO timestamp
 ROW_BUTTON_WIDTH = 110
+WIDE_BUTTON_WIDTH = 230
 KeyAction = Callable[[str], None]
 
 
@@ -30,9 +32,10 @@ def status_text(entry: KeyEntry) -> str:
 class AdminRows(customtkinter.CTkFrame):
     """Rebuilt only when the entries change; each row copies or revokes the key it shows."""
 
-    def __init__(self, parent: customtkinter.CTkBaseClass, on_copy: KeyAction, on_revoke: KeyAction) -> None:
+    def __init__(self, parent: customtkinter.CTkBaseClass, on_copy: KeyAction, on_revoke: KeyAction,
+                 on_revoke_purge: KeyAction) -> None:
         super().__init__(parent, fg_color=TRANSPARENT, corner_radius=0)
-        self._on_copy, self._on_revoke = on_copy, on_revoke
+        self._on_copy, self._on_revoke, self._on_revoke_purge = on_copy, on_revoke, on_revoke_purge
         self.entries: list[KeyEntry] = []
         self._status_labels: dict[str, customtkinter.CTkLabel] = {}
 
@@ -61,9 +64,12 @@ class AdminRows(customtkinter.CTkFrame):
         self._status_labels[entry.key_id] = status
         self._button(COPY_LABEL, self._on_copy, entry.key_id, not revoked).grid(row=row, column=3, **padding)
         self._button(REVOKE_LABEL, self._on_revoke, entry.key_id, not revoked).grid(row=row, column=4, **padding)
+        self._button(REVOKE_PURGE_LABEL, self._on_revoke_purge, entry.key_id, not revoked,
+                     WIDE_BUTTON_WIDTH).grid(row=row, column=5, **padding)
 
-    def _button(self, text: str, action: KeyAction, key_id: str, enabled: bool) -> customtkinter.CTkButton:
+    def _button(self, text: str, action: KeyAction, key_id: str, enabled: bool,
+                width: int = ROW_BUTTON_WIDTH) -> customtkinter.CTkButton:
         return customtkinter.CTkButton(
-            self, text=text, width=ROW_BUTTON_WIDTH, height=BUTTON_HEIGHT, corner_radius=CORNER_RADIUS,
+            self, text=text, width=width, height=BUTTON_HEIGHT, corner_radius=CORNER_RADIUS,
             fg_color=ACCENT_COLOR, hover_color=ACCENT_HOVER_COLOR, state="normal" if enabled else "disabled",
             command=lambda: action(key_id))

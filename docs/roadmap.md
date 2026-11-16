@@ -38,12 +38,12 @@ Le guide pour capturer de nouveaux cas: [new-categories.md](new-categories.md).
 
 ## Synchronisation et serveur
 
-Fait (branche `key-server`, pas encore publié): serveur d'authentification par clés signées dans `src/server/` (révocation, limites de requête, schémas stricts des relevés), carte Synchronisation des Réglages (clé et test de connexion) et onglet Administration (génération locale des clés, révocation). Détails dans [developpement.md](developpement.md).
+Fait (branche `player-sync`, pas encore publié): serveur d'authentification par clés signées dans `src/server/` (révocation avec ou sans suppression des relevés de la clé, limites de requête, schémas stricts), synchronisation des prix de lots de l'HDV dans les deux sens (envoi et récupération décochés par défaut, journal de 7 jours côté serveur, identifiant de la clé émettrice gardé avec chaque relevé), carte Synchronisation des Réglages, purge locale optionnelle des relevés de plus de 7 jours et onglet Administration. Détails dans [developpement.md](developpement.md).
 
 Reste à faire:
-- Route d'ingestion des relevés (champs par catégorie, bornes tirées des vraies données), ajoutée à `ALLOWED_ROUTES` du serveur.
-- File d'envoi côté client (colonne `synced_at`), identifiant d'enregistrement idempotent, reprises avec attente croissante, réglage d'envoi par catégorie, mise à jour du README et de la confidentialité.
-- Protection contre les données falsifiées (médiane entre contributeurs), puis SaaS d'affichage des prix.
+- Synchroniser aussi les statistiques de marché, le brisage et les familiers (même mécanisme, un réglage par catégorie).
+- Propagation de la purge d'une clé aux clients (le serveur publierait les clés purgées, les clients effaceraient les lignes dont `source_key_id` correspond): volontairement hors périmètre pour l'instant.
+- Protection contre les données falsifiées (médiane entre contributeurs), reportée par le propriétaire, puis SaaS d'affichage des prix.
 
 ## Pistes facultatives
 

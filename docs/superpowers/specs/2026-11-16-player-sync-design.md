@@ -1,6 +1,6 @@
 # Synchronisation des prix entre joueurs (conception)
 
-Date: 2026-11-16. Statut: à approuver par le propriétaire.
+Date: 2026-11-16. Statut: approuvée par le propriétaire, implémentée sur la branche `player-sync` (voir le plan pour les écarts).
 
 ## But
 
@@ -62,6 +62,7 @@ Clé naturelle d'un relevé côté serveur: (clé émettrice, serveur, objet, lo
 - **Envoi:** un fil d'arrière-plan prend les lignes `local` non envoyées par lots de 2000, filtre un prix identique au dernier envoyé pour la même clé naturelle depuis moins d'une heure, envoie, puis renseigne `synced_at` seulement après la réponse `200`. Échec réseau: nouvelle tentative avec attente croissante bornée. `401`: arrêt et message clair, pas de nouvelle tentative.
 - **Récupération:** au premier lancement `GET /readings/latest` puis `GET /readings`, ensuite seulement `GET /readings` depuis le dernier numéro mémorisé (dans la base locale). Les lignes reçues sont insérées avec `origin = remote` et `synced_at` renseigné, sans doublon.
 - **Requêtes réseau:** HTTPS seulement via `https_json` (pas de redirection, délais et tailles bornés); aucun secret ni relevé dans les journaux.
+- **Purge locale optionnelle (demande du propriétaire):** une case (décochée par défaut, au lancement) et un bouton dans Réglages suppriment de la base locale les relevés de prix et de statistiques de plus de 7 jours, en gardant toujours le plus récent de chaque clé; favoris, observations manuelles, noms, serveurs, brisages, familiers et état de synchro ne sont jamais touchés.
 - **Documentation:** README (bannière et section Privacy), `docs/developpement.md`, feuille de route.
 
 ## Reste au constructeur

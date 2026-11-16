@@ -146,3 +146,17 @@ class BrokenBody:
 def test_a_truncated_error_body_still_gives_the_status() -> None:
     error = urllib.error.HTTPError(BASE, 502, "message", {}, BrokenBody())
     assert request_json(BASE, "GET", "/check", opener=FakeOpener(error)) == (502, {})
+
+
+def test_request_json_accepts_a_larger_cap_when_asked() -> None:
+    body = json.dumps({"filler": "x" * (MAX_RESPONSE_BYTES + 10)}).encode()
+    status, answer = request_json(BASE, "GET", "/big", opener=FakeOpener(FakeResponse(body)),
+                                  max_response_bytes=MAX_RESPONSE_BYTES * 2)
+    assert status == 200 and len(answer["filler"]) == MAX_RESPONSE_BYTES + 10
+
+
+def test_request_json_default_cap_is_unchanged() -> None:
+    body = json.dumps({"filler": "x" * (MAX_RESPONSE_BYTES + 10)}).encode()
+    with pytest.raises(HttpsFailure) as failure:
+        request_json(BASE, "GET", "/big", opener=FakeOpener(FakeResponse(body)))
+    assert failure.value.reason == BAD_RESPONSE
