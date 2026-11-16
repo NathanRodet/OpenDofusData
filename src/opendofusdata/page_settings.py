@@ -15,12 +15,13 @@ from opendofusdata.client_settings import (
 from opendofusdata.names_refresh import refresh_reference_data
 from opendofusdata.settings_about import AboutCard, UpdatesCard, open_url
 from opendofusdata.settings_names import NamesCard, Refresh
+from opendofusdata.settings_sections import SettingsSections
 from opendofusdata.settings_prices import PricesCard
 from opendofusdata.sync_client import resolve_server_url
 from opendofusdata.local_data_card import LocalDataCard
 from opendofusdata.sync_settings_card import SyncSettingsCard
 from opendofusdata.ui_theme import (
-    ACCENT_COLOR, CARD_MIN_WIDTH, ERROR_COLOR, MUTED_COLOR, PADDING, SWITCH_WIDTH, TINY_PADDING, TITLE_SIZE,
+    ACCENT_COLOR, ERROR_COLOR, MUTED_COLOR, PADDING, SWITCH_WIDTH, TINY_PADDING, TITLE_SIZE,
     TRANSPARENT, WRAP_LENGTH,
 )
 from opendofusdata.ui_widgets import make_button, make_card, make_card_title, make_label
@@ -30,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 TITLE = "Réglages"
 SUBTITLE = "Un changement de serveur ou de base relance la capture."
-CARD_GAP = 6
+SECTION_TITLES = ("Capture", "Données de référence", "Synchronisation", "Application")
 SERVER_LABEL = "Serveur de jeu"
 DATABASE_LABEL = "Base de données"
 UPDATE_LABEL = "Vérifier les mises à jour au démarrage"
@@ -67,37 +68,40 @@ class SettingsPage:
         self.message_label.pack(fill="x", padx=PADDING)
         self._body = customtkinter.CTkScrollableFrame(self.frame, fg_color=TRANSPARENT)
         self._body.pack(fill="both", expand=True, padx=PADDING, pady=PADDING)
+        self._sections = SettingsSections(self._body)
         self._build_cards(refresh, open_page)
-        self._cards = self._body.pack_slaves()
-        self._columns = 0
         self.frame.bind("<Configure>", lambda event: self.reflow(event.width))
-        self.reflow(CARD_MIN_WIDTH)
 
     def _build_cards(self, refresh: Refresh, open_page: Callable[[str], None]) -> None:
         context = self._context
-        self.server_menu = self._add_server_row(self._body)
-        self.database_label = self._add_database_card(self._body)
-        self.names_card = NamesCard(self._body, context, refresh)
-        self.prices_card = PricesCard(self._body, context, self._save)
+        capture = self._sections.add(SECTION_TITLES[0])
+        self.server_menu = self._add_server_row(capture)
+        self.database_label = self._add_database_card(capture)
+        reference = self._sections.add(SECTION_TITLES[1])
+        self.names_card = NamesCard(reference, context, refresh)
+        self.prices_card = PricesCard(reference, context, self._save)
+        synchronisation = self._sections.add(SECTION_TITLES[2])
         sync_address = resolve_server_url(env_file_path(context.config_path))
-        self.sync_card = SyncSettingsCard(self._body, context, server_url=sync_address, status=context.sync_status)
-        self.local_data_card = LocalDataCard(self._body, context)
-        self.update_switch = self._add_update_row(self._body)
-        self.updates_card = UpdatesCard(self._body, context, open_page)
-        self.about_card = AboutCard(self._body, open_page)
+        self.sync_card = SyncSettingsCard(synchronisation, context, server_url=sync_address, status=context.sync_status)
+        self.local_data_card = LocalDataCard(synchronisation, context)
+        application = self._sections.add(SECTION_TITLES[3])
+        self.update_switch = self._add_update_row(application)
+        self.updates_card = UpdatesCard(application, context, open_page)
+        self.about_card = AboutCard(application, open_page)
+        self._sections.collect()
+
+    @property
+    def sections(self) -> list[tuple[str, list]]:
+        """The sections and their cards (for the layout tests)."""
+        return self._sections.sections
+
+    @property
+    def section_headings(self) -> list:
+        return self._sections.headings
 
     def reflow(self, width: int) -> None:
-        """Lay the cards out in as many columns of at least CARD_MIN_WIDTH as fit."""
-        columns = max(1, width // CARD_MIN_WIDTH)
-        if columns == self._columns:
-            return
-        self._columns = columns
-        for index in range(columns):
-            self._body.grid_columnconfigure(index, weight=1, uniform="cards")
-        for card in self._cards:
-            card.pack_forget()
-        for index, card in enumerate(self._cards):
-            card.grid(row=index // columns, column=index % columns, sticky="new", padx=CARD_GAP, pady=CARD_GAP)
+        """Lay the cards out in as many columns of at least CARD_MIN_WIDTH as fit (two at most)."""
+        self._sections.reflow(width)
 
     def _add_server_row(self, body: customtkinter.CTkFrame) -> customtkinter.CTkOptionMenu:
         current = self._context.session.server

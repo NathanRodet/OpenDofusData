@@ -86,14 +86,14 @@ def test_current_server_missing_from_the_list_is_still_shown(root, tmp_path) -> 
     assert SettingsPage(root, context, lambda current: None).server_menu.get() == "Inconnu"
 
 
-def test_about_page_names_the_app_and_says_sending_needs_the_players_consent(root, tmp_path) -> None:
+def test_about_page_names_the_app_and_says_sending_starts_with_a_saved_key(root, tmp_path) -> None:
     import customtkinter
 
     card = AboutCard(customtkinter.CTkFrame(root), lambda url: None)
     text = card.summary_label.cget("text")
-    assert "seulement si tu l'autorises" in text
-    assert "décochées par défaut" in text
-    assert "rien ne quitte ta machine" in text
+    assert "seulement si tu enregistres une clé" in text
+    assert "retire la clé pour arrêter" in text
+    assert "Sans clé, rien ne quitte ta machine" in text
     updates = UpdatesCard(customtkinter.CTkFrame(root), make_context(tmp_path))
     assert updates.version_label.cget("text") == f"Version {__version__}"
 

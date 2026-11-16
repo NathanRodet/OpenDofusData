@@ -41,6 +41,8 @@ SALE_PRICE_LABEL = "Prix HDV le plus bas"
 class CraftPage(ViewPage):
     """Crafts whose prices are all known; incomplete ones appear on request or when they are favourites."""
 
+    widens_period = False  # its period bar is hidden: the rows do not depend on a period
+
     def __init__(self, parent: customtkinter.CTkBaseClass, context: WindowContext, **options: object) -> None:
         super().__init__(parent, context, TITLE, COLUMNS, (MARGIN_COLUMN, True), 0, **options)
         self.period_bar.pack_forget()

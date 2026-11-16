@@ -18,7 +18,7 @@ TITLE = "Données locales"
 NOTE = (f"Supprime de ta base les prix et statistiques de plus de {LOCAL_RETENTION_DAYS} jours, en gardant toujours "
         "le dernier prix connu de chaque objet. Tes favoris, tes observations de familiers, les noms d'objets, "
         "les brisages et les améliorations de familiers ne sont jamais touchés.")
-AUTO_LABEL = f"Supprimer automatiquement les relevés de plus de {LOCAL_RETENTION_DAYS} jours (au lancement)"
+AUTO_LABEL = "Purge automatique au lancement"
 PURGE_LABEL = "Purger maintenant"
 PURGING_LABEL = "Purge en cours..."
 CONFIRM_TITLE = "Purger les anciens relevés"

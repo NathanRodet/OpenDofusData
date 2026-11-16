@@ -4,13 +4,9 @@ from collections.abc import Callable
 
 import customtkinter
 
-from opendofusdata.app_config import load_config, save_config
 from opendofusdata.background import BackgroundTask, TaskSnapshot, TaskState
 from opendofusdata.sync_client import ConnectionResult, check_connection
 from opendofusdata.sync_key import clean_key, key_format_ok, load_sync_key, save_sync_key
-from opendofusdata.sync_options import (
-    config_with_sync_receive, config_with_sync_send, sync_receive_enabled, sync_send_enabled,
-)
 from opendofusdata.ui_theme import ERROR_COLOR, MUTED_COLOR, PADDING, SUCCESS_COLOR, TINY_PADDING, WRAP_LENGTH
 from opendofusdata.ui_widgets import make_button, make_card, make_card_title, make_label
 from opendofusdata.window_context import WindowContext
@@ -18,11 +14,9 @@ from opendofusdata.window_context import WindowContext
 MASK_CHARACTER = "*"
 ENTRY_WIDTH = 300
 TITLE = "Synchronisation"
-NOTE = ("Colle ici la clé donnée par l'administrateur. Rien n'est envoyé sans ton accord: coche ci-dessous "
-        "ce que tu autorises. Le test de connexion n'envoie que ta clé, quand tu cliques dessus.")
-SEND_LABEL = "Envoyer mes prix (HDV) au serveur"
-RECEIVE_LABEL = "Récupérer les prix des autres joueurs"
-OPTION_SAVE_FAILED_TEXT = "Le réglage n'a pas pu être enregistré (voir le fichier de log)."
+NOTE = ("Colle ici la clé donnée par l'administrateur. Dès qu'elle est enregistrée, tes prix de l'HDV sont envoyés "
+        "au serveur et ceux des autres joueurs récupérés; retire la clé pour arrêter. Le test de connexion "
+        "n'envoie que ta clé, quand tu cliques dessus.")
 STATUS_PREFIX = "Synchronisation: "
 SHOW_LABEL = "Afficher la clé"
 SAVE_LABEL = "Enregistrer"
@@ -72,35 +66,11 @@ class SyncSettingsCard:
         self.test_button.pack()
         self.status_label = make_label(card, "", color=MUTED_COLOR, anchor="w", justify="left", wraplength=WRAP_LENGTH)
         self.status_label.pack(fill="x", padx=PADDING, pady=PADDING)
-        self._build_options(card)
-        if not self._server_url:
-            self._set_status(NOT_CONFIGURED_TEXT, MUTED_COLOR)
-
-    def _build_options(self, card: customtkinter.CTkFrame) -> None:
-        """The two permissions (both off by default) and the line telling how the last synchronisation went."""
-        config = load_config(self._config_path)
-        self.send_box = customtkinter.CTkCheckBox(card, text=SEND_LABEL, command=self.toggle_send)
-        self.receive_box = customtkinter.CTkCheckBox(card, text=RECEIVE_LABEL, command=self.toggle_receive)
-        for box, enabled in ((self.send_box, sync_send_enabled(config)), (self.receive_box, sync_receive_enabled(config))):
-            box.pack(anchor="w", padx=PADDING, pady=TINY_PADDING)
-            (box.select if enabled else box.deselect)()
         self.sync_status_label = make_label(card, "", color=MUTED_COLOR, anchor="w", justify="left",
                                             wraplength=WRAP_LENGTH)
         self.sync_status_label.pack(fill="x", padx=PADDING, pady=(0, PADDING))
-
-    def _save_option(self, change: Callable[[dict[str, object], bool], dict[str, object]], enabled: bool) -> None:
-        try:
-            save_config(self._config_path, change(load_config(self._config_path), enabled))
-        except OSError:
-            self._set_status(OPTION_SAVE_FAILED_TEXT, ERROR_COLOR)
-
-    def toggle_send(self) -> None:
-        """Save the permission to send the prices, following the check box."""
-        self._save_option(config_with_sync_send, bool(self.send_box.get()))
-
-    def toggle_receive(self) -> None:
-        """Save the permission to receive the other players' prices, following the check box."""
-        self._save_option(config_with_sync_receive, bool(self.receive_box.get()))
+        if not self._server_url:
+            self._set_status(NOT_CONFIGURED_TEXT, MUTED_COLOR)
 
     def _set_status(self, text: str, color: str) -> None:
         self.status_label.configure(text=text, text_color=color)
@@ -116,7 +86,7 @@ class SyncSettingsCard:
             self._set_status(BAD_FORMAT_TEXT, ERROR_COLOR)
         elif save_sync_key(self._config_path, text or None):
             self._set_status(SAVED_TEXT if text else REMOVED_TEXT, MUTED_COLOR)
-            self._render_options()
+            self._render_status()
         else:
             self._set_status(SAVE_FAILED_TEXT, ERROR_COLOR)
 
@@ -145,16 +115,13 @@ class SyncSettingsCard:
         if snapshot is not self._shown_snapshot:
             self._shown_snapshot = snapshot
             self._show_snapshot(snapshot)
-        self._render_options()
+        self._render_status()
         usable = bool(self._server_url) and not running
         self.test_button.configure(state="normal" if usable else "disabled",
                                    text=TESTING_LABEL if running else TEST_LABEL)
 
-    def _render_options(self) -> None:
-        """The boxes need a server address and a saved key; the worker's last message is shown under them."""
-        ready = bool(self._server_url) and load_sync_key(self._config_path) is not None
-        for box in (self.send_box, self.receive_box):
-            box.configure(state="normal" if ready else "disabled")
+    def _render_status(self) -> None:
+        """Show the last message of the background synchronisation, if any."""
         message = self._worker_status()
         self.sync_status_label.configure(text=f"{STATUS_PREFIX}{message}" if message else "")
 

@@ -38,7 +38,7 @@ Le guide pour capturer de nouveaux cas: [new-categories.md](new-categories.md).
 
 ## Synchronisation et serveur
 
-Fait (branche `player-sync`, pas encore publié): serveur d'authentification par clés signées dans `src/server/` (révocation avec ou sans suppression des relevés de la clé, limites de requête, schémas stricts), synchronisation des prix de lots de l'HDV dans les deux sens (envoi et récupération décochés par défaut, journal de 7 jours côté serveur, identifiant de la clé émettrice gardé avec chaque relevé), carte Synchronisation des Réglages, purge locale optionnelle des relevés de plus de 7 jours et onglet Administration. Détails dans [developpement.md](developpement.md).
+Fait (branche `player-sync`, pas encore publié): serveur d'authentification par clés signées dans `src/server/` (révocation avec ou sans suppression des relevés de la clé, limites de requête, schémas stricts), synchronisation des prix de lots de l'HDV dans les deux sens (actifs dès qu'une clé est enregistrée, journal de 7 jours côté serveur, identifiant de la clé émettrice gardé avec chaque relevé), carte Synchronisation des Réglages, purge locale optionnelle des relevés de plus de 7 jours et onglet Administration. Détails dans [developpement.md](developpement.md).
 
 Reste à faire:
 - Synchroniser aussi les statistiques de marché, le brisage et les familiers (même mécanisme, un réglage par catégorie).

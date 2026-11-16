@@ -5,7 +5,7 @@ from collections.abc import Callable
 
 import customtkinter
 
-from opendofusdata.time_filters import PERIOD_CUSTOM, PERIODS, PeriodSelection, parse_custom_range
+from opendofusdata.time_filters import PERIOD_CUSTOM, PERIODS, PeriodSelection, next_period, parse_custom_range
 from opendofusdata.ui_theme import ERROR_COLOR, MUTED_COLOR, PERIOD_MENU_WIDTH, SMALL_PADDING, TRANSPARENT
 from opendofusdata.ui_widgets import make_label
 
@@ -60,6 +60,20 @@ class PeriodBar(customtkinter.CTkFrame):
         self._custom_row.pack_forget()
         self._selection = PeriodSelection(period)
         self._on_change()
+
+    def widen(self) -> bool:
+        """Show the next period of the list (the menu follows); False when there is none."""
+        following = next_period(self._selection.period)
+        if following is None:
+            return False
+        self.menu.set(following)
+        self._selection = PeriodSelection(following)
+        return True
+
+    def restore(self, selection: PeriodSelection) -> None:
+        """Go back to a selection without asking for a new read (used after a widening found nothing)."""
+        self.menu.set(selection.period)
+        self._selection = selection
 
     def apply_custom(self) -> None:
         """Apply the typed dates, or keep the previous selection and say why not."""

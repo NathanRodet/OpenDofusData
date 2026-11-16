@@ -26,11 +26,18 @@ REFRESH_SECONDS = 2.0
 SEARCH_WIDTH = 240
 SEARCH_PLACEHOLDER = "Rechercher un objet"
 TRUNCATED_NOTICE = "Seules les 5 000 premières lignes sont affichées : affine la période ou la recherche."
+WIDENED_NOTICE = "Aucune donnée pour « {old} »: affichage de « {new} »."
 READ_FAILED_NOTICE = "Lecture de la base impossible pour le moment, les dernières données restent affichées."
 
 
 class ViewPage:
-    """Reads the database every REFRESH_SECONDS and on every filter or selection change."""
+    """Reads the database every REFRESH_SECONDS and on every filter or selection change.
+
+    When the chosen period holds no data, the next periods are tried (`widens_period`; a page that does not show
+    its period bar turns this off).
+    """
+
+    widens_period = True
 
     def __init__(self, parent: customtkinter.CTkBaseClass, context: WindowContext, title: str,
                  columns: Sequence[Column], default_sort: tuple[int, bool], name_column: int,
@@ -42,6 +49,7 @@ class ViewPage:
         self._last_refresh: float | None = None
         self._server: str | None = None
         self._selected: object | None = None
+        self._widened_from: str | None = None
         self.frame = customtkinter.CTkFrame(parent, fg_color=TRANSPARENT, corner_radius=0)
         self._build_header(title)
         self.split = SplitLayout(self.frame)
@@ -58,7 +66,7 @@ class ViewPage:
         self.search_entry = customtkinter.CTkEntry(header, width=SEARCH_WIDTH, placeholder_text=SEARCH_PLACEHOLDER)
         self.search_entry.pack(side="right")
         self.search_entry.bind("<KeyRelease>", lambda _event: self._show_rows())
-        self.period_bar = PeriodBar(self.frame, self.refresh, PeriodSelection())
+        self.period_bar = PeriodBar(self.frame, self._period_chosen, PeriodSelection())
         self.period_bar.pack(fill="x", padx=PADDING, pady=(0, SMALL_PADDING))
 
     def load_rows(self, connection: sqlite3.Connection, server: str, window: Window) -> list[TableRow]:
@@ -82,13 +90,35 @@ class ViewPage:
         if server != self._server:
             self._server, self._selected = server, None
             self.table.clear_selection()
-        window = period_window(self.period_bar.selection(), self._clock())
-        rows = self._read(lambda connection: self.load_rows(connection, server, window))
+        rows = self._read_rows(server)
+        if rows == [] and self.widens_period:
+            rows = self._widen_until_data(server)
         if rows is None:
             self.notice.configure(text=READ_FAILED_NOTICE)
             return
         self._rows = rows
         self._show_rows()
+
+    def _period_chosen(self) -> None:
+        """The player picked a period: forget any automatic widening and read again."""
+        self._widened_from = None
+        self.refresh()
+
+    def _read_rows(self, server: str) -> list[TableRow] | None:
+        window = period_window(self.period_bar.selection(), self._clock())
+        return self._read(lambda connection: self.load_rows(connection, server, window))
+
+    def _widen_until_data(self, server: str) -> list[TableRow] | None:
+        """Try the following periods one by one; when none has data, go back to the period that was chosen."""
+        original = self.period_bar.selection()
+        rows: list[TableRow] | None = []
+        while rows == [] and self.period_bar.widen():
+            rows = self._read_rows(server)
+        if rows:
+            self._widened_from = original.period
+        else:
+            self.period_bar.restore(original)
+        return rows
 
     def _read(self, action: Callable[[sqlite3.Connection], object]) -> object | None:
         connection = open_view_connection(self._context.session.database_path)
@@ -106,8 +136,13 @@ class ViewPage:
         text = self.search_entry.get().strip().casefold()
         shown = [row for row in self._rows if text in row.cells[self._name_column].casefold()]
         truncated = self.table.set_rows(shown)
-        self.notice.configure(text=TRUNCATED_NOTICE if truncated else "")
+        self.notice.configure(text=TRUNCATED_NOTICE if truncated else self._widened_text())
         self._refresh_detail()
+
+    def _widened_text(self) -> str:
+        if self._widened_from is None:
+            return ""
+        return WIDENED_NOTICE.format(old=self._widened_from, new=self.period_bar.selection().period)
 
     def _selection_changed(self, key: object | None) -> None:
         self._selected = key

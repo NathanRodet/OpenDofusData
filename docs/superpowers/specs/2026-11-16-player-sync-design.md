@@ -57,7 +57,7 @@ Clé naturelle d'un relevé côté serveur: (clé émettrice, serveur, objet, lo
 
 ### Client
 
-- **Réglages (carte Synchronisation):** deux cases, « Envoyer mes prix » et « Récupérer les prix des autres », décochées par défaut (envoi explicite, par catégorie, comme prévu dans la mémoire du projet). Elles ne sont actives que si une clé et une adresse de serveur existent.
+- **Réglages (carte Synchronisation):** décision du propriétaire du 2026-11-16, qui remplace les deux cases prévues à l'origine: pas de case à cocher, enregistrer une clé (avec une adresse de serveur) active l'envoi et la récupération, la retirer les arrête.
 - **Base locale:** `lot_prices` reçoit `origin` (`local` ou `remote`), `synced_at` (vide tant que non envoyé) et `source_key_id` (l'identifiant de la clé émettrice d'une ligne reçue); migration sans perte des bases existantes (lignes existantes: `local`, non envoyées). Les vues de prix prennent le relevé le plus récent, quelle que soit l'origine.
 - **Envoi:** un fil d'arrière-plan prend les lignes `local` non envoyées par lots de 2000, filtre un prix identique au dernier envoyé pour la même clé naturelle depuis moins d'une heure, envoie, puis renseigne `synced_at` seulement après la réponse `200`. Échec réseau: nouvelle tentative avec attente croissante bornée. `401`: arrêt et message clair, pas de nouvelle tentative.
 - **Récupération:** au premier lancement `GET /readings/latest` puis `GET /readings`, ensuite seulement `GET /readings` depuis le dernier numéro mémorisé (dans la base locale). Les lignes reçues sont insérées avec `origin = remote` et `synced_at` renseigné, sans doublon.

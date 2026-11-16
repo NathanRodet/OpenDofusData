@@ -15,7 +15,7 @@ A small Windows app that passively reads Dofus network traffic and stores prices
 
 </div>
 
-> **Sharing prices is optional and off by default.** Everything stays on your machine unless you paste a synchronization key and tick the boxes in **Réglages**: then the app can send the market prices you see to a sync server and fetch the ones other players sent. It only ever carries game data (never personal information); see [Privacy](#privacy) for exactly what is sent.
+> **Sharing prices starts when you enter a synchronization key.** Without a key, everything stays on your machine. With the key given to you by the server owner, saved in **Réglages**, the app sends the market prices you see to a sync server and fetches the ones other players sent; remove the key to stop. It only ever carries game data (never personal information); see [Privacy](#privacy) for exactly what is sent.
 
 ---
 
@@ -63,7 +63,7 @@ OpenDofusData listens while you play and turns what it understands into tables, 
 | **Craft** | Every craft whose prices are all known, from most to least profitable, with the detail of its resources. Tick *Afficher les crafts incomplets* to also list the crafts with a missing price (the detail says which), and mark crafts as **favorites** (stored locally): a favorite stays listed even when a price is missing, and *Favoris seulement* keeps only them. |
 | **Familiers** (pets) | How much XP a resource gives a pet and what one XP point costs you, cheapest first. Add your own observed XP for *x* resources, see the **price stop** at 25 kamas per XP, mark resources as **favorites** (stored locally, with a "favorites only" filter), and open the **Coverage** tab to see how many resources have a known coefficient and which ones are still missing (filterable by category). |
 | **Logs** | What is being captured right now, filterable by type, period and name. |
-| **Réglages** (settings) | Game server, database location, item names, the price used for estimates, the synchronization key (connection test, send and receive boxes), the optional purge of old local data, updates. |
+| **Réglages** (settings) | Game server, database location, item names, the price used for estimates, the synchronization key (connection test), the optional purge of old local data, updates. |
 
 Every page can be filtered with the period dropdown (last hour, 6 hours, today, 7 days, 30 days, all time, or a custom range), sorted by clicking a column header, and only shows the server you picked.
 
@@ -95,8 +95,8 @@ Updates are **never automatic**. At startup the app asks GitHub whether a newer 
 
 - Only game data is stored: item IDs, prices, quantities, timestamps and the game server you chose.
 - IP addresses, accounts, character names and chat are **never stored or sent**.
-- **Game data leaves your machine only if you allow it.** The only network requests the app makes by itself are the update check (`api.github.com`, can be disabled) and, only if you click *Télécharger les noms*, the download of item names from `api.dofusdb.fr`.
-- **Synchronization** needs a key given to you by the server owner. Pasting it in **Réglages** and clicking *Tester la connexion* sends your key, and nothing else, only when you click. Price sharing has two separate boxes, both unticked by default: *Envoyer mes prix* sends, for each item you looked at in the market, its item ID, lot size (x1, x10, x100, x1000), total price, the time you saw it and the game server you chose, with your key in the request header; *Récupérer les prix des autres joueurs* downloads what the others sent.
+- **Game data leaves your machine only once you save a synchronization key.** The only network requests the app makes by itself are the update check (`api.github.com`, can be disabled) and, only if you click *Télécharger les noms*, the download of item names from `api.dofusdb.fr`.
+- **Synchronization** needs a key given to you by the server owner. Saving it in **Réglages** switches sharing on: the app then sends, for each item you looked at in the market, its item ID, lot size (x1, x10, x100, x1000), total price, the time you saw it and the game server you chose, with your key in the request header, and downloads what the others sent. Removing the key stops it. *Tester la connexion* sends your key, and nothing else, only when you click.
 - **What other players see:** each price you send carries the 11-character code of your key. It is a pseudonym that lets the server owner revoke a key (and optionally delete its prices); it is not linked to your account or your character. The server keeps prices for 7 days. Your IP address is never stored and never read by the server application.
 - The source code is public so this behavior can be verified.
 

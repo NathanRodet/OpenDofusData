@@ -13,6 +13,7 @@ PERIOD_MONTH = "30 jours"
 PERIOD_ALL = "Tout"
 PERIOD_CUSTOM = "Personnalisé"
 PERIODS = (PERIOD_LAST_HOUR, PERIOD_SIX_HOURS, PERIOD_TODAY, PERIOD_WEEK, PERIOD_MONTH, PERIOD_ALL, PERIOD_CUSTOM)
+WIDENING_ORDER = PERIODS[:-1]  # the presets from the shortest to the longest; the custom range has no next one
 
 RELATIVE_PERIODS = {
     PERIOD_LAST_HOUR: timedelta(hours=1),
@@ -34,6 +35,14 @@ class PeriodSelection:
     period: str = PERIOD_TODAY
     custom_start: datetime | None = None
     custom_end: datetime | None = None
+
+
+def next_period(period: str) -> str | None:
+    """The period that comes after this one in the dropdown, or None for the last one, a custom range or a typo."""
+    if period not in WIDENING_ORDER:
+        return None
+    position = WIDENING_ORDER.index(period) + 1
+    return WIDENING_ORDER[position] if position < len(WIDENING_ORDER) else None
 
 
 def _local_midnight(now: datetime, local_zone: tzinfo | None) -> datetime:
