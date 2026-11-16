@@ -1,6 +1,6 @@
 # Feuille de route
 
-État au 2026-11-16: la V2 (refonte de la fenêtre) est publiée. Version du produit: 2.2.0 (tags `v1.0.0` et `v1.1.0` existants; `v2.0.0` et `v2.1.0` publiés le 2026-11-15; `v2.2.0` préparée, pas encore publiée). La 2.2.0 ajoute la synchronisation des prix de lots entre joueurs (envoi et récupération facultatifs, serveur de clés), la purge locale optionnelle et, dans Craft, les favoris et l'affichage des crafts incomplets. La 2.1.0 ajoutait le menu déroulant de période, les favoris et l'onglet Couverture des Familiers, le détail des runes obtenues en vrai, et le verrouillage des dépendances.
+État au 2026-11-16: la V2 (refonte de la fenêtre) est publiée. Version du produit: 2.2.0 (tags `v1.0.0` et `v1.1.0` existants; `v2.0.0` et `v2.1.0` publiés le 2026-11-15; `v2.2.0` préparée, pas encore publiée). La 2.2.0 ajoute la synchronisation des prix de lots entre joueurs (envoi et récupération facultatifs, serveur de clés), la purge locale optionnelle, un seul bouton « Télécharger les données de référence » (noms, serveurs, recettes, effets), les pages Réglages et Administration refaites en sections et, dans Craft, les favoris et l'affichage des crafts incomplets. La 2.1.0 ajoutait le menu déroulant de période, les favoris et l'onglet Couverture des Familiers, le détail des runes obtenues en vrai, et le verrouillage des dépendances.
 
 ## Validé en jeu
 
