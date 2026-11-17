@@ -119,19 +119,19 @@ class Requester:
         self._delay = delay
         self._requested = False
 
-    def get(self, url: str, check: Callable[[object], None] | None = None) -> object:
+    def get(self, url: str, check: Callable[[str, object], None] | None = None) -> object:
         """Fetch a URL, retrying temporary failures (and answers `check` refuses); NamesFetchError when it persists."""
         if self._requested and self._delay > 0:
             self._sleep(self._delay)
         self._requested = True
         return self._with_retries(url, check)
 
-    def _with_retries(self, url: str, check: Callable[[object], None] | None) -> object:
+    def _with_retries(self, url: str, check: Callable[[str, object], None] | None) -> object:
         for attempt in range(MAX_ATTEMPTS):
             try:
                 payload = self._fetch(url)
                 if check is not None:
-                    check(payload)
+                    check(url, payload)
                 return payload
             except TransientFetchError as error:
                 last_error = error
@@ -141,12 +141,18 @@ class Requester:
             f"Téléchargement impossible : échec après {MAX_ATTEMPTS} essais ({last_error}).")
 
 
-def _require_page(payload: object) -> None:
+def _describe_payload(payload: object) -> str:
+    """A safe description of an answer for the logs: its type and key names, never its content."""
+    keys = sorted(str(key)[:30] for key in payload)[:10] if isinstance(payload, dict) else []
+    return f"type={type(payload).__name__}, clés={keys}"
+
+
+def _require_page(url: str, payload: object) -> None:
     """A page without total or data is a passing API hiccup: it is asked again."""
     try:
         _validated_page(payload)
     except NamesFetchError as error:
-        logger.warning("page inattendue de l'API DofusDB : %.200s", payload)
+        logger.warning("page inattendue de l'API DofusDB (%s) pour %s", _describe_payload(payload), url.split("?")[0])
         raise TransientFetchError("réponse inattendue") from error
 
 
