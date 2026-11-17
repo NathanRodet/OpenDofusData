@@ -13,7 +13,7 @@ from opendofusdata.pet_coverage_view import CoverageView
 from opendofusdata.pet_manual_form import PetManualForm
 from opendofusdata.pet_manual_store import add_manual, load_manual, remove_manual
 from opendofusdata.pet_favorites_store import load_favorites, toggle_favorite
-from opendofusdata.pets_texts import (FAVORITE_MARK, best_keys, bulk_text, observations_text, stop_row,
+from opendofusdata.pets_texts import (FAVORITE_MARK, best_keys, bulk_text, kamas_line, observations_text, stop_row,
                                       upgrade_row)
 from opendofusdata.pets_view_data import PetDetail, PetRow, pet_detail, pet_rows
 from opendofusdata.price_book import PriceBook
@@ -169,8 +169,8 @@ class PetsPage(ViewPage):
         (self.favorite_box.select if row.item_id in self._favorites else self.favorite_box.deselect)()
         self.stats_list.set_rows([
             ("XP pour 1 ressource", format_experience_per_unit(row.per_unit), None),
-            ("Prix d'1 ressource utilisé", f"{format_kamas(row.unit_price)} kamas", None),
-            ("Prix moyen", f"{format_kamas(row.sale_price)} kamas", None),
+            ("Prix d'1 ressource utilisé", kamas_line(row.unit_price), None),
+            ("Prix moyen", kamas_line(row.sale_price), None),
             ("Kamas par XP", format_kamas_per_experience(row.kamas_per_xp), None), stop_row(row),
-            ("Coût pour monter un familier", f"{format_kamas(row.cost)} kamas", None)])
+            ("Coût pour monter un familier", kamas_line(row.cost), None)])
         self.history_list.set_rows([upgrade_row(upgrade) for upgrade in detail.upgrades])

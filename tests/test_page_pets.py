@@ -204,3 +204,9 @@ def test_favorite_checkbox_stores_and_marks_the_resource_and_the_filter_keeps_on
     page._toggle_favorite()
     assert load_favorites(page._context.config_path) == set()
     store.close()
+
+
+def test_kamas_line_says_unknown_alone_when_the_price_was_never_seen() -> None:
+    from opendofusdata.pets_texts import kamas_line
+
+    assert kamas_line(None) == "Inconnu" and kamas_line(150) == "150 kamas"

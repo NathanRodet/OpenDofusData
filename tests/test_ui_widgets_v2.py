@@ -125,3 +125,13 @@ def test_an_unlaid_table_keeps_its_starting_widths(root) -> None:
     table = DataTable(root, [Column("A", 300)], lambda key: None, (0, False))
     table._fit_columns(Resized(1))
     assert column_widths(table) == [300]
+
+
+def test_stat_list_wraps_long_labels_and_values(root) -> None:
+    from opendofusdata.ui_stats import StatList, VALUE_WRAP
+
+    stats = StatList(root)
+    stats.set_rows([("Coût pour monter un familier", "52 193 634 kamas", None)])
+    labels = [child for child in stats.winfo_children()]
+    assert all(int(label.cget("wraplength")) > 0 for label in labels)
+    assert int(labels[1].cget("wraplength")) == VALUE_WRAP

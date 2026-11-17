@@ -10,6 +10,8 @@ from opendofusdata.ui_widgets import make_label
 
 StatRow = tuple[str, str, str | None]  # label, value, optional value colour
 VALUE_COLUMN_WEIGHT = 1
+LABEL_WRAP = 150  # a long label or value goes on a second line instead of leaving the panel
+VALUE_WRAP = 140
 
 
 class StatList(customtkinter.CTkFrame):
@@ -34,7 +36,8 @@ class StatList(customtkinter.CTkFrame):
         for child in self.winfo_children():
             child.destroy()
         for index, (label, value, color) in enumerate(new_rows):
-            make_label(self, label, color=MUTED_COLOR, anchor="w").grid(
+            make_label(self, label, color=MUTED_COLOR, anchor="w", justify="left", wraplength=LABEL_WRAP).grid(
                 row=index, column=0, sticky="w", padx=SMALL_PADDING, pady=TINY_PADDING)
-            make_label(self, value, bold=True, color=color or TEXT_COLOR, anchor="e").grid(
+            make_label(self, value, bold=True, color=color or TEXT_COLOR, anchor="e", justify="right",
+                       wraplength=VALUE_WRAP).grid(
                 row=index, column=1, sticky="e", padx=SMALL_PADDING, pady=TINY_PADDING)
