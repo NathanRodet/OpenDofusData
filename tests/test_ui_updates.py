@@ -174,7 +174,7 @@ def test_restart_capture_applies_the_pending_server(root, tmp_path) -> None:
 
 
 def settings(root, context, refresh=None) -> SettingsPage:
-    return SettingsPage(root, context, lambda current: None, refresh or (lambda path, directory: RefreshResult(3, 1)))
+    return SettingsPage(root, context, lambda current: None, refresh or (lambda path, directory, progress=None: RefreshResult(3, 1)))
 
 
 def test_names_card_reports_that_no_names_are_loaded(root, tmp_path) -> None:
@@ -195,7 +195,7 @@ def test_names_download_loads_names_and_swaps_the_lookup(root, tmp_path) -> None
 
 
 def test_the_download_button_names_every_reference_file_and_the_result_counts_them(root, tmp_path) -> None:
-    page = settings(root, make_context(tmp_path), lambda path, directory: RefreshResult(3, 1, 2, 4))
+    page = settings(root, make_context(tmp_path), lambda path, directory, progress=None: RefreshResult(3, 1, 2, 4))
     assert page.names_card.button.cget("text") == "Télécharger les données de référence"
     page.names_card.button.invoke()
     assert page.names_card.task.wait(WAIT_SECONDS)
@@ -205,7 +205,7 @@ def test_the_download_button_names_every_reference_file_and_the_result_counts_th
 
 
 def test_names_download_failure_is_shown_and_keeps_the_lookup(root, tmp_path) -> None:
-    def refresh(path, directory):
+    def refresh(path, directory, progress=None):
         raise NamesFetchError("API indisponible")
 
     context = make_context(tmp_path)
@@ -250,7 +250,7 @@ def test_changing_the_server_while_stopped_does_not_restart_anything(root, tmp_p
 
 def test_the_reference_data_download_starts_by_itself_when_it_is_missing(root, tmp_path) -> None:
     calls = []
-    page = settings(root, make_context(tmp_path), lambda path, directory: calls.append(path) or RefreshResult(3, 1, 2, 4))
+    page = settings(root, make_context(tmp_path), lambda path, directory, progress=None: calls.append(path) or RefreshResult(3, 1, 2, 4))
     assert page.names_card.summary() == "absentes"
     assert page.names_card.start_if_missing() is True
     assert page.names_card.task.wait(WAIT_SECONDS) and len(calls) == 1
@@ -263,7 +263,7 @@ def test_the_reference_data_is_not_downloaded_again_when_it_is_complete(root, tm
 
     monkeypatch.setattr(settings_names, "reference_data_missing", lambda database, directory: False)
     calls = []
-    page = settings(root, make_context(tmp_path), lambda path, directory: calls.append(path) or RefreshResult(3, 1))
+    page = settings(root, make_context(tmp_path), lambda path, directory, progress=None: calls.append(path) or RefreshResult(3, 1))
     assert page.names_card.summary() == "à jour"
     assert page.names_card.start_if_missing() is False and calls == []
 
@@ -271,13 +271,20 @@ def test_the_reference_data_is_not_downloaded_again_when_it_is_complete(root, tm
 def test_the_reference_summary_shows_a_running_and_a_failed_download(root, tmp_path) -> None:
     release = threading.Event()
 
-    def refresh(path, directory):
+    reported = threading.Event()
+
+    def refresh(path, directory, progress):
+        progress("  items : 12/45 pages téléchargées...")
+        reported.set()
         release.wait(WAIT_SECONDS)
         raise NamesFetchError("API indisponible")
 
     page = settings(root, make_context(tmp_path), refresh)
     page.names_card.start_if_missing()
-    assert page.names_card.summary() == "téléchargement..."
+    assert reported.wait(WAIT_SECONDS)
+    assert page.names_card.summary() == "téléchargement 12/45"
+    page.names_card.render()
+    assert "items 12/45 pages" in page.names_card.status_label.cget("text")
     release.set()
     assert page.names_card.task.wait(WAIT_SECONDS)
     assert page.names_card.summary() == "échec"
@@ -296,7 +303,7 @@ def test_the_side_menu_shows_the_state_of_the_reference_data_and_of_the_synchron
 def test_the_window_starts_the_reference_download_only_when_the_application_asks_for_it(root, tmp_path) -> None:
     calls = []
     context = make_context(tmp_path)
-    window = CaptureWindow(root, context, lambda path, directory: calls.append(path) or RefreshResult(1, 1, 1, 1))
+    window = CaptureWindow(root, context, lambda path, directory, progress=None: calls.append(path) or RefreshResult(1, 1, 1, 1))
     window.start_reference_download()
     assert calls == []  # a test window never reaches the network by itself
     context.auto_reference = True
