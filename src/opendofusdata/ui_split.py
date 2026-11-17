@@ -13,8 +13,9 @@ LAYOUT_BELOW = "below"
 class SplitLayout(customtkinter.CTkFrame):
     """Exposes `main` and `detail`; `layout_mode` tells where the detail panel currently is."""
 
-    def __init__(self, parent: tkinter.Misc) -> None:
+    def __init__(self, parent: tkinter.Misc, detail_width: int = DETAIL_WIDTH) -> None:
         super().__init__(parent, fg_color=TRANSPARENT, corner_radius=0)
+        self._detail_width = detail_width
         self.main = customtkinter.CTkFrame(self, fg_color=TRANSPARENT, corner_radius=0)
         self.detail = customtkinter.CTkFrame(self, fg_color=TRANSPARENT, corner_radius=0)
         self.layout_mode = ""
@@ -36,7 +37,7 @@ class SplitLayout(customtkinter.CTkFrame):
 
     def _place_right(self) -> None:
         self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=0, minsize=DETAIL_WIDTH)
+        self.grid_columnconfigure(1, weight=0, minsize=self._detail_width)
         self.grid_rowconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=0, minsize=0)
         self.main.grid(row=0, column=0, sticky="nsew")

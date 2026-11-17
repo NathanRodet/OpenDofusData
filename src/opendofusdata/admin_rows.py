@@ -90,7 +90,7 @@ class AdminRows(customtkinter.CTkFrame):
             row=0, column=0, sticky="w", padx=PADDING, pady=(SMALL_PADDING, 0))
         revoked = entry.revoked_at is not None
         status = make_label(row, status_text(entry), color=ERROR_COLOR if revoked else SUCCESS_COLOR, anchor="w")
-        status.grid(row=0, column=1, sticky="w", padx=SMALL_PADDING, pady=(SMALL_PADDING, 0))
+        status.grid(row=0, column=1, rowspan=2, sticky="", padx=SMALL_PADDING)  # centred, like the buttons
         self._status_labels[entry.key_id] = status
         make_label(row, CREATED_TEXT.format(date=entry.created_at[:DATE_LENGTH]), 12, color=MUTED_COLOR,
                    anchor="w").grid(row=1, column=0, sticky="w", padx=PADDING, pady=(0, SMALL_PADDING))

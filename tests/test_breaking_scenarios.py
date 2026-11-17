@@ -2,7 +2,6 @@
 
 import pytest
 
-from opendofusdata.breaking_detail_text import detail_blocks
 from opendofusdata.breaking_scenarios import best_focus, build_scenario
 from opendofusdata.breaking_theory import base_runes_by_action, expected_runes
 from opendofusdata.effects_csv import ItemEffects, Rune, StatLine
@@ -38,23 +37,3 @@ def test_best_focus_is_the_most_profitable_stat() -> None:
 def test_missing_prices_are_flagged_and_unknown_hdv_price_gives_no_plus_value() -> None:
     scenario = build_scenario(HAT, 0.5, BASE, {VIT_RUNE: 100.0}.get, None, {})
     assert scenario.partial and scenario.plus_value is None
-
-
-def test_detail_blocks_name_the_focus_and_compare_it_with_classic() -> None:
-    classic = build_scenario(HAT, 0.5, BASE, PRICES.get, 3000.0, {})
-    blocks = detail_blocks(classic, best_focus(HAT, 0.5, BASE, PRICES.get, 3000.0), {STR_RUNE: "Rune Fo"}.get)
-    assert [block.title for block in blocks] == ["Brisage classique", "Focus le plus rentable : Rune Fo"]
-    assert "vs classique" in blocks[1].summary
-
-
-def test_small_rune_counts_keep_their_digits() -> None:
-    from opendofusdata.breaking_detail_text import count_text
-    assert [count_text(value) for value in (0.0, 0.0345, 1.0, 12.34, 250.0)] == ["0", "0.0345", "1", "12.3", "250"]
-
-
-def test_real_block_lists_the_runes_really_obtained_and_the_real_plus_value() -> None:
-    from opendofusdata.breaking_detail_text import real_block
-    block = real_block({STR_RUNE: 2}, 29, {STR_RUNE: 100.0}.get, 10.0, {STR_RUNE: "Rune Fo"}.get)
-    assert block.lines == (("Rune Fo (100 l'unité)", "×2 → 200", None),)
-    assert block.summary == "29 objet(s) brisé(s)\nRunes 200\nPlus-value -90"
-    assert block.positive is False

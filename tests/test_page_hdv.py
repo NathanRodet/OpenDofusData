@@ -91,3 +91,15 @@ def test_changing_the_session_server_changes_the_rows(root, tmp_path) -> None:
     page.render(page._context.session.snapshot())
     assert shown(page) == ["Salikrone"]
     store.close()
+
+
+def test_the_history_of_an_item_is_a_formatted_list_not_a_text_box(root, tmp_path) -> None:
+    store = open_store(tmp_path)
+    fill(store)
+    page = make_page(root, tmp_path)
+    page.refresh()
+    page.table._tree.selection_set("0")
+    root.update()
+    assert not hasattr(page, "history_box")
+    assert page.history_list.rows and all(len(row) == 3 and row[1].startswith("Lot ×") for row in page.history_list.rows)
+    store.close()

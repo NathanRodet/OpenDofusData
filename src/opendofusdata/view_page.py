@@ -15,7 +15,7 @@ from opendofusdata.time_filters import PeriodSelection, Window, period_window
 from opendofusdata.ui_period import PeriodBar
 from opendofusdata.ui_split import SplitLayout
 from opendofusdata.ui_table import Column, DataTable
-from opendofusdata.ui_theme import ACCENT_COLOR, MUTED_COLOR, PADDING, SMALL_PADDING, TITLE_SIZE, TRANSPARENT
+from opendofusdata.ui_theme import ACCENT_COLOR, DETAIL_WIDTH, MUTED_COLOR, PADDING, SMALL_PADDING, TITLE_SIZE, TRANSPARENT
 from opendofusdata.ui_widgets import make_label
 from opendofusdata.view_connection import open_view_connection
 from opendofusdata.window_context import WindowContext
@@ -38,6 +38,7 @@ class ViewPage:
     """
 
     widens_period = True
+    detail_width = DETAIL_WIDTH  # a page with a wider detail panel overrides this
 
     def __init__(self, parent: customtkinter.CTkBaseClass, context: WindowContext, title: str,
                  columns: Sequence[Column], default_sort: tuple[int, bool], name_column: int,
@@ -52,7 +53,7 @@ class ViewPage:
         self._widened_from: str | None = None
         self.frame = customtkinter.CTkFrame(parent, fg_color=TRANSPARENT, corner_radius=0)
         self._build_header(title)
-        self.split = SplitLayout(self.frame)
+        self.split = SplitLayout(self.frame, self.detail_width)
         self.split.pack(fill="both", expand=True, padx=PADDING, pady=(0, PADDING))
         self.table = DataTable(self.split.main, columns, self._selection_changed, default_sort, editable, on_edit)
         self.notice = make_label(self.split.main, "", color=MUTED_COLOR, anchor="w")

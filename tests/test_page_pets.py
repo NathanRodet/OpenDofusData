@@ -88,7 +88,9 @@ def test_selecting_a_resource_lists_its_upgrades(root, tmp_path) -> None:
     page = make_page(root, tmp_path)
     page.refresh()
     page._selection_changed(PATTE)
-    assert "Nomoon" in page.upgrades_label.cget("text") and "+2 XP" in page.upgrades_label.cget("text")
+    (when, pet, gain), *_ = page.history_list.rows
+    assert pet == "Nomoon" and gain.endswith("+2 XP") and when
+    assert not hasattr(page, "chart")  # no chart on this page
     store.close()
 
 

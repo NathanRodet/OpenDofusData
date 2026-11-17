@@ -76,6 +76,9 @@ class SyncSettingsCard:
         self.save_button.pack(side="left")
         self.test_button = make_button(line, TEST_LABEL, self.test, COMPACT_BUTTON_WIDTH, COMPACT_BUTTON_HEIGHT)
         self.test_button.pack(side="left", padx=SMALL_PADDING)
+        self._build_status_labels(row)
+
+    def _build_status_labels(self, row: SettingRow) -> None:
         self.status_label = make_label(row.body, "", color=MUTED_COLOR, anchor="w", justify="left",
                                        wraplength=ROW_WRAP)
         self.status_label.pack(fill="x", pady=(SMALL_PADDING, 0))

@@ -8,10 +8,11 @@ from opendofusdata.hdv_view_data import HdvDetail, hdv_detail, hdv_rows
 from opendofusdata.table_model import TableRow
 from opendofusdata.time_filters import Window, elapsed_text, local_text, parse_stored
 from opendofusdata.ui_chart import ChartPoint, DatedChart
+from opendofusdata.ui_history import HistoryList
 from opendofusdata.ui_stats import StatList, StatRow
 from opendofusdata.ui_table import Column
 from opendofusdata.ui_theme import (
-    CARD_COLOR, CORNER_RADIUS, LOG_COLOR, MONOSPACE_FONT, MONOSPACE_SIZE, MUTED_COLOR, PADDING, SMALL_PADDING,
+    CARD_COLOR, CORNER_RADIUS, MUTED_COLOR, PADDING, SMALL_PADDING,
     TITLE_SIZE,
 )
 from opendofusdata.ui_widgets import make_card_title, make_label
@@ -25,7 +26,6 @@ COLUMNS = (Column("Objet", 220), Column("Type", 130), Column("Dernier prix ×1",
 LAST_SEEN_COLUMN = 5
 CHART_PERIODS = {"24 h": "24h", "7 j": "7d", "30 j": "30d"}
 NO_SELECTION_TEXT = "Sélectionne un objet pour voir son détail."
-HISTORY_HEIGHT = 140
 LOTS_TITLE = "Prix par lot"
 HISTORY_TITLE = "Derniers relevés"
 NO_FIGURE_TEXT = "-"
@@ -70,10 +70,8 @@ class HdvPage(ViewPage):
 
     def _build_history(self, card: customtkinter.CTkBaseClass) -> None:
         make_card_title(card, HISTORY_TITLE).pack(fill="x", padx=PADDING, pady=(PADDING, SMALL_PADDING))
-        font = customtkinter.CTkFont(family=MONOSPACE_FONT, size=MONOSPACE_SIZE)
-        self.history_box = customtkinter.CTkTextbox(card, height=HISTORY_HEIGHT, font=font, fg_color=LOG_COLOR,
-                                                    state="disabled")
-        self.history_box.pack(fill="x", padx=PADDING, pady=(0, PADDING))
+        self.history_list = HistoryList(card)
+        self.history_list.pack(fill="x", padx=PADDING, pady=(0, PADDING))
 
     def load_rows(self, connection: sqlite3.Connection, server: str, window: Window) -> list[TableRow]:
         """One row per item captured inside the window."""
@@ -105,7 +103,7 @@ class HdvPage(ViewPage):
             self.stats_list.set_rows(())
             self.lots_list.set_rows(())
             self.chart.clear()
-            self._set_history("")
+            self.history_list.set_rows(())
             return
         self.name_label.configure(text=detail.name)
         self.type_label.configure(text=detail.type_name)
@@ -126,16 +124,8 @@ class HdvPage(ViewPage):
                                for point in curve], "kamas")
 
     def _draw_history(self, detail: HdvDetail) -> None:
-        lines = [f"{local_text(parse_stored(lot.captured_at))}   ×{lot.lot_size}   {format_kamas(lot.price)}"
-                 for lot in detail.history]
+        rows = [(local_text(parse_stored(lot.captured_at)), f"Lot ×{lot.lot_size}", f"{format_kamas(lot.price)} kamas")
+                for lot in detail.history]
         last = local_text(parse_stored(detail.history[0].captured_at)) if detail.history else ""
         self.stats_list.set_rows(self._stat_rows(detail, last))
-        self._set_history("\n".join(lines))
-
-    def _set_history(self, text: str) -> None:
-        if text == self.history_box.get("1.0", "end").rstrip("\n"):
-            return
-        self.history_box.configure(state="normal")
-        self.history_box.delete("1.0", "end")
-        self.history_box.insert("1.0", text)
-        self.history_box.configure(state="disabled")
+        self.history_list.set_rows(rows)

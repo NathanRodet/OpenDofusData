@@ -54,7 +54,6 @@ class PetDetail:
 
     row: PetRow
     upgrades: list[PetUpgrade]
-    ratio_points: list[tuple[datetime, float, float]]
 
 
 def _server_feedings(connection: sqlite3.Connection, server: str) -> list[PetFeeding]:
@@ -113,15 +112,6 @@ def _upgrade_of(feeding: PetFeeding, item_id: int, name_of: ItemLabeler) -> PetU
                       None if mixed else feeding_gain(feeding), mixed)
 
 
-def _ratio_points(upgrades: list[PetUpgrade], item_id: int, book: PriceBook) -> list[tuple[datetime, float, float]]:
-    points = []
-    for upgrade in upgrades:
-        price = book.price_at(item_id, upgrade.moment)
-        if upgrade.gain and price is not None:
-            points.append((upgrade.moment, price * upgrade.units / upgrade.gain, price))
-    return points
-
-
 def pet_detail(connection: sqlite3.Connection, server: str, item_id: int, name_of: ItemLabeler,
                type_of: ItemTyper, book: PriceBook, mode: str,
                manual: Mapping[int, ResourceExperience] | None = None, fresh_since: str = "") -> PetDetail | None:
@@ -136,4 +126,4 @@ def pet_detail(connection: sqlite3.Connection, server: str, item_id: int, name_o
     stats = _with_manual(experience_by_resource(feedings), typed).get(item_id)
     row = _row_of(item_id, stats, upgrades[0].moment if upgrades else None, name_of, type_of, book, mode,
                   item_id in typed, fresh_since)
-    return PetDetail(row, upgrades, _ratio_points(list(reversed(upgrades)), item_id, book))
+    return PetDetail(row, upgrades)

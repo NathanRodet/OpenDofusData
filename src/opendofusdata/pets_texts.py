@@ -2,6 +2,7 @@
 
 from opendofusdata.pets_view_data import PetRow, PetUpgrade
 from opendofusdata.time_filters import local_text
+from opendofusdata.ui_history import HistoryRow
 from opendofusdata.ui_stats import StatRow
 from opendofusdata.ui_theme import ERROR_COLOR, SUCCESS_COLOR
 from opendofusdata.value_format import UNKNOWN_TEXT, format_kamas
@@ -43,7 +44,7 @@ def best_keys(rows: list[PetRow]) -> set[int]:
     return {row.item_id for row in priced[:BEST_ROW_COUNT]}
 
 
-def upgrade_text(upgrade: PetUpgrade) -> str:
-    """One upgrade line: exact local date, pet, units and experience."""
+def upgrade_row(upgrade: PetUpgrade) -> HistoryRow:
+    """One history row: local date, pet, then units and experience."""
     gain = "sans XP" if upgrade.gain is None else f"+{upgrade.gain} XP"
-    return f"{local_text(upgrade.moment)}   {upgrade.pet_name}   \u00d7{upgrade.units}, {gain}"
+    return (local_text(upgrade.moment), upgrade.pet_name, f"×{upgrade.units}, {gain}")

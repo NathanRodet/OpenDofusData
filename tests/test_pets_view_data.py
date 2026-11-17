@@ -61,12 +61,11 @@ def test_a_mixed_upgrade_is_only_in_the_detail(store) -> None:
     assert detail.row.feedings == 0 and detail.row.per_unit is None
 
 
-def test_the_detail_gives_ratio_points_at_the_price_of_the_moment(store) -> None:
+def test_the_detail_lists_the_upgrades_newest_first(store) -> None:
     store.save_record(feeding([(PATTE, 1)], 101, 103, "10:05"))
     store.save_record(feeding([(PATTE, 2)], 103, 106, "08:00"))
     _, book = rows_of(store)
     detail = pet_detail(store.connection, "Brial", PATTE, name_of, type_of, book, "last")
-    assert [point[1:] for point in detail.ratio_points] == [(120.0, 240.0)]
     assert [upgrade.gain for upgrade in detail.upgrades] == [2, 3]
 
 

@@ -272,3 +272,12 @@ def test_cancelled_purge_confirmation_sends_nothing(root, tmp_path) -> None:
     generate(page, "Joueur Un")
     page.revoke_and_purge(registry_of(tmp_path).entries()[0].key_id)
     assert revoke.calls == [] and registry_of(tmp_path).entries()[0].revoked_at is None
+
+
+def test_the_status_of_a_key_is_centred_on_the_same_line_as_its_buttons(root, tmp_path) -> None:
+    page = make_page(root, tmp_path)
+    page.label_entry.insert(0, "Jardinier")
+    page.generate()
+    key_id = page.rows.entries[0].key_id
+    status = page.rows._status_labels[key_id].grid_info()
+    assert int(status["rowspan"]) == 2 and status["sticky"] == ""

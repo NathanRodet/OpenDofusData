@@ -1,4 +1,4 @@
-"""The Brisage page: the broken objects, their breakings, and the classic / focus plus-value of the selected one."""
+"""The Brisage page: the broken objects, the breakings of the selected one, and the detail of the object or breaking."""
 
 import sqlite3
 from datetime import datetime
@@ -6,10 +6,11 @@ from datetime import datetime
 import customtkinter
 
 from opendofusdata.app_config import load_config
-from opendofusdata.breaking_detail_data import item_blocks, mean_coefficient
-from opendofusdata.breaking_detail_text import DetailBlock
+from opendofusdata.breaking_detail_data import breaking_detail, item_tabs, mean_coefficient
+from opendofusdata.breaking_detail_text import BREAKING_KEY
 from opendofusdata.breaking_items import ItemSummary, group_by_item, item_summaries
-from opendofusdata.breaking_texts import coefficient_text, plus_value_tag, runes_text
+from opendofusdata.breaking_panel import BreakingPanel
+from opendofusdata.breaking_texts import coefficient_text, plus_value_tag, runes_text, runes_list_text
 from opendofusdata.breaking_view_data import BreakingRow, breaking_rows
 from opendofusdata.client_settings import price_mode_from_config
 from opendofusdata.effects_csv import EFFECTS_FILE, RUNES_FILE, ItemEffects, Rune, load_item_effects, load_runes
@@ -17,29 +18,30 @@ from opendofusdata.price_book import PriceBook
 from opendofusdata.price_rules import PRICE_LAST
 from opendofusdata.table_model import TableRow
 from opendofusdata.time_filters import Window, elapsed_text
-from opendofusdata.ui_stats import StatList
 from opendofusdata.ui_table import Column, DataTable
-from opendofusdata.ui_theme import (CARD_COLOR, CORNER_RADIUS, DETAIL_WIDTH, DOWN_COLOR, MUTED_COLOR, PADDING,
-                                    SMALL_PADDING, TITLE_SIZE, TRANSPARENT, UP_COLOR)
-from opendofusdata.ui_widgets import make_card_title, make_label
+from opendofusdata.ui_theme import PADDING, SMALL_PADDING, WIDE_DETAIL_WIDTH
+from opendofusdata.ui_theme import CARD_TITLE_SIZE
+from opendofusdata.ui_widgets import make_label
 from opendofusdata.value_format import format_kamas, format_signed_kamas
 from opendofusdata.view_page import ViewPage
 from opendofusdata.window_context import WindowContext
 
 TITLE = "Brisage"
-ITEM_COLUMNS = (Column("Objet", 240), Column("Prix HDV le plus bas", 170, True), Column("Coef. de brisage", 140, True),
-                Column("Plus-value moyenne", 170, True), Column("Brisages", 90, True))
-BREAKING_COLUMNS = (Column("Il y a", 110), Column("Quantité", 90, True), Column("Coefficient", 110, True),
-                    Column("Valeur des runes", 170, True), Column("Plus-value", 150, True))
+ITEM_COLUMNS = (Column("Objet", 230), Column("Prix HDV", 100, True), Column("Coef.", 80, True),
+                Column("Plus-value", 110, True), Column("Brisages", 90, True))
+BREAKING_COLUMNS = (Column("Il y a", 90), Column("Qté", 55, True), Column("Coef.", 70, True),
+                    Column("Runes obtenues", 270), Column("Valeur", 90, True), Column("Plus-value", 100, True))
 PLUS_VALUE_COLUMN = 3
-BREAKINGS_TITLE = "Brisages de l'objet sélectionné"
-NO_SELECTION_TEXT = "Sélectionne un objet pour voir ses brisages et sa plus-value en classique et en focus."
+BREAKINGS_TITLE = "Brisages de {name}"
+BREAKINGS_HINT = "Clique sur un brisage pour voir ses runes."
 NO_EFFECTS_TEXT = "Effets de l'objet inconnus : clique sur « Télécharger les données de référence » dans Réglages."
-WRAP_LENGTH = DETAIL_WIDTH - 6 * PADDING  # room for the margins and the scrollbar of the detail panel
+BREAKING_NOTE = "{when}, {quantity} objet(s) brisé(s) à {coefficient}"
 
 
 class BreakingPage(ViewPage):
-    """Left: broken objects, then the breakings of the selected one. Right: the plus-value by rune type."""
+    """Left: broken objects, then the breakings of the selected one. Right: tabs for the object or the breaking."""
+
+    detail_width = WIDE_DETAIL_WIDTH
 
     def __init__(self, parent: customtkinter.CTkBaseClass, context: WindowContext, **options: object) -> None:
         super().__init__(parent, context, TITLE, ITEM_COLUMNS, (PLUS_VALUE_COLUMN, True), 0, **options)
@@ -47,22 +49,16 @@ class BreakingPage(ViewPage):
         self._effects: dict[int, ItemEffects] | None = None
         self._effects_generation = -1
         self._runes: list[Rune] = []
-        self._detail_shown: object = None
-        make_card_title(self.split.main, BREAKINGS_TITLE).pack(fill="x", pady=(PADDING, SMALL_PADDING))
-        self.breakings_table = DataTable(self.split.main, BREAKING_COLUMNS, lambda key: None, (0, True))
+        self._detail_item: object = None
+        self._chosen_breaking: str | None = None
+        self._wanted_tab: str | None = None
+        self.breakings_title = make_label(self.split.main, BREAKINGS_TITLE.format(name="l'objet sélectionné"),
+                                          CARD_TITLE_SIZE, bold=True, anchor="w")
+        self.breakings_title.pack(fill="x", pady=(PADDING, SMALL_PADDING))
+        self.breakings_table = DataTable(self.split.main, BREAKING_COLUMNS, self._breaking_selected, (0, True))
         self.breakings_table.pack(fill="both", expand=True)
-        self._build_detail()
-
-    def _build_detail(self) -> None:
-        card = customtkinter.CTkScrollableFrame(self.split.detail, fg_color=CARD_COLOR, corner_radius=CORNER_RADIUS)
-        card.pack(fill="both", expand=True)
-        self.name_label = make_label(card, NO_SELECTION_TEXT, TITLE_SIZE, bold=True, anchor="w",
-                                     justify="left", wraplength=WRAP_LENGTH)
-        self.name_label.pack(fill="x", padx=PADDING, pady=(PADDING, SMALL_PADDING))
-        self.info_label = make_label(card, "", color=MUTED_COLOR, anchor="w", justify="left", wraplength=WRAP_LENGTH)
-        self.info_label.pack(fill="x", padx=PADDING)
-        self.blocks_frame = customtkinter.CTkFrame(card, fg_color=TRANSPARENT)
-        self.blocks_frame.pack(fill="x", padx=PADDING, pady=PADDING)
+        self.panel = BreakingPanel(self.split.detail)
+        self.panel.pack(fill="both", expand=True)
 
     def _load_data(self) -> None:
         if self._effects is None or self._effects_generation != self._context.reference_generation:
@@ -87,44 +83,60 @@ class BreakingPage(ViewPage):
                        summary.breakings)
         return TableRow(summary.item_id, cells, sort_values, plus_value_tag(summary.plus_value))
 
-    def _breaking_row(self, row: BreakingRow, now: datetime) -> TableRow:
+    def _breaking_row(self, key: str, row: BreakingRow, now: datetime) -> TableRow:
         cells = (elapsed_text(row.moment, now), str(row.quantity), coefficient_text(row.coefficient),
-                 runes_text(row), format_signed_kamas(row.plus_value))
-        sort_values = (row.moment, row.quantity, row.coefficient, row.runes_value.total, row.plus_value)
-        return TableRow(row.moment, cells, sort_values, plus_value_tag(row.plus_value))
+                 runes_list_text(row.runes, self._context.name_of), runes_text(row),
+                 format_signed_kamas(row.plus_value))
+        sort_values = (row.moment, row.quantity, row.coefficient, sum(count for _, count in row.runes),
+                       row.runes_value.total, row.plus_value)
+        return TableRow(key, cells, sort_values, plus_value_tag(row.plus_value))
+
+    def _breaking_selected(self, key: object | None) -> None:
+        chosen = None if key is None else str(key)
+        if chosen == self._chosen_breaking:
+            return  # the table also reports the kept selection at every refresh
+        self._chosen_breaking = chosen
+        self._wanted_tab = BREAKING_KEY if chosen is not None else None
+        self._refresh_detail()
 
     def show_detail(self, connection: sqlite3.Connection, server: str, key: object | None) -> None:
-        """List the breakings of the selected object and show its classic and focus plus-value."""
+        """List the breakings of the selected object and fill the panel with its tabs."""
         own = self._by_item.get(key) if key is not None else None
-        now = self._clock()
-        self.breakings_table.set_rows([self._breaking_row(row, now) for row in own or []])
+        if key != self._detail_item:
+            self._detail_item, self._chosen_breaking, self._wanted_tab = key, None, None
         if not own:
-            self._render_detail(NO_SELECTION_TEXT, "", [])
+            self.breakings_table.set_rows([])
+            self.breakings_title.configure(text=BREAKINGS_TITLE.format(name="l'objet sélectionné"))
+            self.panel.clear()
             return
         self._load_data()
-        info = f"Coefficient moyen {coefficient_text(mean_coefficient(own))}, {len(own)} brisage(s)"
+        rows = dict(self._keyed(own))
+        self.breakings_table.set_rows([self._breaking_row(row_key, row, self._clock()) for row_key, row in rows.items()])
+        self.breakings_title.configure(text=BREAKINGS_TITLE.format(name=own[0].name) + f" ({len(own)})")
+        self._show_panel(connection, server, own, rows)
+
+    @staticmethod
+    def _keyed(own: list[BreakingRow]) -> list[tuple[str, BreakingRow]]:
+        """Each breaking with a stable key (its date, numbered when two share the same second)."""
+        seen: dict[str, int] = {}
+        keyed = []
+        for row in own:
+            stamp = row.moment.isoformat()
+            seen[stamp] = seen.get(stamp, 0) + 1
+            keyed.append((f"{stamp}#{seen[stamp]}", row))
+        return keyed
+
+    def _show_panel(self, connection: sqlite3.Connection, server: str, own: list[BreakingRow],
+                    rows: dict[str, BreakingRow]) -> None:
+        book = PriceBook.load(connection, server)
         effects = self._effects.get(own[0].item_id)
-        blocks = []
-        if effects is not None:
-            blocks = item_blocks(own, effects, self._runes, PriceBook.load(connection, server), self._context.name_of)
-        self._render_detail(own[0].name, info if effects else NO_EFFECTS_TEXT, blocks)
-
-    def _render_detail(self, name: str, info: str, blocks: list[DetailBlock]) -> None:
-        if self._detail_shown == (name, info, blocks):
-            return
-        self._detail_shown = (name, info, blocks)
-        self.name_label.configure(text=name)
-        self.info_label.configure(text=info)
-        for child in self.blocks_frame.winfo_children():
-            child.destroy()
-        for block in blocks:
-            self._render_block(block)
-
-    def _render_block(self, block: DetailBlock) -> None:
-        make_card_title(self.blocks_frame, block.title).pack(fill="x", pady=(PADDING, SMALL_PADDING))
-        rows = StatList(self.blocks_frame)
-        rows.set_rows(block.lines)
-        rows.pack(fill="x")
-        color = MUTED_COLOR if block.positive is None else (UP_COLOR if block.positive else DOWN_COLOR)
-        make_label(self.blocks_frame, block.summary, bold=True, color=color, anchor="w", justify="left",
-                   wraplength=WRAP_LENGTH).pack(fill="x", pady=(SMALL_PADDING, 0))
+        name_of = self._context.name_of
+        tabs = item_tabs(own, effects, self._runes, book, name_of)
+        chosen = rows.get(self._chosen_breaking) if self._chosen_breaking else None
+        if chosen is not None:
+            note = BREAKING_NOTE.format(when=elapsed_text(chosen.moment, self._clock()), quantity=chosen.quantity,
+                                        coefficient=coefficient_text(chosen.coefficient))
+            tabs.insert(0, breaking_detail(chosen, effects, self._runes, book, name_of, note))
+        info = f"Coefficient moyen {coefficient_text(mean_coefficient(own))}, {len(own)} brisage(s). {BREAKINGS_HINT}"
+        self.panel.show(own[0].name, info, tabs, "" if effects else NO_EFFECTS_TEXT, self._wanted_tab)
+        self._wanted_tab = None

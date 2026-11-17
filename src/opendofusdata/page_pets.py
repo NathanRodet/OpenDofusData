@@ -14,17 +14,17 @@ from opendofusdata.pet_manual_form import PetManualForm
 from opendofusdata.pet_manual_store import add_manual, load_manual, remove_manual
 from opendofusdata.pet_favorites_store import load_favorites, toggle_favorite
 from opendofusdata.pets_texts import (FAVORITE_MARK, best_keys, bulk_text, observations_text, stop_row,
-                                      upgrade_text)
+                                      upgrade_row)
 from opendofusdata.pets_view_data import PetDetail, PetRow, pet_detail, pet_rows
 from opendofusdata.price_book import PriceBook
 from opendofusdata.table_model import TableRow
 from opendofusdata.time_filters import Window
 from opendofusdata.timeutil import format_utc
-from opendofusdata.ui_chart import ChartPoint, DatedChart
+from opendofusdata.ui_history import HistoryList
 from opendofusdata.ui_stats import StatList
 from opendofusdata.ui_table import TAG_UP, Column
-from opendofusdata.ui_theme import CARD_COLOR, CORNER_RADIUS, MUTED_COLOR, PADDING, SMALL_PADDING, TITLE_SIZE, TRANSPARENT
-from opendofusdata.ui_widgets import make_label
+from opendofusdata.ui_theme import CARD_COLOR, CORNER_RADIUS, PADDING, SMALL_PADDING, TITLE_SIZE, TRANSPARENT
+from opendofusdata.ui_widgets import make_card_title, make_label
 from opendofusdata.value_format import format_experience_per_unit, format_kamas, format_kamas_per_experience
 from opendofusdata.view_page import ViewPage
 from opendofusdata.window_context import WindowContext
@@ -41,6 +41,7 @@ COLUMNS = (Column("Ressource", 200), Column("Type", 120), Column("Prix ×100 / �
 KAMAS_PER_XP_COLUMN = 5
 FRESH_PRICE_HOURS = 24  # a x100 / x1000 price older than this is replaced by the last sale price
 NO_SELECTION_TEXT = "Sélectionne une ressource pour voir ses relevés."
+HISTORY_TITLE = "Derniers relevés"
 
 
 class PetsPage(ViewPage):
@@ -96,10 +97,9 @@ class PetsPage(ViewPage):
         self.favorite_box.pack(anchor="w", padx=PADDING)
         self.stats_list = StatList(card)
         self.stats_list.pack(fill="x", padx=PADDING, pady=SMALL_PADDING)
-        self.chart = DatedChart(card)
-        self.chart.pack(fill="x", padx=PADDING, pady=SMALL_PADDING)
-        self.upgrades_label = make_label(card, "", color=MUTED_COLOR, anchor="w", justify="left")
-        self.upgrades_label.pack(fill="x", padx=PADDING, pady=(0, PADDING))
+        make_card_title(card, HISTORY_TITLE).pack(fill="x", padx=PADDING, pady=(PADDING, SMALL_PADDING))
+        self.history_list = HistoryList(card)
+        self.history_list.pack(fill="x", padx=PADDING, pady=(0, PADDING))
 
     def _selection_changed(self, key: object | None) -> None:
         changed = key != self._selected  # the table also reports the kept selection at every refresh
@@ -160,8 +160,7 @@ class PetsPage(ViewPage):
         self.favorite_box.deselect()
         self.favorite_box.configure(state="disabled")
         self.stats_list.set_rows(())
-        self.upgrades_label.configure(text="")
-        self.chart.clear()
+        self.history_list.set_rows(())
 
     def _fill_detail(self, detail: PetDetail) -> None:
         row = detail.row
@@ -174,6 +173,4 @@ class PetsPage(ViewPage):
             ("Prix moyen", f"{format_kamas(row.sale_price)} kamas", None),
             ("Kamas par XP", format_kamas_per_experience(row.kamas_per_xp), None), stop_row(row),
             ("Coût pour monter un familier", f"{format_kamas(row.cost)} kamas", None)])
-        self.chart.set_series([ChartPoint(moment, ratio, f"Prix : {format_kamas(price)} kamas l'unité")
-                               for moment, ratio, price in detail.ratio_points], "kamas par XP", 1)
-        self.upgrades_label.configure(text="\n".join(upgrade_text(upgrade) for upgrade in detail.upgrades))
+        self.history_list.set_rows([upgrade_row(upgrade) for upgrade in detail.upgrades])
