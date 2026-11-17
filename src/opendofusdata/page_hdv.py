@@ -35,6 +35,11 @@ def _number_text(value: int | None) -> str:
     return UNKNOWN_TEXT if value is None else format_kamas(float(value))
 
 
+def _kamas_text(value: int | None) -> str:
+    """An amount of kamas for the detail list ('Inconnu' alone when it was never seen)."""
+    return UNKNOWN_TEXT if value is None else f"{format_kamas(float(value))} kamas"
+
+
 def _cell_text(value: int | None) -> str:
     """A table cell: a dash when the figure was never seen (market statistics exist only for opened items)."""
     return NO_FIGURE_TEXT if value is None else format_kamas(float(value))
@@ -114,8 +119,8 @@ class HdvPage(ViewPage):
 
     def _stat_rows(self, detail: HdvDetail, last_seen: str) -> list[StatRow]:
         median, mean, sold = detail.stats.get(self._chart_period, (None, None, None))
-        rows: list[StatRow] = [("Médian", f"{_number_text(median)} kamas", None),
-                               ("Moyen", f"{_number_text(mean)} kamas", None), ("Vendus", _number_text(sold), None)]
+        rows: list[StatRow] = [("Médian", _kamas_text(median), None),
+                               ("Moyen", _kamas_text(mean), None), ("Vendus", _number_text(sold), None)]
         return rows + ([("Dernier relevé", last_seen, None)] if last_seen else [])
 
     def _draw_chart(self, detail: HdvDetail) -> None:

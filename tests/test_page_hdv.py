@@ -103,3 +103,15 @@ def test_the_history_of_an_item_is_a_formatted_list_not_a_text_box(root, tmp_pat
     assert not hasattr(page, "history_box")
     assert page.history_list.rows and all(len(row) == 3 and row[1].startswith("Lot ×") for row in page.history_list.rows)
     store.close()
+
+
+def test_an_unknown_median_is_not_followed_by_the_unit(root, tmp_path) -> None:
+    store = open_store(tmp_path)
+    fill(store)
+    page = make_page(root, tmp_path)
+    page.refresh()
+    page.table._tree.selection_set("0")
+    root.update()
+    rows = dict((label, value) for label, value, _ in page.stats_list.rows)
+    assert all(value in ("Inconnu",) or value.endswith(" kamas") and "Inconnu" not in value
+               for label, value in rows.items() if label in ("Médian", "Moyen"))
