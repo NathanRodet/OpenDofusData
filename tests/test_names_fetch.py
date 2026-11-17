@@ -172,3 +172,8 @@ def test_a_page_without_total_is_asked_again(tmp_path: Path) -> None:
     answers = iter([{"message": "try again later"}])
     run_download(tmp_path / "items.csv", lambda url: next(answers, None) or api(url))
     assert (tmp_path / "items.csv").is_file()
+
+
+def test_an_answer_is_described_with_escaped_bytes() -> None:
+    text = names_fetch.describe_answer(200, "application/json", b"null\r\nINJECT")
+    assert "HTTP 200" in text and "12 octets" in text and "\n" not in text and "\r" not in text

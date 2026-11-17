@@ -103,11 +103,20 @@ def http_get_json(url: str) -> object:
     try:
         with OPENER.open(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
             body = response.read(MAX_RESPONSE_BYTES + 1)
+            status, content_type = response.status, response.headers.get("Content-Type", "")
     except urllib.error.HTTPError as error:
         raise _classify_http_error(error) from error
     except (urllib.error.URLError, http.client.HTTPException, TimeoutError, ConnectionError) as error:
         raise TransientFetchError(str(error)) from error
-    return _parse_json(body)
+    parsed = _parse_json(body)
+    if not isinstance(parsed, dict):
+        logger.warning("réponse inattendue de l'API DofusDB : %s", describe_answer(status, content_type, body))
+    return parsed
+
+
+def describe_answer(status: int, content_type: str, body: bytes) -> str:
+    """HTTP status, type, size and the first bytes (escaped) of an answer, for the logs."""
+    return f"HTTP {status}, {content_type[:60]!r}, {len(body)} octets, début {body[:60]!r}"
 
 
 class Requester:

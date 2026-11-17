@@ -18,6 +18,9 @@ LOCAL_HOST = "127.0.0.1"
 
 
 class FakeResponse(io.BytesIO):
+    status = 200
+    headers = {"Content-Type": "application/json"}
+
     def __enter__(self):
         return self
 
