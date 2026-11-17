@@ -36,8 +36,8 @@ SAVE_FAILED_TEXT = "La clé n'a pas pu être enregistrée (voir le fichier de lo
 MISSING_KEY_TEXT = "Colle d'abord ta clé."
 BAD_FORMAT_TEXT = "Format de clé invalide (elle ressemble à odk1.xxxxxxxxxxx.yyyy...)."
 COUNTS_REFRESH_SECONDS = 5.0  # the page renders often, the counters need not follow every tick
-NOT_CONFIGURED_TEXT = "Serveur de synchronisation non configuré : renseigne son adresse ci-dessus."
-BAD_ADDRESS_TEXT = "Adresse invalide (https://hôte attendu, sans chemin)."
+NOT_CONFIGURED_TEXT = "Serveur de synchronisation non configuré : renseigne son domaine ci-dessus."
+BAD_ADDRESS_TEXT = "Domaine invalide (un nom comme serveur.exemple.fr, sans chemin)."
 Check = Callable[[str, str], ConnectionResult]
 Status = Callable[[], str]
 

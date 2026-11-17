@@ -9,6 +9,23 @@ from opendofusdata.sync_client import resolve_server_url
 
 logger = logging.getLogger(__name__)
 SERVER_URL_CONFIG = "sync_server_url"
+SCHEME_SEPARATOR = "://"
+HTTPS_PREFIX = "https://"
+
+
+def origin_from_text(text: str) -> str | None:
+    """The https address for what the player typed: a bare domain (https is added) or a full https address."""
+    typed = text.strip()
+    if not typed or typed.endswith(SCHEME_SEPARATOR):
+        return None
+    typed = typed.removesuffix("/")
+    origin = canonical_origin(typed if SCHEME_SEPARATOR in typed else HTTPS_PREFIX + typed)
+    return origin if origin is not None and "." in display_address(origin).split(":")[0] else None
+
+
+def display_address(origin: str | None) -> str:
+    """The address as the player types it: the domain alone, without https."""
+    return (origin or "").removeprefix(HTTPS_PREFIX)
 
 
 def configured_server_url(config_path: Path, env_path: Path) -> str | None:
@@ -21,7 +38,7 @@ def configured_server_url(config_path: Path, env_path: Path) -> str | None:
 def save_server_url(config_path: Path, text: str) -> bool:
     """Save the address typed by the player (an empty text removes it); False when refused or not written."""
     address = text.strip()
-    origin = canonical_origin(address) if address else None
+    origin = origin_from_text(address)
     if address and origin is None:
         return False
     config = dict(load_config(config_path))

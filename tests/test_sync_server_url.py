@@ -5,7 +5,9 @@ import json
 import pytest
 
 from opendofusdata import sync_client
-from opendofusdata.sync_server_url import SERVER_URL_CONFIG, configured_server_url, save_server_url
+from opendofusdata.sync_server_url import (
+    SERVER_URL_CONFIG, configured_server_url, display_address, origin_from_text, save_server_url,
+)
 
 URL = "https://sync.exemple.fr"
 OTHER = "https://autre.exemple.fr"
@@ -47,7 +49,8 @@ def test_saving_stores_the_address_in_canonical_form_and_keeps_the_other_setting
     assert saved["server"] == "Brial" and saved[SERVER_URL_CONFIG] == URL
 
 
-@pytest.mark.parametrize("text", ["http://sync.exemple.fr", "sync.exemple.fr", "https://sync.exemple.fr/api",
+@pytest.mark.parametrize("text", ["http://sync.exemple.fr", "sync.exemple.fr/api", "sync.exemple.fr?x=1",
+                                  "https://sync.exemple.fr/api", "sync", "-x.fr", "sync..fr",
                                   "https://sync exemple.fr", "ftp://x.fr", "https://"])
 def test_a_bad_address_is_refused_and_nothing_is_written(tmp_path, text: str) -> None:
     assert save_server_url(tmp_path / "config.json", text) is False
@@ -58,3 +61,22 @@ def test_an_empty_address_removes_the_saved_one(tmp_path) -> None:
     write_config(tmp_path, **{SERVER_URL_CONFIG: URL})
     assert save_server_url(tmp_path / "config.json", "") is True
     assert SERVER_URL_CONFIG not in json.loads((tmp_path / "config.json").read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize("text, origin", [
+    ("sync.exemple.fr", URL), ("  Sync.Exemple.fr  ", URL), ("https://sync.exemple.fr/", URL),
+    ("sync.exemple.fr:8443", "https://sync.exemple.fr:8443"), ("sync.exemple.fr/", URL),
+])
+def test_a_bare_domain_gets_https_added(text: str, origin: str) -> None:
+    assert origin_from_text(text) == origin
+
+
+def test_the_domain_is_saved_as_an_https_address(tmp_path) -> None:
+    assert save_server_url(tmp_path / "config.json", "sync.exemple.fr") is True
+    assert json.loads((tmp_path / "config.json").read_text(encoding="utf-8"))[SERVER_URL_CONFIG] == URL
+
+
+def test_the_address_is_shown_as_a_domain_without_https() -> None:
+    assert display_address(URL) == "sync.exemple.fr"
+    assert display_address("https://sync.exemple.fr:8443") == "sync.exemple.fr:8443"
+    assert display_address(None) == ""
