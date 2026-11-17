@@ -282,7 +282,7 @@ def test_the_reference_summary_shows_a_running_and_a_failed_download(root, tmp_p
     page = settings(root, make_context(tmp_path), refresh)
     page.names_card.start_if_missing()
     assert reported.wait(WAIT_SECONDS)
-    assert page.names_card.summary() == "téléchargement 12/45"
+    assert page.names_card.summary() == "12/45 pages"
     page.names_card.render()
     assert "items 12/45 pages" in page.names_card.status_label.cget("text")
     release.set()

@@ -30,6 +30,7 @@ BUSY_BUTTON_TEXT = "Téléchargement..."
 SUMMARY_MISSING = "absentes"
 SUMMARY_PARTIAL = "incomplètes"
 SUMMARY_RUNNING = "téléchargement"
+SUMMARY_PAGES = "{pages} pages"
 SUMMARY_FAILED = "échec"
 SUMMARY_UP_TO_DATE = "à jour"
 FAILURES = (NamesFetchError, TransientFetchError, sqlite3.Error, OSError)
@@ -64,7 +65,8 @@ class NamesCard:
         """A few words for the side menu: absent, downloading, failed or up to date."""
         state = self.task.snapshot().state
         if state is TaskState.RUNNING:
-            return f"{SUMMARY_RUNNING} {self._progress.pages()}".strip()
+            pages = self._progress.pages()
+            return SUMMARY_PAGES.format(pages=pages) if pages else SUMMARY_RUNNING  # short: the side menu is narrow
         if state is TaskState.FAILED:
             return SUMMARY_FAILED
         if not self._missing or state is TaskState.DONE:
