@@ -7,6 +7,7 @@ pytest.importorskip("customtkinter")
 from opendofusdata.page_craft import CraftPage
 from opendofusdata.page_hdv import HdvPage
 from opendofusdata.records import LotPrice
+from opendofusdata.time_filters import PeriodSelection
 from opendofusdata.time_filters import (
     PERIOD_ALL, PERIOD_CUSTOM, PERIOD_LAST_HOUR, PERIOD_MONTH, PERIOD_SIX_HOURS, PERIOD_TODAY, PERIOD_WEEK,
     next_period,
@@ -19,6 +20,12 @@ TWO_MONTHS_AGO = "2026-09-01T10:00:00Z"
 FIVE_MINUTES_AGO = "2026-11-12T18:37:00Z"
 
 
+def on_today(page):
+    """The pages open on every period; these tests start from today."""
+    page.period_bar.restore(PeriodSelection(PERIOD_TODAY))
+    return page
+
+
 @pytest.mark.parametrize("period, following", [
     (PERIOD_LAST_HOUR, PERIOD_SIX_HOURS), (PERIOD_SIX_HOURS, PERIOD_TODAY), (PERIOD_TODAY, PERIOD_WEEK),
     (PERIOD_WEEK, PERIOD_MONTH), (PERIOD_MONTH, PERIOD_ALL), (PERIOD_ALL, None), (PERIOD_CUSTOM, None),
@@ -29,7 +36,7 @@ def test_next_period_follows_the_order_of_the_dropdown(period: str, following: s
 
 
 def test_the_bar_moves_to_the_next_period_and_says_when_there_is_none(root, tmp_path) -> None:
-    page = HdvPage(root, make_context(tmp_path), clock=lambda: NOW)
+    page = on_today(HdvPage(root, make_context(tmp_path), clock=lambda: NOW))
     assert page.period_bar.selection().period == PERIOD_TODAY
     assert page.period_bar.widen() is True
     assert page.period_bar.selection().period == PERIOD_WEEK and page.period_bar.menu.get() == PERIOD_WEEK
@@ -43,7 +50,7 @@ def hdv_with(tmp_path, root, captured_at: str) -> HdvPage:
     store = open_store(tmp_path)
     store.save_lot_price(LotPrice(ITEM, "Brial", 1, 80, captured_at))
     store.close()
-    page = HdvPage(root, make_context(tmp_path, {ITEM: "Flèche"}), clock=lambda: NOW)
+    page = on_today(HdvPage(root, make_context(tmp_path, {ITEM: "Flèche"}), clock=lambda: NOW))
     page.refresh()
     return page
 
@@ -69,7 +76,7 @@ def test_a_period_with_data_is_left_alone(root, tmp_path) -> None:
 
 
 def test_with_no_data_at_all_the_original_period_comes_back(root, tmp_path) -> None:
-    page = HdvPage(root, make_context(tmp_path), clock=lambda: NOW)
+    page = on_today(HdvPage(root, make_context(tmp_path), clock=lambda: NOW))
     open_store(tmp_path).close()
     page.refresh()
     assert page.period_bar.selection().period == PERIOD_TODAY and page.period_bar.menu.get() == PERIOD_TODAY
@@ -85,7 +92,7 @@ def test_choosing_a_period_by_hand_clears_the_note(root, tmp_path) -> None:
 
 
 def test_the_craft_page_never_widens_a_period_it_does_not_show(root, tmp_path) -> None:
-    page = CraftPage(root, make_context(tmp_path), clock=lambda: NOW)
+    page = on_today(CraftPage(root, make_context(tmp_path), clock=lambda: NOW))
     page.refresh()
     assert page.period_bar.selection().period == PERIOD_TODAY
 

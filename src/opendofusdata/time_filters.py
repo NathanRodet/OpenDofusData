@@ -32,7 +32,7 @@ Window = tuple[datetime | None, datetime | None]
 class PeriodSelection:
     """The period chosen in a view; custom bounds only matter for PERIOD_CUSTOM."""
 
-    period: str = PERIOD_TODAY
+    period: str = PERIOD_ALL
     custom_start: datetime | None = None
     custom_end: datetime | None = None
 

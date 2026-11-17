@@ -5,7 +5,7 @@ import pytest
 pytest.importorskip("customtkinter")
 
 from opendofusdata.table_model import TABLE_ROW_LIMIT, TableRow
-from opendofusdata.time_filters import PERIOD_CUSTOM, PERIOD_LAST_HOUR, PERIOD_TODAY
+from opendofusdata.time_filters import PERIOD_ALL, PERIOD_CUSTOM, PERIOD_LAST_HOUR
 from opendofusdata.ui_period import BAD_DATE_MESSAGE, PeriodBar
 from opendofusdata.ui_split import LAYOUT_BELOW, LAYOUT_RIGHT, SplitLayout
 from opendofusdata.ui_table import Column, DataTable
@@ -49,10 +49,10 @@ def test_table_reports_truncation_above_the_limit(root) -> None:
     assert table.set_rows([row("a", 1)]) is False
 
 
-def test_period_bar_defaults_to_today_and_reports_changes(root) -> None:
+def test_period_bar_defaults_to_all_and_reports_changes(root) -> None:
     changes: list[int] = []
     bar = PeriodBar(root, lambda: changes.append(1))
-    assert bar.selection().period == PERIOD_TODAY
+    assert bar.selection().period == PERIOD_ALL
     bar.set_period(PERIOD_LAST_HOUR)
     assert bar.selection().period == PERIOD_LAST_HOUR and changes == [1]
 
@@ -65,7 +65,7 @@ def test_custom_period_rejects_a_bad_date_and_accepts_a_good_one(root) -> None:
     bar.end_entry.insert(0, "01/03/2026")
     bar.apply_custom()
     assert bar.message_label.cget("text") == BAD_DATE_MESSAGE
-    assert bar.selection().period == PERIOD_TODAY and changes == []
+    assert bar.selection().period == PERIOD_ALL and changes == []
     bar.start_entry.delete(0, "end")
     bar.start_entry.insert(0, "10/11/2026")
     bar.end_entry.delete(0, "end")

@@ -8,6 +8,7 @@ from tkinter import ttk
 import customtkinter
 
 from opendofusdata.table_model import TableRow, limit_rows, sort_rows
+from opendofusdata.ui_table_copy import CopyOnClick
 from opendofusdata.ui_theme import (
     BODY_SIZE, DOWN_COLOR, HEADER_COLOR, MUTED_COLOR, ROW_HEIGHT, SELECTED_COLOR, TABLE_COLOR,
     STRIPE_COLOR, TEXT_COLOR, TRANSPARENT, UP_COLOR,
@@ -84,6 +85,7 @@ class DataTable(customtkinter.CTkFrame):
         tree.bind("<<TreeviewSelect>>", self._selection_changed)
         tree.bind("<Configure>", self._fit_columns)
         tree.bind("<Double-1>", self._begin_edit)
+        self._copier = CopyOnClick(tree)
         scrollbar = customtkinter.CTkScrollbar(self, width=SCROLLBAR_WIDTH, command=tree.yview)
         tree.configure(yscrollcommand=scrollbar.set)
         scrollbar.pack(side="right", fill="y")
