@@ -22,7 +22,7 @@ SYNC_STATEMENTS = (
 EMPTY_BREAKINGS_FILTER = f"WHERE origin = '{ORIGIN_LOCAL}' AND synced_at = 'skipped' AND runes_json = '[]'"
 RESEND_EMPTY_BREAKINGS = f"UPDATE broken_items SET synced_at = NULL {EMPTY_BREAKINGS_FILTER}"
 HAS_EMPTY_BREAKINGS = f"SELECT 1 FROM broken_items {EMPTY_BREAKINGS_FILTER} LIMIT 1"
-EVENT_TABLES = ("broken_items", "pet_feedings")  # breakings and pet upgrades are shared like the prices
+EVENT_TABLES = ("broken_items", "pet_feedings", "pet_manual_entries")  # breakings and pet upgrades are shared like the prices
 EVENT_STATEMENTS = (
     f"""CREATE INDEX IF NOT EXISTS idx_broken_items_unsent ON broken_items (id)
         WHERE origin = '{ORIGIN_LOCAL}' AND synced_at IS NULL""",
@@ -33,6 +33,11 @@ EVENT_STATEMENTS = (
         WHERE origin = '{ORIGIN_LOCAL}' AND synced_at IS NULL""",
     f"""CREATE UNIQUE INDEX IF NOT EXISTS idx_pet_feedings_remote
         ON pet_feedings (server, pet_item_id, captured_at, resources_json, source_key_id)
+        WHERE origin = '{ORIGIN_REMOTE}'""",
+    f"""CREATE INDEX IF NOT EXISTS idx_pet_manual_entries_unsent ON pet_manual_entries (id)
+        WHERE origin = '{ORIGIN_LOCAL}' AND synced_at IS NULL""",
+    f"""CREATE UNIQUE INDEX IF NOT EXISTS idx_pet_manual_entries_remote
+        ON pet_manual_entries (item_id, captured_at, units, experience, source_key_id)
         WHERE origin = '{ORIGIN_REMOTE}'""",
 )
 

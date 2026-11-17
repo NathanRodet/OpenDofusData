@@ -86,3 +86,24 @@ def test_an_empty_or_huge_batch_is_refused(client: TestClient) -> None:
 def test_a_breaking_without_any_rune_is_accepted(client: TestClient) -> None:
     response = client.post("/brisages", json={"events": [broken_body(runes=[])]}, headers=ALICE)
     assert response.status_code == 200 and response.json()["accepted"] == 1
+
+
+def manual_body(item_id: int = 5, units: int = 10, experience: int = 50, minutes_ago: int = 1) -> dict[str, object]:
+    return {"item_id": item_id, "units": units, "experience": experience, "observed_at": moment(minutes_ago)}
+
+
+def test_typed_experience_is_shared_and_the_latest_entry_replaces_the_previous_one(client: TestClient) -> None:
+    client.post("/saisies", json={"events": [manual_body(units=10, experience=50, minutes_ago=5)]}, headers=ALICE)
+    client.post("/saisies", json={"events": [manual_body(units=30, experience=90, minutes_ago=1)]}, headers=ALICE)
+    seen = client.get("/saisies?since=0&limit=100", headers=BOB).json()["events"]
+    assert [(event["item_id"], event["units"], event["experience"]) for event in seen] == [(5, 30, 90)]
+    assert client.get("/saisies?since=0&limit=100", headers=ALICE).json()["events"] == []
+    own = client.get("/saisies/mine?after=0&limit=100", headers=ALICE).json()["events"]
+    assert [(event["units"], event["experience"]) for event in own] == [(30, 90)]
+
+
+def test_typed_experience_can_be_cleared_with_zeros_and_bad_values_are_refused(client: TestClient) -> None:
+    assert client.post("/saisies", json={"events": [manual_body(units=0, experience=0)]}, headers=ALICE).status_code == 200
+    for change in ({"item_id": 0}, {"units": -1}, {"experience": 2_000_000_000}, {"extra": 1}):
+        body = {**manual_body(), **change}
+        assert client.post("/saisies", json={"events": [body]}, headers=ALICE).status_code == 422

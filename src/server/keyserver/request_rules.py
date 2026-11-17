@@ -11,7 +11,7 @@ ALLOWED_ROUTES: dict[str, frozenset[str]] = {
     "/readings": frozenset({"GET", "POST"}), "/readings/latest": frozenset({"GET"}),
     "/readings/mine": frozenset({"GET"}),
 }
-EVENT_PATHS = ("/brisages", "/familiers")  # the shared events: same shape as the readings routes
+EVENT_PATHS = ("/brisages", "/familiers", "/saisies")  # the shared events: same shape as the readings routes
 ALLOWED_ROUTES.update({path: frozenset({"GET", "POST"}) for path in EVENT_PATHS})
 ALLOWED_ROUTES.update({f"{path}/mine": frozenset({"GET"}) for path in EVENT_PATHS})
 # The only query strings that may reach a route: these parameter names, each once, as plain whole numbers.

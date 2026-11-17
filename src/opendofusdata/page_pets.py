@@ -1,6 +1,8 @@
 """The Familiers page: experience given by one resource, its price and the kamas spent per XP."""
 
+import logging
 import sqlite3
+from collections.abc import Callable
 from datetime import timedelta
 
 import customtkinter
@@ -11,12 +13,13 @@ from opendofusdata.item_search import search_items
 from opendofusdata.pet_coverage import Coverage, load_coverage
 from opendofusdata.pet_coverage_view import CoverageView
 from opendofusdata.pet_manual_form import PetManualForm
-from opendofusdata.pet_manual_store import add_manual, load_manual, remove_manual
+from opendofusdata.pet_manual_store import add_manual, load_manual, move_config_entries, remove_manual
 from opendofusdata.pet_favorites_store import load_favorites, toggle_favorite
 from opendofusdata.pets_texts import (FAVORITE_MARK, best_keys, bulk_text, kamas_line, observations_text, stop_row,
                                       upgrade_row)
 from opendofusdata.pets_view_data import PetDetail, PetRow, pet_detail, pet_rows
 from opendofusdata.price_book import PriceBook
+from opendofusdata.storage import PriceStore
 from opendofusdata.table_model import TableRow
 from opendofusdata.time_filters import Window
 from opendofusdata.timeutil import format_utc
@@ -28,6 +31,8 @@ from opendofusdata.ui_widgets import make_card_title, make_label
 from opendofusdata.value_format import format_experience_per_unit, format_kamas, format_kamas_per_experience
 from opendofusdata.view_page import ViewPage
 from opendofusdata.window_context import WindowContext
+
+logger = logging.getLogger(__name__)
 
 TITLE = "Familiers"
 TAB_RESOURCES = "Ressources"
@@ -52,6 +57,7 @@ class PetsPage(ViewPage):
         self._mode = ""
         self._coverage = Coverage(0, 0, ())
         self._favorites: set[int] = set()
+        move_config_entries(context.session.database_path, context.config_path)
         self._build_detail()
         self._build_tabs()
 
@@ -110,22 +116,32 @@ class PetsPage(ViewPage):
     def _search_items(self, text: str) -> list[tuple[int, str]]:
         return self._read(lambda connection: search_items(connection, text)) or []
 
-    def _add_manual(self, item_id: int, units: int, experience: int) -> bool:
-        saved = add_manual(self._context.config_path, item_id, units, experience)
+    def _write(self, action: Callable[[sqlite3.Connection], bool]) -> bool:
+        """Run a change of the typed experience on its own short connection, then refresh the page."""
+        try:
+            store = PriceStore(self._context.session.database_path)
+        except (sqlite3.Error, OSError) as error:
+            logger.warning("base illisible, saisie non enregistrée : %s", error)
+            return False
+        try:
+            done = action(store.connection)
+        finally:
+            store.close()
         self.refresh()
-        return saved
+        return done
+
+    def _add_manual(self, item_id: int, units: int, experience: int) -> bool:
+        return self._write(lambda connection: add_manual(connection, item_id, units, experience))
 
     def _remove_manual(self, item_id: int) -> bool:
-        removed = remove_manual(self._context.config_path, item_id)
-        self.refresh()
-        return removed
+        return self._write(lambda connection: remove_manual(connection, item_id))
 
     def load_rows(self, connection: sqlite3.Connection, server: str, window: Window) -> list[TableRow]:
         """One row per resource seen in usable upgrades inside the window."""
         self._mode = price_mode_from_config(load_config(self._context.config_path))
         book = PriceBook.load(connection, server)
         rows = pet_rows(connection, server, window, self._context.name_of, self._context.type_of, book, self._mode,
-                        load_manual(self._context.config_path), self._fresh_since())
+                        load_manual(connection), self._fresh_since())
         self._favorites = load_favorites(self._context.config_path)
         self._coverage = load_coverage(connection, {row.item_id for row in rows if row.per_unit is not None})
         best = best_keys(rows)
@@ -149,7 +165,7 @@ class PetsPage(ViewPage):
         if key is not None:
             book = PriceBook.load(connection, server)  # fresh: its price history reads this open connection
             detail = pet_detail(connection, server, int(key), self._context.name_of, self._context.type_of,
-                                book, self._mode, load_manual(self._context.config_path), self._fresh_since())
+                                book, self._mode, load_manual(connection), self._fresh_since())
         if detail is None:
             self._clear_detail()
         else:

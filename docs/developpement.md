@@ -187,7 +187,7 @@ Un onglet *Administration* apparaît (en dernier dans le menu) seulement si le `
 
 ## Synchronisation des prix
 
-Les joueurs envoient les prix de lots de l'HDV, les brisages et les améliorations de familiers qu'ils observent et récupèrent ceux des autres (les saisies manuelles de familiers ne partent jamais).
+Les joueurs envoient les prix de lots de l'HDV, les brisages, les améliorations de familiers qu'ils observent et l'XP qu'ils saisissent à la main pour une ressource, et récupèrent ceux des autres (seuls les favoris restent locaux). Une saisie est un instantané des totaux (ressources, XP) d'une ressource: le dernier de chaque joueur compte, 0 et 0 l'efface, et les totaux de tous les joueurs s'additionnent. Le serveur ne garde que le dernier instantané par clé et ressource (1000 au plus par clé) et ne le purge pas avec la rétention de 14 jours; route `/saisies` (`/saisies/mine` pour la restauration).
 
 **Serveur** (routes authentifiées par clé utilisateur, jamais par le jeton d'administration):
 

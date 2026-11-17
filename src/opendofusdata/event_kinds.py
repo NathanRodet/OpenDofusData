@@ -1,10 +1,10 @@
-"""The two kinds of shared events (breakings and pet upgrades): their table, columns and wire format."""
+"""The kinds of shared events (breakings, pet upgrades, typed experience): their table, columns and wire format."""
 
 import json
 from collections.abc import Callable, Mapping
 from typing import NamedTuple
 
-from opendofusdata.event_rules import valid_broken_event, valid_pet_event
+from opendofusdata.event_rules import valid_broken_event, valid_manual_event, valid_pet_event
 
 PET_STATE_FIELDS = ("level", "experience", "experience_max", "prospection")  # the order stored locally
 
@@ -52,6 +52,15 @@ def _pet_values(event: Mapping[str, object]) -> tuple:
             _state_text(event["before"]), _state_text(event["after"]))  # type: ignore[arg-type]
 
 
+def _manual_event(values: tuple) -> dict[str, object]:
+    captured_at, item_id, units, experience = values
+    return {"item_id": item_id, "units": units, "experience": experience, "observed_at": captured_at}
+
+
+def _manual_values(event: Mapping[str, object]) -> tuple:
+    return event["observed_at"], event["item_id"], event["units"], event["experience"]
+
+
 BROKEN = EventKind(
     "broken", "/brisages", "broken_items",
     ("server", "captured_at", "item_id", "quantity", "coefficient", "runes_json"),
@@ -60,4 +69,7 @@ PET = EventKind(
     "pet", "/familiers", "pet_feedings",
     ("server", "captured_at", "pet_item_id", "resources_json", "before_json", "after_json"),
     _pet_event, _pet_values, valid_pet_event)
-EVENT_KINDS = (BROKEN, PET)
+MANUAL = EventKind(
+    "manual", "/saisies", "pet_manual_entries", ("captured_at", "item_id", "units", "experience"),
+    _manual_event, _manual_values, valid_manual_event)
+EVENT_KINDS = (BROKEN, PET, MANUAL)

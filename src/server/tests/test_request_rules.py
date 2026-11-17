@@ -76,8 +76,10 @@ def test_allowed_routes_and_query_parameters_are_the_planned_ones() -> None:
                                 ("/brisages", "GET"): frozenset({"since", "limit"}),
                                 ("/brisages/mine", "GET"): frozenset({"after", "limit"}),
                                 ("/familiers", "GET"): frozenset({"since", "limit"}),
-                                ("/familiers/mine", "GET"): frozenset({"after", "limit"})}
-    for path in ("/brisages", "/familiers"):
+                                ("/familiers/mine", "GET"): frozenset({"after", "limit"}),
+                                ("/saisies", "GET"): frozenset({"since", "limit"}),
+                                ("/saisies/mine", "GET"): frozenset({"after", "limit"})}
+    for path in ("/brisages", "/familiers", "/saisies"):
         assert ALLOWED_ROUTES[path] == frozenset({"GET", "POST"})
         assert ALLOWED_ROUTES[f"{path}/mine"] == frozenset({"GET"})
 

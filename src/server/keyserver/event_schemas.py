@@ -66,6 +66,17 @@ class PetEvent(BaseModel):
     observed_at: ObservationTime
 
 
+class ManualEvent(BaseModel):
+    """What a player typed for a resource: the totals of resources given and of XP they gave (0 and 0 clears it)."""
+
+    model_config = STRICT_MODEL
+
+    item_id: int = Field(ge=1, le=MAX_ITEM_ID)
+    units: int = Field(ge=0, le=MAX_QUANTITY)
+    experience: int = Field(ge=0, le=MAX_QUANTITY)
+    observed_at: ObservationTime
+
+
 class BrokenBatch(BaseModel):
     """What a player sends to `POST /brisages`."""
 
@@ -80,6 +91,14 @@ class PetBatch(BaseModel):
     model_config = STRICT_MODEL
 
     events: list[PetEvent] = Field(min_length=1, max_length=MAX_BATCH_READINGS)
+
+
+class ManualBatch(BaseModel):
+    """What a player sends to `POST /saisies`."""
+
+    model_config = STRICT_MODEL
+
+    events: list[ManualEvent] = Field(min_length=1, max_length=MAX_BATCH_READINGS)
 
 
 def payload_text(event: BaseModel) -> str:

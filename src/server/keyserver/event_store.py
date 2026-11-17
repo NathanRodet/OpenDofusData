@@ -1,4 +1,7 @@
-"""The journal of shared events (breakings, pet upgrades): one table, a kind per row, kept a few days."""
+"""The journal of shared events (breakings, pet upgrades, typed experience): one table, a kind per row.
+
+Breakings and pet upgrades are kept a few days; the typed experience stays (one latest entry per key and resource).
+"""
 
 import json
 import sqlite3
@@ -20,6 +23,14 @@ SCHEMA_STATEMENTS = (
     "CREATE INDEX IF NOT EXISTS idx_events_key ON events (key_id)",
     "CREATE INDEX IF NOT EXISTS idx_events_observed ON events (observed_at)",
 )
+MANUAL_KIND = "manual"
+MAX_MANUAL_ITEMS_PER_KEY = 1000  # a key cannot fill the journal with typed resources
+PRUNE_MANUAL_SQL = """DELETE FROM events WHERE kind = 'manual' AND key_id = ? AND seq NOT IN (
+    SELECT seq FROM (SELECT seq, ROW_NUMBER() OVER (PARTITION BY json_extract(payload, '$.item_id')
+                     ORDER BY observed_at DESC, seq DESC) AS rank FROM events WHERE kind = 'manual' AND key_id = ?)
+    WHERE rank = 1)"""
+CAP_MANUAL_SQL = f"""DELETE FROM events WHERE kind = 'manual' AND key_id = ? AND seq NOT IN (
+    SELECT seq FROM events WHERE kind = 'manual' AND key_id = ? ORDER BY seq DESC LIMIT {MAX_MANUAL_ITEMS_PER_KEY})"""
 INSERT_SQL = "INSERT OR IGNORE INTO events (kind, key_id, observed_at, payload) VALUES (?, ?, ?, ?)"
 COLUMNS = "seq, key_id, observed_at, payload"
 CHANGES_SQL = f"SELECT {COLUMNS} FROM events WHERE kind = ? AND key_id != ? AND seq > ? ORDER BY seq LIMIT ?"
@@ -60,7 +71,14 @@ class EventStore:
             for event in events:
                 moment = int(event.observed_at.timestamp())  # type: ignore[attr-defined]
                 accepted += self._connection.execute(INSERT_SQL, (kind, key_id, moment, payload_text(event))).rowcount
+            if kind == MANUAL_KIND:
+                self._keep_latest_manual(key_id)
         return accepted, len(events) - accepted
+
+    def _keep_latest_manual(self, key_id: str) -> None:
+        """Typed totals replace each other: only the latest per resource stays, within the cap per key."""
+        self._connection.execute(PRUNE_MANUAL_SQL, (key_id, key_id))
+        self._connection.execute(CAP_MANUAL_SQL, (key_id, key_id))
 
     def changes_since(self, kind: str, key_id: str, since: int, limit: int) -> list[StoredEvent]:
         """Events of the other keys that arrived after order number `since`, oldest arrival first."""
@@ -73,10 +91,10 @@ class EventStore:
             return [_stored(row) for row in self._connection.execute(OWN_SQL, (kind, key_id, after, limit))]
 
     def purge_older_than(self, cutoff: datetime) -> int:
-        """Delete the events observed before the cutoff; returns how many."""
+        """Delete the events observed before the cutoff (never the typed experience); returns how many."""
         with self._lock, self._connection:
-            return self._connection.execute("DELETE FROM events WHERE observed_at < ?",
-                                            (int(cutoff.timestamp()),)).rowcount
+            return self._connection.execute("DELETE FROM events WHERE observed_at < ? AND kind != ?",
+                                            (int(cutoff.timestamp()), MANUAL_KIND)).rowcount
 
     def purge_key(self, key_id: str) -> int:
         """Delete every event sent by this key; returns how many."""

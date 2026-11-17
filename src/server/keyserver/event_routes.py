@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import FastAPI, Query, Request
 from pydantic import BaseModel
 
-from keyserver.event_schemas import BrokenBatch, PetBatch
+from keyserver.event_schemas import BrokenBatch, ManualBatch, PetBatch
 from keyserver.event_store import EventStore
 from keyserver.schemas import MAX_BATCH_READINGS, MAX_QUERY_INTEGER
 
@@ -16,6 +16,7 @@ MINE_SUFFIX = "/mine"
 EVENT_ROUTES: dict[str, tuple[str, type[BaseModel]]] = {
     "/brisages": ("broken", BrokenBatch),
     "/familiers": ("pet", PetBatch),
+    "/saisies": ("manual", ManualBatch),
 }
 
 

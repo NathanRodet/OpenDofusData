@@ -47,6 +47,13 @@ def valid_broken_event(event: Mapping[str, object]) -> bool:
             and 0 <= coefficient <= MAX_COEFFICIENT and _valid_pairs(event.get("runes"), minimum=0))  # a breaking can give no rune
 
 
+def valid_manual_event(event: Mapping[str, object]) -> bool:
+    """True when this typed-experience snapshot would pass the server's schema (0 and 0 clears the resource)."""
+    return (_valid_item_id(event.get("item_id"))
+            and all(is_whole_number(event.get(name)) and 0 <= event[name] <= MAX_QUANTITY  # type: ignore[operator]
+                    for name in ("units", "experience")))
+
+
 def valid_pet_event(event: Mapping[str, object]) -> bool:
     """True when this pet upgrade would pass the server's schema (the date is checked apart)."""
     return (valid_server_name(event.get("server")) and _valid_item_id(event.get("pet_item_id"))

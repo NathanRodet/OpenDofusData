@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from opendofusdata.event_kinds import BROKEN, PET
+from opendofusdata.event_kinds import BROKEN, MANUAL, PET
 from opendofusdata.event_sync_store import insert_other_events, insert_own_events, mark_events_sent, pending_events
 from opendofusdata.records import BrokenItem, PetFeeding, PetState
 from opendofusdata.storage import PriceStore
@@ -93,3 +93,18 @@ def test_a_pet_feeding_survives_the_round_trip(store: PriceStore) -> None:
     from opendofusdata.pets_store import pet_feedings
 
     assert pet_feedings(other.connection) == [original]
+
+
+def test_typed_experience_is_sent_then_comes_back_for_the_other_players_and_for_me(store: PriceStore) -> None:
+    from opendofusdata.pet_manual_store import add_manual, load_manual, own_manual
+
+    add_manual(store.connection, 5, 10, 50, NOW)
+    rows = pending_events(store.connection, MANUAL, 10, NOW)
+    assert [row.event for row in rows] == [{"item_id": 5, "units": 10, "experience": 50, "observed_at": MOMENT}]
+    mark_events_sent(store.connection, MANUAL, [row.row_id for row in rows], MOMENT)
+    assert pending_events(store.connection, MANUAL, 10, NOW) == []
+    other = {"seq": 4, "key_id": "BBBBBBBBBBB", "item_id": 5, "units": 2, "experience": 7,
+             "observed_at": "2026-11-16T11:00:00Z"}
+    assert insert_other_events(store.connection, MANUAL, [other], MOMENT) == 1
+    assert (load_manual(store.connection)[5].units, load_manual(store.connection)[5].experience) == (12, 57)
+    assert (own_manual(store.connection)[5].units, own_manual(store.connection)[5].experience) == (10, 50)

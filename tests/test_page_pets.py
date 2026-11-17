@@ -116,7 +116,9 @@ def test_the_form_suggests_items_while_typing_and_adds_the_typed_experience(root
     page.form.units_entry.insert(0, "10")
     page.form.experience_entry.insert(0, "50")
     page.form.add()
-    assert load_manual(page._context.config_path)[BOUE].experience == 50 and not page.form.suggestions.winfo_children()
+    check = open_store(tmp_path)
+    assert load_manual(check.connection)[BOUE].experience == 50 and not page.form.suggestions.winfo_children()
+    check.close()
     store.close()
 
 
