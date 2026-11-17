@@ -14,6 +14,13 @@ SYNC_INTERVAL_SECONDS = 300
 MAX_BACKOFF_SECONDS = 3600
 BACKOFF_FACTOR = 2
 JOIN_TIMEOUT_SECONDS = 5.0
+SUMMARY_NOT_STARTED = "pas encore lancée"
+SUMMARY_OFF = "désactivée"
+SUMMARY_RUNNING = "en cours..."
+SUMMARY_REFUSED = "clé refusée"
+SUMMARY_FAILED = "échec, voir Réglages"
+SUMMARY_UP_TO_DATE = "à jour"
+SUMMARY_RECEIVED = "à jour, {count} reçus"
 UNEXPECTED_STATUS = "Erreur inattendue de synchronisation (voir le fichier de log)"
 Engine = Callable[[sqlite3.Connection, SyncOptions], SyncOutcome]
 
@@ -29,6 +36,7 @@ class SyncWorker:
         self._delay = interval
         self._stop = threading.Event()
         self._status = ""
+        self._summary = SUMMARY_NOT_STARTED
         self._refused_key: str | None = None
         self._thread = threading.Thread(target=self._run, name="sync-worker", daemon=True)
 
@@ -50,6 +58,17 @@ class SyncWorker:
         """The message of the last round, for the settings card (empty before any round)."""
         return self._status
 
+    def summary(self) -> str:
+        """A few words on the synchronisation for the side menu (off, running, up to date, failed...)."""
+        return self._summary
+
+    def _summarise(self, outcome: SyncOutcome) -> str:
+        if outcome.refused:
+            return SUMMARY_REFUSED
+        if outcome.message != DONE_MESSAGE:
+            return SUMMARY_FAILED
+        return SUMMARY_RECEIVED.format(count=outcome.received) if outcome.received else SUMMARY_UP_TO_DATE
+
     def next_delay(self, outcome: SyncOutcome) -> float:
         """Seconds to wait before the next round: the interval after a success, doubled (up to the cap) after a failure."""
         if outcome.message == DONE_MESSAGE:
@@ -66,17 +85,18 @@ class SyncWorker:
     def _round(self) -> float:
         options = self._load_options()
         if options is None:
-            self._status, self._delay = "", self._interval
+            self._status, self._summary, self._delay = "", SUMMARY_OFF, self._interval
             return self._interval
         if options.key == self._refused_key:  # the server refused this key: wait for the player to save another
             return self._interval
         self._refused_key = None
+        self._summary = SUMMARY_RUNNING
         try:
             outcome = self._run_engine(options)
         except Exception:  # a worker thread reports and survives; the cause goes to the log
             logger.exception("synchronisation échouée")
             outcome = SyncOutcome(0, 0, False, UNEXPECTED_STATUS)
-        self._status = outcome.message
+        self._status, self._summary = outcome.message, self._summarise(outcome)
         if outcome.refused:
             self._refused_key, self._delay = options.key, self._interval
             return self._interval

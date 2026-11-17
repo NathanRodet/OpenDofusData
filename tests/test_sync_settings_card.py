@@ -191,3 +191,43 @@ def test_card_shows_the_counters_under_the_status_and_follows_new_data(root, tmp
     monkeypatch.setattr(sync_settings_card, "COUNTS_REFRESH_SECONDS", 0.0)
     card.render()
     assert "Reçus des autres joueurs : 1" in card.sync_status_label.cget("text")
+
+
+def test_the_address_field_shows_the_address_in_use(root, tmp_path) -> None:
+    card = make_card(root, tmp_path)
+    assert card.address_entry.get() == URL
+
+
+def test_saving_a_new_address_stores_it_and_enables_the_test(root, tmp_path) -> None:
+    card = make_card(root, tmp_path, url=None)
+    card.render()
+    assert card.test_button.cget("state") == "disabled"
+    card.address_entry.insert(0, " https://nouveau.exemple.fr/ ")
+    card.entry.insert(0, KEY)
+    card.save()
+    assert saved(tmp_path)["sync_server_url"] == "https://nouveau.exemple.fr"
+    card.render()
+    assert card.test_button.cget("state") == "normal"
+
+
+def test_a_bad_address_is_refused_and_not_stored(root, tmp_path) -> None:
+    card = make_card(root, tmp_path, url=None)
+    card.address_entry.insert(0, "http://pas-securise.fr")
+    card.save()
+    assert "sync_server_url" not in saved(tmp_path) if (tmp_path / "config.json").exists() else True
+    assert "Adresse invalide" in card.status_label.cget("text")
+
+
+def test_the_connection_test_uses_the_typed_address_even_when_unsaved(root, tmp_path) -> None:
+    check = FakeCheck()
+    card = make_card(root, tmp_path, check, url=None)
+    card.address_entry.insert(0, "https://essai.exemple.fr")
+    card.entry.insert(0, KEY)
+    run_test(card)
+    assert check.calls == [("https://essai.exemple.fr", KEY)]
+
+
+def test_the_test_button_is_off_without_any_address(root, tmp_path) -> None:
+    card = make_card(root, tmp_path, url=None)
+    card.render()
+    assert card.test_button.cget("state") == "disabled"

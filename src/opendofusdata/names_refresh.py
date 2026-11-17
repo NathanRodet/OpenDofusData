@@ -17,6 +17,7 @@ from opendofusdata.names_fetch import (
     REQUEST_DELAY_SECONDS, FetchJson, Sleep, download_item_names, http_get_json,
 )
 from opendofusdata.recipes_commands import download_recipes
+from opendofusdata.effects_csv import EFFECTS_FILE
 from opendofusdata.recipes_csv import DEFAULT_RECIPES_FILE
 from opendofusdata.servers_fetch import download_game_servers
 from opendofusdata.storage import PriceStore
@@ -83,3 +84,9 @@ def loaded_item_count(database_path: str) -> int:
     except sqlite3.Error as error:
         logger.info("noms d'objets illisibles dans %s (%s)", database_path, error)
         return 0
+
+
+def reference_data_missing(database_path: str, data_directory: Path) -> bool:
+    """True when the item names, the recipes or the effects were never downloaded."""
+    return (loaded_item_count(database_path) == 0 or not (data_directory / DEFAULT_RECIPES_FILE).is_file()
+            or not (data_directory / EFFECTS_FILE).is_file())

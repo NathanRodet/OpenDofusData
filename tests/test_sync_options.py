@@ -47,3 +47,13 @@ def test_a_malformed_key_is_not_used(tmp_path) -> None:
     config_path = tmp_path / "config.json"
     save_config(config_path, {SYNC_KEY_CONFIG: "pas une clé"})
     assert load_sync_options(config_path, write_env(tmp_path)) is None
+
+
+def test_an_address_saved_in_the_settings_is_used_by_the_worker(tmp_path) -> None:
+    import json
+
+    config_path = tmp_path / "config.json"
+    config_path.write_text(json.dumps({"sync_api_key": KEY, "sync_server_url": "https://reglages.exemple.fr"}),
+                           encoding="utf-8")
+    options = load_sync_options(config_path, tmp_path / "absent.env")
+    assert options == SyncOptions("https://reglages.exemple.fr", KEY, True, True)

@@ -11,6 +11,7 @@ from opendofusdata.page_hdv import HdvPage
 from opendofusdata.page_logs import LogsPage
 from opendofusdata.page_pets import PetsPage
 from opendofusdata.page_settings import SettingsPage
+from opendofusdata.settings_names import Refresh
 from opendofusdata.ui_widgets import Page
 from opendofusdata.window_context import WindowContext
 
@@ -24,7 +25,8 @@ def admin_settings(context: WindowContext) -> AdminSettings | None:
     return load_admin_settings(env_file_path(context.config_path))
 
 
-def build_pages(parent: customtkinter.CTkBaseClass, context: WindowContext) -> dict[str, Page]:
+def build_pages(parent: customtkinter.CTkBaseClass, context: WindowContext,
+                refresh: Refresh | None = None) -> dict[str, Page]:
     """Create every page inside `parent`, keyed by menu name (PAGE_NAMES, then Administration if configured)."""
     pages: dict[str, Page] = {
         "HDV": HdvPage(parent, context),
@@ -32,7 +34,7 @@ def build_pages(parent: customtkinter.CTkBaseClass, context: WindowContext) -> d
         "Craft": CraftPage(parent, context),
         "Familiers": PetsPage(parent, context),
         "Logs": LogsPage(parent, context),
-        SETTINGS_PAGE: SettingsPage(parent, context),
+        SETTINGS_PAGE: SettingsPage(parent, context, **({"refresh": refresh} if refresh else {})),
     }
     settings = admin_settings(context)
     if settings is not None:

@@ -69,7 +69,7 @@ def _has_unsafe_characters(value: str) -> bool:
     return not value.isascii() or not value.isprintable() or any(char in UNSAFE_URL_CHARACTERS for char in value)
 
 
-def _canonical_origin(value: str) -> str | None:
+def canonical_origin(value: str) -> str | None:
     """`https://host[:port]` rebuilt from the parsed parts, or None when the value is not a bare https origin."""
     if _has_unsafe_characters(value):
         return None
@@ -90,7 +90,7 @@ def server_url_override(path: Path) -> str | None:
     value = read_env_file(path).get(SERVER_URL_NAME, "")
     if not value:
         return None
-    origin = _canonical_origin(value)
+    origin = canonical_origin(value)
     if origin is None:
         logger.warning("%s invalide dans le .env (https://hôte[:port] attendu), ignoré", SERVER_URL_NAME)
     return origin

@@ -4,6 +4,8 @@ import pytest
 
 pytest.importorskip("customtkinter")
 
+import customtkinter
+
 from opendofusdata.local_data_card import AUTO_LABEL
 from opendofusdata.page_settings import SECTION_TITLES, SettingsPage
 from opendofusdata.settings_names import REFERENCE_BUTTON_WIDTH
@@ -34,6 +36,16 @@ def contrast(foreground: str, background: str) -> float:
 
 def rows_of(panel) -> list[SettingRow]:
     return [child for child in panel.pack_slaves() if isinstance(child, SettingRow)]
+
+
+def empty_default_frames(widget) -> list:
+    """Frames without content that still ask for the 200 px a CTkFrame has by default."""
+    found = []
+    for child in widget.winfo_children():
+        if isinstance(child, customtkinter.CTkFrame) and not child.winfo_children() and child.winfo_reqheight() >= 200:
+            found.append(child)
+        found.extend(empty_default_frames(child))
+    return found
 
 
 def test_the_page_has_the_planned_sections_in_order(root, tmp_path) -> None:
@@ -78,7 +90,7 @@ def test_the_column_does_not_stretch_with_the_window(root, tmp_path) -> None:
     root.update_idletasks()
     for _, panel in page.sections:
         assert panel.winfo_reqwidth() <= COLUMN_WIDTH
-        assert not any(row.winfo_reqheight() >= 200 for row in rows_of(panel))  # no empty frame at its default 200 px
+        assert not empty_default_frames(panel)  # no empty frame left at its default 200 px
 
 
 def test_the_automatic_purge_label_fits_in_a_row() -> None:

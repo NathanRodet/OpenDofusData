@@ -18,7 +18,7 @@ from opendofusdata.settings_names import NamesCard, Refresh
 from opendofusdata.settings_prices import PricesCard
 from opendofusdata.settings_rows import make_row
 from opendofusdata.settings_sections import SettingsSections
-from opendofusdata.sync_client import resolve_server_url
+from opendofusdata.sync_server_url import configured_server_url
 from opendofusdata.local_data_card import LocalDataCard
 from opendofusdata.sync_settings_card import SyncSettingsCard
 from opendofusdata.ui_theme import (
@@ -81,7 +81,7 @@ class SettingsPage:
         self.names_card = NamesCard(reference, context, refresh)
         self.prices_card = PricesCard(reference, context, self._save)
         synchronisation = self._sections.add(SECTION_TITLES[2])
-        sync_address = resolve_server_url(env_file_path(context.config_path))
+        sync_address = configured_server_url(context.config_path, env_file_path(context.config_path))
         self.sync_card = SyncSettingsCard(synchronisation, context, server_url=sync_address, status=context.sync_status)
         self.local_data_card = LocalDataCard(synchronisation, context)
         application = self._sections.add(SECTION_TITLES[3])

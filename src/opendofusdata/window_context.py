@@ -29,6 +29,8 @@ class WindowContext:
     type_of: NameLookup = field(default=lambda item_id: UNKNOWN_ITEM_TYPE)
     sync_status: Callable[[], str] = field(default=lambda: "")
     reference_generation: int = 0
+    sync_summary: Callable[[], str] = field(default=lambda: "")
+    auto_reference: bool = False  # the application (never a test) asks for the reference data at startup
 
     def reference_data_changed(self) -> None:
         """Tell the pages that the recipe and effect files were downloaded again."""

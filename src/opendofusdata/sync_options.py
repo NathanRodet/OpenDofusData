@@ -2,9 +2,9 @@
 
 from pathlib import Path
 
-from opendofusdata.sync_client import resolve_server_url
 from opendofusdata.sync_engine import SyncOptions
 from opendofusdata.sync_key import load_sync_key
+from opendofusdata.sync_server_url import configured_server_url
 
 
 def load_sync_options(config_path: Path, env_path: Path) -> SyncOptions | None:
@@ -12,7 +12,7 @@ def load_sync_options(config_path: Path, env_path: Path) -> SyncOptions | None:
 
     Removing the key (or having no server address) stops the synchronisation; None means nothing to do.
     """
-    key, base_url = load_sync_key(config_path), resolve_server_url(env_path)
+    key, base_url = load_sync_key(config_path), configured_server_url(config_path, env_path)
     if not key or not base_url:
         return None
     return SyncOptions(base_url, key, True, True)

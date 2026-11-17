@@ -107,3 +107,17 @@ def test_loaded_item_count_is_zero_for_a_database_without_names(tmp_path) -> Non
 def test_loaded_item_count_is_zero_for_a_corrupt_file(tmp_path) -> None:
     (tmp_path / "bad.db").write_bytes(b"not a database" * 100)
     assert loaded_item_count(str(tmp_path / "bad.db")) == 0
+
+
+def test_reference_data_is_missing_when_names_recipes_or_effects_are_absent(tmp_path) -> None:
+    from opendofusdata.names_refresh import reference_data_missing
+
+    database = str(tmp_path / "prices.db")
+    assert reference_data_missing(database, tmp_path) is True  # nothing at all
+    store = PriceStore(database)
+    with store.connection:
+        store.connection.execute("INSERT INTO items (item_id, name_fr) VALUES (1, 'A')")
+    (tmp_path / "recipes.csv").write_text("x", encoding="utf-8")
+    assert reference_data_missing(database, tmp_path) is True  # no effects file yet
+    (tmp_path / "item_effects.csv").write_text("x", encoding="utf-8")
+    assert reference_data_missing(database, tmp_path) is False

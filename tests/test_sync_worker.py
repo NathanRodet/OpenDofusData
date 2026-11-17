@@ -123,3 +123,35 @@ def test_stop_ends_the_thread_quickly(tmp_path) -> None:
     started = time.monotonic()
     worker.stop()
     assert time.monotonic() - started < 3.0 and not worker.is_running()
+
+
+def test_the_summary_follows_the_round(tmp_path) -> None:
+    release, entered = threading.Event(), threading.Event()
+
+    def slow_round(connection, options) -> SyncOutcome:
+        entered.set()
+        release.wait(WAIT)
+        return SyncOutcome(2, 14, False, DONE_MESSAGE)
+
+    worker = make_worker(tmp_path, slow_round, interval=60.0)
+    assert worker.summary() == "pas encore lancée"
+    worker.start()
+    assert entered.wait(WAIT) and worker.summary() == "en cours..."
+    release.set()
+    assert wait_for(lambda: worker.summary() == "à jour, 14 reçus")
+    worker.stop()
+
+
+def test_the_summary_says_when_sharing_is_off_or_a_round_failed(tmp_path) -> None:
+    off = make_worker(tmp_path, Rounds(OK), options=None)
+    off.start()
+    assert wait_for(lambda: off.summary() == "désactivée")
+    off.stop()
+    failing = make_worker(tmp_path, Rounds(DOWN), interval=60.0)
+    failing.start()
+    assert wait_for(lambda: failing.summary() == "échec, voir Réglages")
+    failing.stop()
+    refused = make_worker(tmp_path, Rounds(REFUSED), interval=60.0)
+    refused.start()
+    assert wait_for(lambda: refused.summary() == "clé refusée")
+    refused.stop()

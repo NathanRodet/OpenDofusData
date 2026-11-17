@@ -122,6 +122,9 @@ class FakeWorker:
     def status(self) -> str:
         return "Synchronisation terminée"
 
+    def summary(self) -> str:
+        return "à jour"
+
 
 def test_window_command_runs_the_sync_worker_around_the_window(monkeypatch, tmp_path) -> None:
     FakeWorker.instances.clear()
@@ -159,3 +162,11 @@ def test_the_startup_purge_gets_the_config_and_the_database(monkeypatch, tmp_pat
     run_window_command(monkeypatch, tmp_path, "x.db", '{"purge_old_data": true}')
     assert done.wait(5)
     assert calls[0][1] == "x.db" and calls[0][0]["purge_old_data"] is True
+
+
+def test_the_application_window_downloads_the_reference_data_and_shows_the_sync_state(monkeypatch, tmp_path) -> None:
+    FakeWorker.instances.clear()
+    monkeypatch.setattr(module, "SyncWorker", FakeWorker)
+    context = run_window_command(monkeypatch, tmp_path, "x.db", None)
+    assert context.auto_reference is True
+    assert context.sync_summary() == "à jour"

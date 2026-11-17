@@ -83,7 +83,8 @@ def window_command(
     worker = SyncWorker(lambda: session.database_path,
                         lambda: load_sync_options(config_path, env_file_path(config_path)))
     context = WindowContext(session, config_path, server_names(), name_of, build_update_controller(config),
-                            type_of=type_of, sync_status=worker.status)
+                            type_of=type_of, sync_status=worker.status, sync_summary=worker.summary,
+                            auto_reference=True)
     threading.Thread(target=startup_purge, args=(config, database), name="startup-purge", daemon=True).start()
     worker.start()
     try:

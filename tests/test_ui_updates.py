@@ -246,3 +246,67 @@ def test_changing_the_server_while_stopped_does_not_restart_anything(root, tmp_p
     context.restart_capture = lambda: restarts.append(1)
     settings(root, context).choose_server("Kourial")
     assert restarts == []
+
+
+def test_the_reference_data_download_starts_by_itself_when_it_is_missing(root, tmp_path) -> None:
+    calls = []
+    page = settings(root, make_context(tmp_path), lambda path, directory: calls.append(path) or RefreshResult(3, 1, 2, 4))
+    assert page.names_card.summary() == "absentes"
+    assert page.names_card.start_if_missing() is True
+    assert page.names_card.task.wait(WAIT_SECONDS) and len(calls) == 1
+    page.render(page.names_card._context.session.snapshot())
+    assert page.names_card.summary() == "à jour"
+
+
+def test_the_reference_data_is_not_downloaded_again_when_it_is_complete(root, tmp_path, monkeypatch) -> None:
+    from opendofusdata import settings_names
+
+    monkeypatch.setattr(settings_names, "reference_data_missing", lambda database, directory: False)
+    calls = []
+    page = settings(root, make_context(tmp_path), lambda path, directory: calls.append(path) or RefreshResult(3, 1))
+    assert page.names_card.summary() == "à jour"
+    assert page.names_card.start_if_missing() is False and calls == []
+
+
+def test_the_reference_summary_shows_a_running_and_a_failed_download(root, tmp_path) -> None:
+    release = threading.Event()
+
+    def refresh(path, directory):
+        release.wait(WAIT_SECONDS)
+        raise NamesFetchError("API indisponible")
+
+    page = settings(root, make_context(tmp_path), refresh)
+    page.names_card.start_if_missing()
+    assert page.names_card.summary() == "téléchargement..."
+    release.set()
+    assert page.names_card.task.wait(WAIT_SECONDS)
+    assert page.names_card.summary() == "échec"
+
+
+def test_the_side_menu_shows_the_state_of_the_reference_data_and_of_the_synchronisation(root, tmp_path) -> None:
+    context = make_context(tmp_path)
+    context.sync_summary = lambda: "à jour, 14 reçus"
+    window = CaptureWindow(root, context)
+    window.render()
+    values = window.status_frame.values
+    assert values["Références"].cget("text") == "absentes"
+    assert values["Synchro"].cget("text") == "à jour, 14 reçus"
+
+
+def test_the_window_starts_the_reference_download_only_when_the_application_asks_for_it(root, tmp_path) -> None:
+    calls = []
+    context = make_context(tmp_path)
+    window = CaptureWindow(root, context, lambda path, directory: calls.append(path) or RefreshResult(1, 1, 1, 1))
+    window.start_reference_download()
+    assert calls == []  # a test window never reaches the network by itself
+    context.auto_reference = True
+    window.start_reference_download()
+    assert window.pages["Réglages"].names_card.task.wait(WAIT_SECONDS) and len(calls) == 1
+
+
+def test_the_reference_summary_says_incomplete_when_only_the_names_are_loaded(root, tmp_path, monkeypatch) -> None:
+    from opendofusdata import settings_names
+
+    monkeypatch.setattr(settings_names, "loaded_item_count", lambda database: 5)
+    page = settings(root, make_context(tmp_path))
+    assert page.names_card.summary() == "incomplètes"

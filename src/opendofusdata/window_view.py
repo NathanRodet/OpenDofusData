@@ -16,6 +16,7 @@ from opendofusdata.ui_widgets import Page, make_button, make_label
 from opendofusdata.window_context import WindowContext
 from opendofusdata.window_format import button_enabled, button_label
 from opendofusdata.window_status import StatusBlock
+from opendofusdata.settings_names import Refresh
 from opendofusdata.window_pages import PAGE_NAMES, SETTINGS_PAGE, build_pages
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,7 @@ __all__ = ["CaptureWindow", "PAGE_NAMES"]
 class CaptureWindow:
     """Menu + status block + pages; reads session snapshots, never touches the capture thread."""
 
-    def __init__(self, root: customtkinter.CTk, context: WindowContext) -> None:
+    def __init__(self, root: customtkinter.CTk, context: WindowContext, refresh: Refresh | None = None) -> None:
         self._root, self._context = root, context
         self._closing = False
         self.menu_mode = ""
@@ -40,7 +41,7 @@ class CaptureWindow:
         self._configure_root()
         self.menu_buttons: dict[str, customtkinter.CTkButton] = {}
         self.content = customtkinter.CTkFrame(root, fg_color=WINDOW_COLOR, corner_radius=0)
-        self.pages: dict[str, Page] = build_pages(self.content, context)
+        self.pages: dict[str, Page] = build_pages(self.content, context, refresh)
         self._build_menu()
         self.current_page = PAGE_NAMES[0]
         self.relayout(DEFAULT_WIDTH)
@@ -122,7 +123,13 @@ class CaptureWindow:
         """Start the capture, the update check and the periodic refresh."""
         self._context.session.start()
         self._context.updates.start_check()
+        self.start_reference_download()
         self._poll()
+
+    def start_reference_download(self) -> None:
+        """Download the item names, recipes and effects when they are missing (only when the application asks)."""
+        if self._context.auto_reference:
+            self.pages[SETTINGS_PAGE].names_card.start_if_missing()  # type: ignore[attr-defined]
 
     def _poll(self) -> None:
         try:
@@ -137,11 +144,16 @@ class CaptureWindow:
         snapshot = self._context.session.snapshot()
         self.toggle_button.configure(text=button_label(snapshot),
                                     state="normal" if button_enabled(snapshot) else "disabled")
-        self.status_frame.render(snapshot, utc_now())
+        self.status_frame.render(snapshot, utc_now(), self._extra_status())
         self.pages[self.current_page].render(snapshot)
         self._update_badge()
         if self._context.updates.take_restart_request():
             self.close()
+
+    def _extra_status(self) -> dict[str, str]:
+        """The reference data and synchronisation lines of the status block."""
+        names_card = self.pages[SETTINGS_PAGE].names_card  # type: ignore[attr-defined]
+        return {"Références": names_card.summary(), "Synchro": self._context.sync_summary()}
 
     def _update_badge(self) -> None:
         """Show the notification sign on the Réglages entry while a newer version exists."""

@@ -13,7 +13,7 @@ from opendofusdata.ui_widgets import make_label
 from opendofusdata.window_format import error_detail_text, headline_text, status_rows
 
 DOT = "●"
-CAPTIONS = ("Serveur", "Prix", "Brisages", "Familiers", "Dernier relevé")
+CAPTIONS = ("Serveur", "Prix", "Brisages", "Familiers", "Dernier relevé", "Références", "Synchro")
 STATUS_COLORS = {
     CaptureStatus.RUNNING: SUCCESS_COLOR,
     CaptureStatus.STOPPING: OFF_COLOR,
@@ -46,10 +46,12 @@ class StatusBlock(customtkinter.CTkFrame):
         value.pack(side="right")
         return value
 
-    def render(self, snapshot: SessionSnapshot, now: datetime) -> None:
-        """Show the session state."""
+    def render(self, snapshot: SessionSnapshot, now: datetime, extra: dict[str, str] | None = None) -> None:
+        """Show the session state, then the extra lines (reference data, synchronisation) the window computed."""
         self.dot_label.configure(text_color=STATUS_COLORS[snapshot.status])
         self.status_label.configure(text=headline_text(snapshot))
         self.error_label.configure(text=error_detail_text(snapshot))
         for caption, value in status_rows(snapshot, now):
+            self.values[caption].configure(text=value)
+        for caption, value in (extra or {}).items():
             self.values[caption].configure(text=value)
