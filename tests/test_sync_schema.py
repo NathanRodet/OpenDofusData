@@ -87,3 +87,15 @@ def test_existing_price_queries_return_the_same_columns() -> None:
     assert store.latest_prices(7) == [lot]
     assert store.price_history(7, 10) == [lot]
     store.close()
+
+
+def test_empty_breakings_marked_skipped_are_sent_again(tmp_path) -> None:
+    store = PriceStore(str(tmp_path / "prices.db"))
+    insert = ("INSERT INTO broken_items (server, captured_at, item_id, quantity, coefficient, runes_json, origin, synced_at) "
+              "VALUES ('Brial', '2026-11-16T10:00:00Z', 1, 1, 0.5, ?, 'local', 'skipped')")
+    store.connection.execute(insert, ("[]",))
+    store.connection.execute(insert, ("[[10, 1]]",))
+    prepare_sync_schema(store.connection)
+    rows = store.connection.execute("SELECT runes_json, synced_at FROM broken_items ORDER BY id").fetchall()
+    store.close()
+    assert rows == [("[]", None), ("[[10, 1]]", "skipped")]

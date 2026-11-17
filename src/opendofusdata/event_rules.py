@@ -22,8 +22,8 @@ def _valid_pair(pair: object) -> bool:
     return 1 <= pair[0] <= MAX_ITEM_ID and 1 <= pair[1] <= MAX_QUANTITY
 
 
-def _valid_pairs(pairs: object) -> bool:
-    return isinstance(pairs, (list, tuple)) and 1 <= len(pairs) <= MAX_PAIRS and all(map(_valid_pair, pairs))
+def _valid_pairs(pairs: object, minimum: int = 1) -> bool:
+    return isinstance(pairs, (list, tuple)) and minimum <= len(pairs) <= MAX_PAIRS and all(map(_valid_pair, pairs))
 
 
 def _valid_item_id(value: object) -> bool:
@@ -44,7 +44,7 @@ def valid_broken_event(event: Mapping[str, object]) -> bool:
     return (valid_server_name(event.get("server")) and _valid_item_id(event.get("item_id"))
             and is_whole_number(quantity) and 1 <= quantity <= MAX_QUANTITY
             and isinstance(coefficient, (int, float)) and not isinstance(coefficient, bool)
-            and 0 <= coefficient <= MAX_COEFFICIENT and _valid_pairs(event.get("runes")))
+            and 0 <= coefficient <= MAX_COEFFICIENT and _valid_pairs(event.get("runes"), minimum=0))  # a breaking can give no rune
 
 
 def valid_pet_event(event: Mapping[str, object]) -> bool:

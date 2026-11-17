@@ -25,6 +25,7 @@ def _item_and_quantity(pair: list[int]) -> list[int]:
 
 Pair = Annotated[list[int], Field(min_length=PAIR_SIZE, max_length=PAIR_SIZE), AfterValidator(_item_and_quantity)]
 Pairs = Annotated[list[Pair], Field(min_length=1, max_length=MAX_PAIRS)]
+RunePairs = Annotated[list[Pair], Field(max_length=MAX_PAIRS)]  # an object can be broken without giving any rune
 Quantity = Annotated[int, Field(ge=1, le=MAX_QUANTITY)]
 
 
@@ -37,7 +38,7 @@ class BrokenEvent(BaseModel):
     item_id: int = Field(ge=1, le=MAX_ITEM_ID)
     quantity: Quantity
     coefficient: float = Field(ge=0, le=MAX_COEFFICIENT)
-    runes: Pairs
+    runes: RunePairs
     observed_at: ObservationTime
 
 

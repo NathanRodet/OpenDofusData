@@ -210,3 +210,15 @@ def test_kamas_line_says_unknown_alone_when_the_price_was_never_seen() -> None:
     from opendofusdata.pets_texts import kamas_line
 
     assert kamas_line(None) == "Inconnu" and kamas_line(150) == "150 kamas"
+
+
+def test_the_small_cross_empties_the_three_fields_and_the_message(root, tmp_path) -> None:
+    page = make_page(root, tmp_path)
+    page.form.item_box.insert(0, "dsfs")
+    page.form.units_entry.insert(0, "236")
+    page.form.experience_entry.insert(0, "12")
+    page.form.add()
+    assert page.form.message_label.cget("text")
+    page.form.clear_button.invoke()
+    assert (page.form.item_box.get(), page.form.units_entry.get(), page.form.experience_entry.get()) == ("", "", "")
+    assert page.form.message_label.cget("text") == ""

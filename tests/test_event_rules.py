@@ -27,7 +27,7 @@ def test_a_normal_broken_item_is_valid() -> None:
 
 @pytest.mark.parametrize("change", [
     {"quantity": 0}, {"quantity": True}, {"coefficient": -0.1}, {"coefficient": 11.0}, {"coefficient": "0.5"},
-    {"item_id": 0}, {"server": "=cmd"}, {"runes": []}, {"runes": [[1, 2, 3]]}, {"runes": [[0, 1]]},
+    {"item_id": 0}, {"server": "=cmd"}, {"runes": [[1, 2, 3]]}, {"runes": [[0, 1]]},
     {"runes": [[1, 0]]}, {"runes": [[1, 1]] * 41}, {"runes": "abc"}, {"runes": [[True, 1]]},
 ])
 def test_a_bad_broken_item_is_not_valid(change: dict[str, object]) -> None:
@@ -48,3 +48,8 @@ def test_a_normal_pet_feeding_is_valid_and_unknown_figures_may_be_null() -> None
 ])
 def test_a_bad_pet_feeding_is_not_valid(change: dict[str, object]) -> None:
     assert not valid_pet_event(pet(**change))
+
+
+def test_a_breaking_without_any_rune_is_valid_but_a_pet_upgrade_needs_a_resource() -> None:
+    assert valid_broken_event(broken(runes=[]))
+    assert not valid_pet_event(pet(resources=[]))

@@ -18,6 +18,10 @@ SYNC_STATEMENTS = (
 )
 
 
+# Breakings that gave no rune were refused by older rules and marked skipped: they are sent now.
+EMPTY_BREAKINGS_FILTER = f"WHERE origin = '{ORIGIN_LOCAL}' AND synced_at = 'skipped' AND runes_json = '[]'"
+RESEND_EMPTY_BREAKINGS = f"UPDATE broken_items SET synced_at = NULL {EMPTY_BREAKINGS_FILTER}"
+HAS_EMPTY_BREAKINGS = f"SELECT 1 FROM broken_items {EMPTY_BREAKINGS_FILTER} LIMIT 1"
 EVENT_TABLES = ("broken_items", "pet_feedings")  # breakings and pet upgrades are shared like the prices
 EVENT_STATEMENTS = (
     f"""CREATE INDEX IF NOT EXISTS idx_broken_items_unsent ON broken_items (id)
@@ -56,3 +60,5 @@ def prepare_sync_schema(connection: sqlite3.Connection) -> None:
     events_ready = all(table in tables for table in EVENT_TABLES)
     for statement in (*SYNC_STATEMENTS, *(EVENT_STATEMENTS if events_ready else ())):
         connection.execute(statement)
+    if events_ready and connection.execute(HAS_EMPTY_BREAKINGS).fetchone():  # write only when needed: opening a store must not wait for a lock
+        connection.execute(RESEND_EMPTY_BREAKINGS)

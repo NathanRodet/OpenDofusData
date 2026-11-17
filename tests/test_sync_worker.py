@@ -43,7 +43,7 @@ def make_worker(tmp_path, rounds: Rounds, options=OPTIONS, interval: float = 0.0
 
 
 def test_constants() -> None:
-    assert (SYNC_INTERVAL_SECONDS, MAX_BACKOFF_SECONDS) == (300, 3600)
+    assert (SYNC_INTERVAL_SECONDS, MAX_BACKOFF_SECONDS) == (10, 3600)
 
 
 def test_worker_runs_rounds_with_the_current_options(tmp_path) -> None:

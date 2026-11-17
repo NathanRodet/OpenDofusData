@@ -81,3 +81,8 @@ def test_unknown_pet_levels_may_be_null(client: TestClient) -> None:
 def test_an_empty_or_huge_batch_is_refused(client: TestClient) -> None:
     assert client.post("/brisages", json={"events": []}, headers=ALICE).status_code == 422
     assert client.post("/brisages", json={"events": [broken_body()] * 2001}, headers=ALICE).status_code == 422
+
+
+def test_a_breaking_without_any_rune_is_accepted(client: TestClient) -> None:
+    response = client.post("/brisages", json={"events": [broken_body(runes=[])]}, headers=ALICE)
+    assert response.status_code == 200 and response.json()["accepted"] == 1

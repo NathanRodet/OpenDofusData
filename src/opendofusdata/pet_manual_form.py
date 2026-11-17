@@ -15,6 +15,8 @@ UNITS_PLACEHOLDER = "Nombre de ressources"
 EXPERIENCE_PLACEHOLDER = "XP obtenue"
 ADD_TEXT = "Ajouter"
 REMOVE_TEXT = "Retirer mes saisies"
+CLEAR_TEXT = "×"  # the small cross that empties the form
+CLEAR_SIZE = 26
 UNKNOWN_ITEM_MESSAGE = "Choisis un objet dans la liste de recherche."
 BAD_NUMBER_MESSAGE = "Écris deux nombres entiers positifs (ressources et XP)."
 ADDED_MESSAGE = "Ajouté."
@@ -43,7 +45,7 @@ class PetManualForm(customtkinter.CTkFrame):
         self._search, self._on_add, self._on_remove = search, on_add, on_remove
         self._choices: dict[str, int] = {}
         self._names: list[str] = []
-        make_label(self, FORM_TITLE, bold=True, anchor="w").pack(fill="x", padx=PADDING, pady=(PADDING, SMALL_PADDING))
+        self._build_header()
         self.item_box = customtkinter.CTkEntry(self, placeholder_text=ITEM_PLACEHOLDER)
         self.item_box.pack(fill="x", padx=PADDING)
         self.item_box.bind("<KeyRelease>", self._key_released)
@@ -53,6 +55,22 @@ class PetManualForm(customtkinter.CTkFrame):
         self.experience_entry = customtkinter.CTkEntry(self, placeholder_text=EXPERIENCE_PLACEHOLDER)
         self.experience_entry.pack(fill="x", padx=PADDING)
         self._build_buttons()
+
+    def _build_header(self) -> None:
+        header = customtkinter.CTkFrame(self, fg_color="transparent")
+        header.pack(fill="x", padx=PADDING, pady=(PADDING, SMALL_PADDING))
+        make_label(header, FORM_TITLE, bold=True, anchor="w").pack(side="left")
+        self.clear_button = customtkinter.CTkButton(
+            header, text=CLEAR_TEXT, command=self.reset, width=CLEAR_SIZE, height=CLEAR_SIZE, fg_color="transparent",
+            hover_color=SUGGESTION_COLOR, text_color=MUTED_COLOR, corner_radius=CORNER_RADIUS)
+        self.clear_button.pack(side="right")
+
+    def reset(self) -> None:
+        """Empty the three fields, the suggestions and the message (handy between two entries)."""
+        for entry in (self.item_box, self.units_entry, self.experience_entry):
+            entry.delete(0, "end")
+        self.update_choices(clear=True)
+        self.message_label.configure(text="")
 
     def _build_buttons(self) -> None:
         row = customtkinter.CTkFrame(self, fg_color="transparent")
