@@ -22,8 +22,13 @@ def test_kamas_per_experience() -> None:
 
 
 def test_experience_per_unit() -> None:
-    assert format_experience_per_unit(2.0) == "+2"
-    assert format_experience_per_unit(1 / 9) == "1 XP pour 9"
+    assert format_experience_per_unit(2.0) == "+2,0"  # always at least the tenth
+    assert format_experience_per_unit(7.333) == "+7,3"
+    assert format_experience_per_unit(640.44) == "+640,4"
+    assert format_experience_per_unit(1 / 9) == "+0,111"  # a small figure keeps its significant digits
+    assert format_experience_per_unit(0.5) == "+0,5"
+    assert format_experience_per_unit(0.9999) == "+1,0"
+    assert format_experience_per_unit(0.0004) == "+0,0004"
 
 
 def test_unknown_values() -> None:

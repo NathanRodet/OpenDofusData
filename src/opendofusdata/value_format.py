@@ -32,9 +32,12 @@ def format_kamas_per_experience(value: float | None) -> str:
 
 
 def format_experience_per_unit(value: float | None) -> str:
-    """+N when one resource gives at least one XP, `1 XP pour N` otherwise."""
+    """The experience one resource gives, with at least the tenth: +7,3 or +0,111 (a comma, as in French)."""
     if value is None or value <= 0:
         return UNKNOWN_TEXT
-    if value >= SINGLE_EXPERIENCE:
-        return f"+{round(value)}"
-    return f"1 XP pour {round(1 / value)}"
+    text = f"{value:.1f}" if value >= SINGLE_EXPERIENCE else f"{value:.3g}"
+    if "e" in text:  # a tiny figure: fixed decimals instead of an exponent
+        text = f"{value:.6f}".rstrip("0")
+    if text == "1" or "." not in text:
+        text += ".0"
+    return "+" + text.replace(".", ",")

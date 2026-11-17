@@ -53,8 +53,8 @@ def test_texts_follow_the_display_rules(root, tmp_path) -> None:
     page = make_page(root, tmp_path)
     page.refresh()
     patte, boue = by_name(page)["Patte de Gruche"], by_name(page)["Boue du Boo"]
-    assert (patte[2], patte[4], patte[5], patte[7]) == ("Inconnu", "+2", "120", "21 550 920")
-    assert (boue[2], boue[4], boue[5], boue[7]) == ("Inconnu", "1 XP pour 9", "Inconnu", "Inconnu")
+    assert (patte[2], patte[4], patte[5], patte[7]) == ("Inconnu", "+2,0", "120", "21 550 920")
+    assert (boue[2], boue[4], boue[5], boue[7]) == ("Inconnu", "+0,111", "Inconnu", "Inconnu")
     store.close()
 
 

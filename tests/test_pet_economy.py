@@ -19,7 +19,7 @@ def feeding(resources: tuple[tuple[int, int], ...], before: int | None, after: i
 def test_boue_du_boo_nine_units_for_one_experience() -> None:
     stats = experience_by_resource([feeding(((BOUE, 9),), 100, 101)])[BOUE]
     assert experience_per_unit(stats) == 1 / 9
-    assert format_experience_per_unit(experience_per_unit(stats)) == "1 XP pour 9"
+    assert format_experience_per_unit(experience_per_unit(stats)) == "+0,111"
 
 
 def test_patte_de_gruche_price_and_leveling_cost() -> None:
