@@ -165,3 +165,10 @@ def test_delay_is_applied_between_requests(tmp_path: Path) -> None:
     download_item_names(tmp_path / "items.csv", fetch=FakeApi(), page_size=PAGE_SIZE_FOR_TESTS,
                         request_delay=0.5, sleep=sleeps.append, progress=lambda text: None)
     assert sleeps and set(sleeps) == {0.5}
+
+
+def test_a_page_without_total_is_asked_again(tmp_path: Path) -> None:
+    api = FakeApi()
+    answers = iter([{"message": "try again later"}])
+    run_download(tmp_path / "items.csv", lambda url: next(answers, None) or api(url))
+    assert (tmp_path / "items.csv").is_file()

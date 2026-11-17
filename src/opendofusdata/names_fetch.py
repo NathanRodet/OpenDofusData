@@ -2,6 +2,7 @@
 
 import http.client
 import json
+import logging
 import math
 import time
 import urllib.error
@@ -17,6 +18,8 @@ from opendofusdata.names_build import (
     build_type_names,
     write_items_csv,
 )
+
+logger = logging.getLogger(__name__)
 
 API_BASE_URL = "https://api.dofusdb.fr"
 USER_AGENT = "OpenDofusData/1 (local price tool)"
@@ -116,23 +119,35 @@ class Requester:
         self._delay = delay
         self._requested = False
 
-    def get(self, url: str) -> object:
-        """Fetch a URL, retrying temporary failures; raise NamesFetchError when it persists."""
+    def get(self, url: str, check: Callable[[object], None] | None = None) -> object:
+        """Fetch a URL, retrying temporary failures (and answers `check` refuses); NamesFetchError when it persists."""
         if self._requested and self._delay > 0:
             self._sleep(self._delay)
         self._requested = True
-        return self._with_retries(url)
+        return self._with_retries(url, check)
 
-    def _with_retries(self, url: str) -> object:
+    def _with_retries(self, url: str, check: Callable[[object], None] | None) -> object:
         for attempt in range(MAX_ATTEMPTS):
             try:
-                return self._fetch(url)
+                payload = self._fetch(url)
+                if check is not None:
+                    check(payload)
+                return payload
             except TransientFetchError as error:
                 last_error = error
                 if attempt + 1 < MAX_ATTEMPTS:
                     self._sleep(RETRY_BACKOFF_SECONDS * 2 ** attempt)
         raise NamesFetchError(
             f"Téléchargement impossible : échec après {MAX_ATTEMPTS} essais ({last_error}).")
+
+
+def _require_page(payload: object) -> None:
+    """A page without total or data is a passing API hiccup: it is asked again."""
+    try:
+        _validated_page(payload)
+    except NamesFetchError as error:
+        logger.warning("page inattendue de l'API DofusDB : %.200s", payload)
+        raise TransientFetchError("réponse inattendue") from error
 
 
 def _validated_page(payload: object) -> tuple[int, list[object]]:
@@ -167,7 +182,7 @@ def collect_all(requester: Requester, path: str, select: str, page_size: int,
     collected: list[object] = []
     total = page = 0
     while page == 0 or (len(collected) < total and page_data):
-        payload = requester.get(_page_url(path, select, page_size, len(collected)))
+        payload = requester.get(_page_url(path, select, page_size, len(collected)), _require_page)
         total, page_data = _validated_page(payload)
         collected.extend(page_data)
         _check_bounds(total, len(collected), path)
