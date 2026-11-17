@@ -7,7 +7,7 @@ from pathlib import Path
 import customtkinter
 
 from opendofusdata.background import BackgroundTask, TaskState
-from opendofusdata.names_fetch import NamesFetchError, Progress, TransientFetchError
+from opendofusdata.names_fetch import NamesFetchError, TransientFetchError
 from opendofusdata.names_progress import DownloadProgress
 from opendofusdata.names_refresh import RefreshResult, loaded_item_count, reference_data_missing
 from opendofusdata.settings_rows import make_row
@@ -33,7 +33,7 @@ SUMMARY_RUNNING = "téléchargement"
 SUMMARY_FAILED = "échec"
 SUMMARY_UP_TO_DATE = "à jour"
 FAILURES = (NamesFetchError, TransientFetchError, sqlite3.Error, OSError)
-Refresh = Callable[[str, Path, Progress], RefreshResult]
+Refresh = Callable[..., RefreshResult]  # (database_path, data_directory, progress=callback)
 
 
 class NamesCard:
@@ -74,7 +74,7 @@ class NamesCard:
     def _download(self) -> str:
         self._progress.reset()
         result = self._refresh(self._context.session.database_path, self._context.data_directory,
-                               self._progress.report)
+                               progress=self._progress.report)
         self._count = result.items
         self._context.use_item_names(self._context.session.database_path)
         self._context.reference_data_changed()

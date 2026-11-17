@@ -121,3 +121,18 @@ def test_reference_data_is_missing_when_names_recipes_or_effects_are_absent(tmp_
     assert reference_data_missing(database, tmp_path) is True  # no effects file yet
     (tmp_path / "item_effects.csv").write_text("x", encoding="utf-8")
     assert reference_data_missing(database, tmp_path) is False
+
+
+def test_the_card_call_gives_the_progress_callback_as_progress_not_as_the_fetch_function() -> None:
+    """Regression (2.2.2 and 2.2.3): the callback landed in `fetch`, so every answer was None."""
+    import inspect
+
+    from opendofusdata.names_fetch import http_get_json
+    from opendofusdata.names_refresh import refresh_reference_data
+
+    def callback(message: str) -> None:
+        return None
+
+    bound = inspect.signature(refresh_reference_data).bind("prices.db", Path("data"), progress=callback)
+    bound.apply_defaults()
+    assert bound.arguments["fetch"] is http_get_json and bound.arguments["progress"] is callback
