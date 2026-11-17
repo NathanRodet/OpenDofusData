@@ -6,7 +6,6 @@ import sys
 from collections.abc import Callable, Mapping
 from pathlib import Path
 
-DETACHED_PROCESS = 0x00000008
 CREATE_NEW_PROCESS_GROUP = 0x00000200
 CREATE_NO_WINDOW = 0x08000000
 RETRY_COUNT = 50
@@ -41,9 +40,9 @@ def launch_replacement(
     new_path: Path, target_path: Path | None = None, pid: int | None = None,
     spawn: Spawn = subprocess.Popen, environ: Mapping[str, str] = os.environ,
 ) -> None:
-    """Start the detached helper; the caller must then close the application."""
+    """Start the helper (it outlives this process); the caller must then close the application."""
     script = replacement_script(new_path, target_path or Path(sys.executable),
                                 os.getpid() if pid is None else pid)
     spawn(["powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command", script],
-          creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW,
+          creationflags=CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW,  # DETACHED_PROCESS makes PowerShell exit unrun
           env={**environ, RESET_ENVIRONMENT_KEY: "1"}, close_fds=True)
