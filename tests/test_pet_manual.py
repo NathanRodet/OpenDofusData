@@ -94,3 +94,14 @@ def test_search_ignores_case_and_accents() -> None:
     connection.execute("INSERT INTO items VALUES (1, 'Épée Ténébreuse')")
     assert search_items(connection, "epee tenebr") == [(1, "Épée Ténébreuse")]
     assert search_items(connection, "ÉPÉE") == [(1, "Épée Ténébreuse")]
+
+
+def test_search_puts_the_exact_name_first_then_names_starting_with_the_text_then_words_then_the_rest() -> None:
+    import sqlite3
+    connection = sqlite3.connect(":memory:")
+    connection.execute("CREATE TABLE items (item_id INTEGER, name_fr TEXT)")
+    names = ["Accord", "Aile de Vortex", "Orchidée", "Barre d'Or", "Or", "Ordre", "Minerai d'or noir", "Corde"]
+    connection.executemany("INSERT INTO items VALUES (?, ?)", list(enumerate(names)))
+    found = [name for _, name in search_items(connection, "or")]
+    assert found[:3] == ["Or", "Orchidée", "Ordre"]
+    assert found.index("Barre d'Or") < found.index("Accord") and found.index("Minerai d'or noir") < found.index("Corde")
