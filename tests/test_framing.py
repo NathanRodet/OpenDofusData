@@ -225,3 +225,10 @@ def test_scanning_work_is_linear_in_bytes_received(
     garbage = random.Random(GARBAGE_SEED).randbytes(LINEAR_GARBAGE_BYTES)
     assert feed_in_chunks(garbage, chunk_size) == []
     assert calls <= MAX_CALLS_PER_BYTE * LINEAR_GARBAGE_BYTES
+
+
+def test_a_long_market_list_of_a_hundred_kilobytes_is_extracted() -> None:
+    """The offers of a very listed mount (hundreds of entries) come in one message of more than 64 KB."""
+    payload = bytes(range(256)) * 400
+    data = envelope_frame("one", b"1") + envelope_frame("jzs", payload) + envelope_frame("two", b"2")
+    assert EnvelopeExtractor().feed(data) == [Envelope("one", b"1"), Envelope("jzs", payload), Envelope("two", b"2")]

@@ -17,8 +17,8 @@ from opendofusdata.protobuf import (
 logger = logging.getLogger(__name__)
 
 TYPE_URL_PREFIX = b"type.ankama.com/"
-MAX_BUFFER_BYTES = 262144
-MAX_FRAME_BYTES = 65536
+MAX_BUFFER_BYTES = 4_194_304  # four frames of the maximum size
+MAX_FRAME_BYTES = 1_048_576  # a very listed item (hundreds of offers) is over 64 KB
 MAX_NESTING_DEPTH = 4
 ANY_TYPE_URL_FIELD = 1
 ANY_VALUE_FIELD = 2
