@@ -79,3 +79,13 @@ def test_a_key_that_already_holds_its_stream_gets_a_429(client: TestClient, quic
     finally:
         ChangeNotifier.open_slot = original  # type: ignore[method-assign]
     assert response.status_code == TOO_MANY_STATUS and notifier_holder["asked"] == "AAAAAAAAAAA"
+
+
+def test_a_slot_that_was_never_given_back_expires(monkeypatch) -> None:
+    from keyserver import change_notifier
+
+    notifier = ChangeNotifier()
+    assert notifier.open_slot("a") and not notifier.open_slot("a")
+    real = change_notifier.time.monotonic
+    monkeypatch.setattr(change_notifier.time, "monotonic", lambda: real() + change_notifier.SLOT_LIFETIME_SECONDS + 1)
+    assert notifier.open_slot("a")

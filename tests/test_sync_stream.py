@@ -1,6 +1,9 @@
 """The stream listener: it wakes the worker on 'changed', and backs off when the stream is refused or cut."""
 
 import threading
+import time
+
+import pytest
 
 from opendofusdata.https_json import HttpsFailure, StreamRefused
 from opendofusdata.sync_engine import SyncOptions
@@ -24,7 +27,10 @@ def make_stream(opener, wakes: list[int], options=OPTIONS) -> SyncStream:
     return SyncStream(lambda: options, lambda: wakes.append(1), opener)
 
 
-def test_each_changed_event_wakes_the_worker_once() -> None:
+def test_each_changed_event_wakes_the_worker_once(monkeypatch) -> None:
+    from opendofusdata import sync_stream
+
+    monkeypatch.setattr(sync_stream, "MIN_WAKE_GAP_SECONDS", 0.0)
     wakes: list[int] = []
     stream = make_stream(lambda *args: [b"event: changed\n", b"\n", b"event: ready\n", b"\n", b"event: changed\n", b"\n"],
                          wakes)
@@ -74,3 +80,16 @@ def test_without_a_key_nothing_is_opened() -> None:
     stream.stop()
     stream._thread.join(WAIT_SECONDS)
     assert opened == []
+
+
+def test_signals_that_come_too_fast_are_merged_into_one_later_wake_up(monkeypatch) -> None:
+    from opendofusdata import sync_stream
+
+    monkeypatch.setattr(sync_stream, "MIN_WAKE_GAP_SECONDS", 0.2)
+    wakes: list[float] = []
+    stream = SyncStream(lambda: None, lambda: wakes.append(time.monotonic()), lambda *args: [])
+    for _ in range(50):
+        stream._changed()
+    time.sleep(0.5)
+    stream.stop()
+    assert len(wakes) == 2 and wakes[1] - wakes[0] >= 0.15
