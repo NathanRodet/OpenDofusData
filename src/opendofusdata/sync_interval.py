@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 MIN_INTERVAL_SECONDS = 10
 MAX_INTERVAL_SECONDS = 300
-DEFAULT_INTERVAL_SECONDS = 30
+DEFAULT_INTERVAL_SECONDS = 60
 INTERVAL_STEP_SECONDS = 5
 INTERVAL_CONFIG = "sync_interval_seconds"
 
@@ -22,7 +22,7 @@ def clamp_interval(value: object) -> int:
 
 
 def load_sync_interval(config_path: Path) -> int:
-    """The saved interval in seconds (default 30), always inside 10..300."""
+    """The saved interval in seconds (default 60), always inside 10..300."""
     return clamp_interval(load_config(config_path).get(INTERVAL_CONFIG))
 
 

@@ -1,4 +1,4 @@
-"""The synchronisation interval setting: 10 to 300 seconds, 30 by default."""
+"""The synchronisation interval setting: 10 to 300 seconds, 60 by default."""
 
 import pytest
 
@@ -12,18 +12,18 @@ KEY = "odk1." + "A" * 11 + "." + "B" * 43
 
 
 @pytest.mark.parametrize("value, expected", [(30, 30), (5, 10), (10, 10), (300, 300), (999, 300), (-4, 10),
-                                              ("20", 30), (None, 30), (True, 30), (12.5, 30)])
+                                              ("20", 60), (None, 60), (True, 60), (12.5, 60)])
 def test_the_interval_is_clamped_and_anything_odd_gives_the_default(value, expected) -> None:
     assert clamp_interval(value) == expected
 
 
 def test_the_defaults_are_the_agreed_ones() -> None:
-    assert (MIN_INTERVAL_SECONDS, DEFAULT_INTERVAL_SECONDS, MAX_INTERVAL_SECONDS) == (10, 30, 300)
+    assert (MIN_INTERVAL_SECONDS, DEFAULT_INTERVAL_SECONDS, MAX_INTERVAL_SECONDS) == (10, 60, 300)
 
 
 def test_the_interval_is_saved_clamped_and_read_back(tmp_path) -> None:
     config = tmp_path / "config.json"
-    assert load_sync_interval(config) == 30
+    assert load_sync_interval(config) == 60
     assert save_sync_interval(config, 90) and load_sync_interval(config) == 90
     assert save_sync_interval(config, 1) and load_sync_interval(config) == 10
 

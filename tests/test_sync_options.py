@@ -18,7 +18,7 @@ def write_env(tmp_path, text: str = f"SERVER_URL={URL}\n"):
 def test_a_key_and_an_address_turn_both_directions_on(tmp_path) -> None:
     config_path = tmp_path / "config.json"
     save_config(config_path, {SYNC_KEY_CONFIG: KEY})
-    assert load_sync_options(config_path, write_env(tmp_path)) == SyncOptions(URL, KEY, True, True, 30)
+    assert load_sync_options(config_path, write_env(tmp_path)) == SyncOptions(URL, KEY, True, True, 60)
 
 
 def test_nothing_runs_without_a_key_or_without_an_address(tmp_path) -> None:
@@ -40,7 +40,7 @@ def test_removing_the_key_stops_the_synchronisation(tmp_path) -> None:
 def test_an_old_send_or_receive_setting_in_the_config_no_longer_matters(tmp_path) -> None:
     config_path = tmp_path / "config.json"
     save_config(config_path, {SYNC_KEY_CONFIG: KEY, "sync_send": False, "sync_receive": False})
-    assert load_sync_options(config_path, write_env(tmp_path)) == SyncOptions(URL, KEY, True, True, 30)
+    assert load_sync_options(config_path, write_env(tmp_path)) == SyncOptions(URL, KEY, True, True, 60)
 
 
 def test_a_malformed_key_is_not_used(tmp_path) -> None:
@@ -56,4 +56,4 @@ def test_an_address_saved_in_the_settings_is_used_by_the_worker(tmp_path) -> Non
     config_path.write_text(json.dumps({"sync_api_key": KEY, "sync_server_url": "https://reglages.exemple.fr"}),
                            encoding="utf-8")
     options = load_sync_options(config_path, tmp_path / "absent.env")
-    assert options == SyncOptions("https://reglages.exemple.fr", KEY, True, True, 30)
+    assert options == SyncOptions("https://reglages.exemple.fr", KEY, True, True, 60)

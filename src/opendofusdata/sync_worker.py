@@ -10,7 +10,7 @@ from opendofusdata.sync_engine import DONE_MESSAGE, SyncOptions, SyncOutcome, sy
 
 logger = logging.getLogger(__name__)
 
-SYNC_INTERVAL_SECONDS = 30  # used when the options carry no interval (the setting is 10 to 300 seconds)
+SYNC_INTERVAL_SECONDS = 60  # used when the options carry no interval (the setting is 10 to 300 seconds)
 MAX_BACKOFF_SECONDS = 3600
 BACKOFF_FACTOR = 2
 JOIN_TIMEOUT_SECONDS = 5.0

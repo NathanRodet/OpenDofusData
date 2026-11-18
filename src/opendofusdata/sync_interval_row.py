@@ -12,7 +12,7 @@ from opendofusdata.ui_widgets import make_label
 from opendofusdata.window_context import WindowContext
 
 TITLE = "Fréquence de synchronisation"
-NOTE = ("Toutes les combien de secondes l'application échange avec le serveur (de 10 à 300, 30 par défaut). "
+NOTE = ("Toutes les combien de secondes l'application échange avec le serveur (de 10 à 300, 60 par défaut). "
         "Le serveur prévient aussi tout de suite quand il y a du nouveau.")
 VALUE_TEXT = "{seconds} s"
 SLIDER_WIDTH = 180
