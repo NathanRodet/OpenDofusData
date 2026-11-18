@@ -8,6 +8,7 @@ import tkinter
 from pathlib import Path
 
 import customtkinter
+import pytest
 
 from opendofusdata import window_command as module
 from opendofusdata.capture_errors import EXIT_FAILED, EXIT_OK
@@ -103,6 +104,26 @@ def test_cli_imports_and_runs_without_tkinter() -> None:
     assert result.returncode == EXIT_OK, result.stderr
 
 
+class FakeStream:
+    """Stands in for the server stream (no connection in these tests)."""
+
+    def __init__(self, load_options, on_change) -> None:
+        self.on_change = on_change
+
+    def start(self) -> None:
+        return None
+
+    def stop(self) -> None:
+        return None
+
+
+@pytest.fixture(autouse=True)
+def no_stream(monkeypatch) -> None:
+    from opendofusdata import window_command
+
+    monkeypatch.setattr(window_command, "SyncStream", FakeStream)
+
+
 class FakeWorker:
     """Stands in for the sync worker: records its life cycle."""
 
@@ -118,6 +139,9 @@ class FakeWorker:
 
     def stop(self) -> None:
         self.events.append("stop")
+
+    def wake(self) -> None:
+        self.events.append("wake")
 
     def status(self) -> str:
         return "Synchronisation terminée"

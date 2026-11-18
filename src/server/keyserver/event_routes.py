@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import FastAPI, Query, Request
 from pydantic import BaseModel
 
+from keyserver.change_notifier import ChangeNotifier
 from keyserver.event_schemas import BrokenBatch, ManualBatch, PetBatch
 from keyserver.event_store import EventStore
 from keyserver.schemas import MAX_BATCH_READINGS, MAX_QUERY_INTEGER
@@ -20,10 +21,13 @@ EVENT_ROUTES: dict[str, tuple[str, type[BaseModel]]] = {
 }
 
 
-def _register(app: FastAPI, events: EventStore, path: str, kind: str, batch_model: type[BaseModel]) -> None:
+def _register(app: FastAPI, events: EventStore, path: str, kind: str, batch_model: type[BaseModel],
+              notifier: ChangeNotifier | None) -> None:
     @app.post(path)
     def send(batch: batch_model, request: Request) -> dict[str, int]:  # type: ignore[valid-type]
         accepted, duplicates = events.add_batch(kind, request.state.key_id, batch.events)  # type: ignore[attr-defined]
+        if accepted and notifier is not None:
+            notifier.notify(kind)
         return {"accepted": accepted, "duplicates": duplicates}
 
     @app.get(path)
@@ -37,7 +41,7 @@ def _register(app: FastAPI, events: EventStore, path: str, kind: str, batch_mode
         return {"events": [event.view() for event in page], "next": page[-1].seq if page else after}
 
 
-def register_event_routes(app: FastAPI, events: EventStore) -> None:
+def register_event_routes(app: FastAPI, events: EventStore, notifier: ChangeNotifier | None = None) -> None:
     """Add `POST`, `GET` and `GET .../mine` for every kind of shared event (user keys only)."""
     for path, (kind, batch_model) in EVENT_ROUTES.items():
-        _register(app, events, path, kind, batch_model)
+        _register(app, events, path, kind, batch_model, notifier)

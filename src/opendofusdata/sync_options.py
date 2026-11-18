@@ -3,6 +3,7 @@
 from pathlib import Path
 
 from opendofusdata.sync_engine import SyncOptions
+from opendofusdata.sync_interval import load_sync_interval
 from opendofusdata.sync_key import load_sync_key
 from opendofusdata.sync_server_url import configured_server_url
 
@@ -15,4 +16,4 @@ def load_sync_options(config_path: Path, env_path: Path) -> SyncOptions | None:
     key, base_url = load_sync_key(config_path), configured_server_url(config_path, env_path)
     if not key or not base_url:
         return None
-    return SyncOptions(base_url, key, True, True)
+    return SyncOptions(base_url, key, True, True, load_sync_interval(config_path))

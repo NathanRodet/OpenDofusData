@@ -9,7 +9,7 @@ ACCEPTED_CHARSET_PARAMETER = "charset=utf-8"
 ALLOWED_ROUTES: dict[str, frozenset[str]] = {
     "/check": frozenset({"GET"}), "/admin/revoke": frozenset({"POST"}),
     "/readings": frozenset({"GET", "POST"}), "/readings/latest": frozenset({"GET"}),
-    "/readings/mine": frozenset({"GET"}),
+    "/readings/mine": frozenset({"GET"}), "/stream": frozenset({"GET"}),
 }
 EVENT_PATHS = ("/brisages", "/familiers", "/saisies")  # the shared events: same shape as the readings routes
 ALLOWED_ROUTES.update({path: frozenset({"GET", "POST"}) for path in EVENT_PATHS})

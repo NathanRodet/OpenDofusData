@@ -20,6 +20,7 @@ from opendofusdata.settings_rows import make_row
 from opendofusdata.settings_sections import SettingsSections
 from opendofusdata.sync_server_url import configured_server_url
 from opendofusdata.local_data_card import LocalDataCard
+from opendofusdata.sync_interval_row import SyncIntervalRow
 from opendofusdata.sync_settings_card import SyncSettingsCard
 from opendofusdata.ui_theme import (
     ACCENT_COLOR, COMPACT_BUTTON_HEIGHT, COMPACT_BUTTON_WIDTH, ERROR_COLOR, MUTED_COLOR, PADDING, SWITCH_WIDTH,
@@ -83,6 +84,7 @@ class SettingsPage:
         synchronisation = self._sections.add(SECTION_TITLES[2])
         sync_address = configured_server_url(context.config_path, env_file_path(context.config_path))
         self.sync_card = SyncSettingsCard(synchronisation, context, server_url=sync_address, status=context.sync_status)
+        self.interval_row = SyncIntervalRow(synchronisation, context)
         self.local_data_card = LocalDataCard(synchronisation, context)
         application = self._sections.add(SECTION_TITLES[3])
         self.update_switch = self._add_update_row(application)

@@ -34,6 +34,7 @@ class SyncOptions(NamedTuple):
     key: str
     send: bool
     receive: bool
+    interval: float | None = None  # seconds between two rounds; None: the worker's own interval
 
 
 class SyncOutcome(NamedTuple):

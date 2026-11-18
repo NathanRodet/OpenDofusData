@@ -58,7 +58,7 @@ def test_the_page_has_the_planned_sections_in_order(root, tmp_path) -> None:
 def test_every_section_is_a_panel_of_rows(root, tmp_path) -> None:
     page = make_page(root, tmp_path)
     counts = {title: len(rows_of(panel)) for title, panel in page.sections}
-    assert counts == {"Capture": 2, "Données de référence": 2, "Synchronisation": 2, "Application": 3}
+    assert counts == {"Capture": 2, "Données de référence": 2, "Synchronisation": 3, "Application": 3}
 
 
 def test_rows_are_separated_by_a_divider_and_the_first_has_none(root, tmp_path) -> None:

@@ -10,7 +10,7 @@ from opendofusdata.sync_engine import DONE_MESSAGE, SyncOptions, SyncOutcome, sy
 
 logger = logging.getLogger(__name__)
 
-SYNC_INTERVAL_SECONDS = 10  # a round is a few small requests; the server only answers what changed
+SYNC_INTERVAL_SECONDS = 30  # used when the options carry no interval (the setting is 10 to 300 seconds)
 MAX_BACKOFF_SECONDS = 3600
 BACKOFF_FACTOR = 2
 JOIN_TIMEOUT_SECONDS = 5.0
@@ -35,6 +35,7 @@ class SyncWorker:
         self._interval, self._engine = interval, engine
         self._delay = interval
         self._stop = threading.Event()
+        self._wake = threading.Event()
         self._status = ""
         self._summary = SUMMARY_NOT_STARTED
         self._refused_key: str | None = None
@@ -47,8 +48,13 @@ class SyncWorker:
     def stop(self) -> None:
         """Ask the thread to end and wait for it briefly."""
         self._stop.set()
+        self._wake.set()
         if self._thread.is_alive():
             self._thread.join(JOIN_TIMEOUT_SECONDS)
+
+    def wake(self) -> None:
+        """Run the next round now (the server said something changed)."""
+        self._wake.set()
 
     def is_running(self) -> bool:
         """True while the thread is alive."""
@@ -79,7 +85,11 @@ class SyncWorker:
 
     def _run(self) -> None:
         delay = 0.0
-        while not self._stop.wait(delay):
+        while not self._stop.is_set():
+            self._wake.wait(delay)
+            if self._stop.is_set():
+                break
+            self._wake.clear()
             delay = self._round()
 
     def _round(self) -> float:
@@ -87,6 +97,8 @@ class SyncWorker:
         if options is None:
             self._status, self._summary, self._delay = "", SUMMARY_OFF, self._interval
             return self._interval
+        if options.interval is not None:  # the player's setting, read fresh like the key
+            self._interval = options.interval
         if options.key == self._refused_key:  # the server refused this key: wait for the player to save another
             return self._interval
         self._refused_key = None

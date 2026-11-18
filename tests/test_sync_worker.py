@@ -43,7 +43,7 @@ def make_worker(tmp_path, rounds: Rounds, options=OPTIONS, interval: float = 0.0
 
 
 def test_constants() -> None:
-    assert (SYNC_INTERVAL_SECONDS, MAX_BACKOFF_SECONDS) == (10, 3600)
+    assert (SYNC_INTERVAL_SECONDS, MAX_BACKOFF_SECONDS) == (30, 3600)
 
 
 def test_worker_runs_rounds_with_the_current_options(tmp_path) -> None:
@@ -155,3 +155,21 @@ def test_the_summary_says_when_sharing_is_off_or_a_round_failed(tmp_path) -> Non
     refused.start()
     assert wait_for(lambda: refused.summary() == "clé refusée")
     refused.stop()
+
+
+def test_a_wake_up_runs_the_next_round_without_waiting_for_the_interval(tmp_path) -> None:
+    rounds = Rounds(OK)
+    worker = make_worker(tmp_path, rounds, interval=1000.0)
+    worker.start()
+    assert wait_for(lambda: rounds.calls >= 1)
+    worker.wake()
+    assert wait_for(lambda: rounds.calls >= 2)
+    worker.stop()
+
+
+def test_the_interval_of_the_options_replaces_the_default_one(tmp_path) -> None:
+    from opendofusdata.sync_engine import SyncOptions
+
+    worker = make_worker(tmp_path, Rounds(OK), options=SyncOptions("https://s.example.fr", "odk1.k", True, True, 45.0),
+                         interval=1000.0)
+    assert worker._round() == 45.0

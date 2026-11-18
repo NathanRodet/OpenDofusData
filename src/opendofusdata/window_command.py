@@ -19,6 +19,7 @@ from opendofusdata.names_fetch import http_get_json
 from opendofusdata.run_pipeline import Clock, utc_now
 from opendofusdata.server_choice_commands import resolve_run_server
 from opendofusdata.sync_options import load_sync_options
+from opendofusdata.sync_stream import SyncStream
 from opendofusdata.sync_worker import SyncWorker
 from opendofusdata.update_apply import can_self_update
 from opendofusdata.update_controller import UpdateController, check_for_update
@@ -80,16 +81,19 @@ def window_command(
     database = choose_database_path(arguments.db, config, default_database_path())
     session = CaptureSession(database, arguments.server, arguments.interface, capture, now)
     name_of, type_of = item_labelers_for_database(database)
-    worker = SyncWorker(lambda: session.database_path,
-                        lambda: load_sync_options(config_path, env_file_path(config_path)))
+    load_options = lambda: load_sync_options(config_path, env_file_path(config_path))  # noqa: E731
+    worker = SyncWorker(lambda: session.database_path, load_options)
+    stream = SyncStream(load_options, worker.wake)
     context = WindowContext(session, config_path, server_names(), name_of, build_update_controller(config),
                             type_of=type_of, sync_status=worker.status, sync_summary=worker.summary,
                             auto_reference=True)
     threading.Thread(target=startup_purge, args=(config, database), name="startup-purge", daemon=True).start()
     worker.start()
+    stream.start()
     try:
         return show_window(context)
     finally:
+        stream.stop()
         worker.stop()
 
 

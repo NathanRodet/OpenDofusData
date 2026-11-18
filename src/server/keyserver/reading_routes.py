@@ -4,6 +4,7 @@ from typing import Annotated
 
 from fastapi import FastAPI, Query, Request
 
+from keyserver.change_notifier import ChangeNotifier
 from keyserver.event_routes import register_event_routes
 from keyserver.readings_store import ReadingStore, StoredReading
 from keyserver.schemas import MAX_BATCH_READINGS, MAX_QUERY_INTEGER, ReadingBatch
@@ -20,14 +21,19 @@ def _view(readings: list[StoredReading]) -> list[dict[str, object]]:
     return [reading._asdict() for reading in readings]
 
 
-def register_reading_routes(app: FastAPI, readings: ReadingStore) -> None:
+READINGS_KIND = "readings"
+
+
+def register_reading_routes(app: FastAPI, readings: ReadingStore, notifier: ChangeNotifier | None = None) -> None:
     """Add `POST /readings`, `GET /readings` and `GET /readings/latest` and `GET /readings/mine` (user keys only)."""
 
-    register_event_routes(app, readings.events)
+    register_event_routes(app, readings.events, notifier)
 
     @app.post(READINGS_PATH)
     def send(batch: ReadingBatch, request: Request) -> dict[str, int]:
         accepted, duplicates = readings.add_batch(request.state.key_id, batch.readings)
+        if accepted and notifier is not None:
+            notifier.notify(READINGS_KIND)
         return {"accepted": accepted, "duplicates": duplicates}
 
     @app.get(READINGS_PATH)

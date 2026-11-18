@@ -86,3 +86,30 @@ def request_json(base_url: str, method: str, path: str, token: str | None = None
         return _answer_from_http_error(error)
     except (urllib.error.URLError, http.client.HTTPException, OSError) as error:
         raise HttpsFailure(_network_reason(error)) from None
+
+
+def open_stream(base_url: str, path: str, token: str, timeout: float) -> http.client.HTTPResponse:
+    """Open a long GET answer (server-sent events) the caller reads line by line and closes; HTTPS only, no redirect.
+
+    Returns the response of status 200, raises HttpsFailure otherwise; an HTTP error status is reported as `status`.
+    """
+    if not base_url.startswith(HTTPS_PREFIX):
+        raise HttpsFailure(INSECURE)
+    request = _build_request(base_url, "GET", path, token, None)
+    request.add_header("Accept", "text/event-stream")
+    try:
+        return OPENER.open(request, timeout=timeout)
+    except urllib.error.HTTPError as error:
+        if REDIRECT_FIRST <= error.code < REDIRECT_END:
+            raise HttpsFailure(REDIRECT) from None
+        raise StreamRefused(error.code) from None
+    except (urllib.error.URLError, http.client.HTTPException, OSError) as error:
+        raise HttpsFailure(_network_reason(error)) from None
+
+
+class StreamRefused(Exception):
+    """The server answered the stream request with an error status (401 key refused, 404 no stream, 429 already open)."""
+
+    def __init__(self, status: int) -> None:
+        super().__init__(status)
+        self.status = status
