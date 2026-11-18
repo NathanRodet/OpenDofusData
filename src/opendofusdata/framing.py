@@ -18,11 +18,12 @@ logger = logging.getLogger(__name__)
 
 TYPE_URL_PREFIX = b"type.ankama.com/"
 MAX_BUFFER_BYTES = 4_194_304  # four frames of the maximum size
-MAX_FRAME_BYTES = 1_048_576  # a very listed item (hundreds of offers) is over 64 KB
+MAX_FRAME_BYTES = 1_048_576  # in sync: a very listed item (hundreds of offers) is over 64 KB
+MAX_RESYNC_FRAME_BYTES = 65536  # out of sync: the search for a frame start stays as cheap as it was
 MAX_NESTING_DEPTH = 4
 ANY_TYPE_URL_FIELD = 1
 ANY_VALUE_FIELD = 2
-FRAME_LOOKBACK_BYTES = MAX_FRAME_BYTES + MAX_VARINT_BYTES
+FRAME_LOOKBACK_BYTES = MAX_RESYNC_FRAME_BYTES + MAX_VARINT_BYTES
 
 
 @dataclass
@@ -67,14 +68,14 @@ def find_envelopes(fields: list[Field], depth: int = 0) -> list[Envelope]:
     return found
 
 
-def _locate_frame(buffer: bytearray, position: int) -> tuple[FrameStatus, int, int]:
+def _locate_frame(buffer: bytearray, position: int, max_length: int) -> tuple[FrameStatus, int, int]:
     """Return (status, body start, end); for INCOMPLETE, end is the length needed."""
     try:
         length, start = read_varint(buffer, position)
     except DecodeError:
         truncated = len(buffer) - position < MAX_VARINT_BYTES
         return (FrameStatus.INCOMPLETE if truncated else FrameStatus.INVALID), 0, len(buffer) + 1
-    if not 0 < length <= MAX_FRAME_BYTES:
+    if not 0 < length <= max_length:
         return FrameStatus.INVALID, 0, 0
     end = start + length
     return (FrameStatus.INCOMPLETE if end > len(buffer) else FrameStatus.COMPLETE), start, end
@@ -125,7 +126,7 @@ class EnvelopeExtractor:
 
     def _trim(self) -> None:
         keep_from = self._cursor if self._synchronised else self._end - FRAME_LOOKBACK_BYTES
-        if keep_from - self._base >= MAX_FRAME_BYTES:
+        if keep_from - self._base >= MAX_RESYNC_FRAME_BYTES:
             self._discard_before(keep_from)
 
     def _discard_before(self, position: int) -> None:
@@ -189,7 +190,8 @@ class EnvelopeExtractor:
 
     def _try_frame(self, position: int) -> tuple[FrameStatus, list[Envelope], int]:
         """Examine the frame at an absolute position."""
-        status, start, end = _locate_frame(self._buffer, position - self._base)
+        max_length = MAX_FRAME_BYTES if self._synchronised else MAX_RESYNC_FRAME_BYTES
+        status, start, end = _locate_frame(self._buffer, position - self._base, max_length)
         if status is not FrameStatus.COMPLETE:
             return status, [], self._base + end
         fields = try_decode_fields(bytes(self._buffer[start:end]))

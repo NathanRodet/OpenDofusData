@@ -232,3 +232,13 @@ def test_a_long_market_list_of_a_hundred_kilobytes_is_extracted() -> None:
     payload = bytes(range(256)) * 400
     data = envelope_frame("one", b"1") + envelope_frame("jzs", payload) + envelope_frame("two", b"2")
     assert EnvelopeExtractor().feed(data) == [Envelope("one", b"1"), Envelope("jzs", payload), Envelope("two", b"2")]
+
+
+def test_a_long_frame_is_only_accepted_once_the_stream_is_synchronised() -> None:
+    """Out of sync, the search for a frame start keeps the small limit (cheap); in sync, a long frame passes."""
+    payload = bytes(range(256)) * 400
+    cold = EnvelopeExtractor().feed(envelope_frame("jzs", payload) + envelope_frame("two", b"2"))
+    assert cold == [Envelope("two", b"2")]
+    warm = EnvelopeExtractor()
+    warm.feed(envelope_frame("one", b"1"))
+    assert warm.feed(envelope_frame("jzs", payload)) == [Envelope("jzs", payload)]
