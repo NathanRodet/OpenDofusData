@@ -1,0 +1,2 @@
+{"direction":"client_to_server","type":"kcy","fields":[{"number":1,"wire_type":0,"value":310},{"number":2,"wire_type":0,"value":1}]}
+{"direction":"server_to_client","type":"jzs","fields":[{"number":1,"wire_type":2,"length":18,"fields":[{"number":1,"wire_type":0,"value":310},{"number":2,"wire_type":2,"length":8,"packed":[22,272,2984,34990]},{"number":3,"wire_type":0,"value":851},{"number":4,"wire_type":0,"value":47}]},{"number":2,"wire_type":0,"value":47},{"number":3,"wire_type":0,"value":310}]}

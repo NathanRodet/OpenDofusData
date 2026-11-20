@@ -1,0 +1,12 @@
+[package]
+name = "odd-capture"
+description = "Talks to the capture worker: the frame transport, the Npcap lookup and the worker process."
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+
+[lints]
+workspace = true

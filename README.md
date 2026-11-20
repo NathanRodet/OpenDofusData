@@ -1,119 +1,75 @@
-<div align="center">
-
 # OpenDofusData
 
-**Turn your Dofus 3 play session into market data you can act on.**
+Client Windows qui observe, pendant que le joueur joue à Dofus, les données du marché (HDV) et du brisage affichées par le jeu, les analyse et les envoie à un serveur de collecte, pour qu'elles soient consultables par tous les joueurs sur un site web.
 
-A small Windows app that passively reads Dofus network traffic and stores prices, breaking results and pet XP in a database on your own computer.
+Version en cours de développement: **2.4.0** (réécriture en Tauri 2). La version 2.3 (Python) reste dans l'historique git, sous le tag `pre-tauri-rewrite`.
 
-[![Latest release](https://img.shields.io/github/v/release/NathanRodet/OpenDofusData?label=release&color=3b8ed0)](https://github.com/NathanRodet/OpenDofusData/releases/latest)
-![Platform](https://img.shields.io/badge/platform-Windows%2011-3b8ed0)
-![Data stays local](https://img.shields.io/badge/data-stays%20on%20your%20PC-2fb36d)
-![License](https://img.shields.io/badge/license-all%20rights%20reserved-lightgrey)
+## Ce que fait le client
 
-[Download](https://github.com/NathanRodet/OpenDofusData/releases/latest) | [Install](#install) | [Features](#features) | [Privacy](#privacy)
+- Lit le trafic réseau du jeu (TCP 5555) avec Npcap, sans rien modifier ni injecter.
+- Décode uniquement ce qui sert: les offres et les prix de l'HDV, et le résultat des brisages.
+- Envoie ces données au serveur avec la clé du joueur. Aucun texte de chat n'est lu, enregistré ni envoyé.
+- Aucune adresse IP de joueur n'est collectée, enregistrée ni transmise.
+- N'envoie rien tant qu'aucune clé n'est enregistrée. Le joueur voit dans la page Logs le JSON exact de chaque envoi.
 
-</div>
+## État d'avancement
 
-> **Sharing prices starts when you enter a synchronization key.** Without a key, everything stays on your machine. With the key given to you by the server owner, saved in **Réglages**, the app sends the market prices you see, your breakings and your pet upgrades to a sync server and fetches the ones other players sent; remove the key to stop. It only ever carries game data (never personal information); see [Privacy](#privacy) for exactly what is sent.
+| Partie | État |
+|---|---|
+| Interface (React, TypeScript) | Terminée, branchée sur l'application (en navigateur seul, elle garde les données simulées) |
+| Décodage des messages (Rust) | Terminé et validé sur des captures réelles |
+| Format d'échange avec le serveur | Spécifié et testé (`odd-core`) |
+| Capture réseau (Npcap) | Écrite et testée sur du vrai trafic (programme séparé `odd-capture-worker`) |
+| Reconstruction TCP, circuit de décodage | Terminés, testés de bout en bout sur les captures de référence |
+| Envoi au serveur (file, lots, nouvelles tentatives) | Terminé et testé |
+| Application Tauri (réglages, état, test de connexion, logs en direct) | Terminée, testée contre le vrai serveur en HTTPS |
+| Données de référence (DofusDB): 21 622 objets, copie locale rafraîchie chaque semaine | Fait, testé sur le vrai DofusDB |
+| Installateur (NSIS, sans droits administrateur) et mise à jour: GitHub Release, SHA-256 vérifié, installation et relance en un clic | Fait, publication par étiquette `vX.Y.Z` (jamais testée sur GitHub) |
 
----
+Pas encore testé avec le jeu lancé : le trafic réel du jeu n'a traversé le circuit que sous forme de captures rejouées.
 
-## Install
+## Organisation du dépôt
 
-> **Only download OpenDofusData from the [Releases page of this repository](https://github.com/NathanRodet/OpenDofusData/releases/latest).** We suggest you never download this tool, or a similar version of it, anywhere else: it could have been corrupted with bad intentions. The app is not code-signed, so the SHA-256 check below and the source of the download are your only protection.
+- `src/`: interface React et TypeScript.
+- `src-tauri/`: application Tauri et crates Rust.
+  - `crates/odd-core`: format des objets échangés avec le serveur (partagé avec lui).
+  - `crates/odd-wire`: protobuf, découpage des trames, resynchronisation bornée du flux.
+  - `crates/odd-decode`: décodeurs des messages de l'HDV et du brisage.
+  - `crates/odd-tcp`: lecture des paquets et reconstruction des flux TCP.
+  - `crates/odd-capture`, `crates/odd-capture-worker`: la capture Npcap (programme séparé, seul lié à Npcap) et son transport.
+  - `crates/odd-agent`: du paquet brut aux objets décodés, puis à l'envoi.
+  - `crates/odd-sync`: file d'envoi (donnée la plus fraîche), lots, nouvelles tentatives.
+  - `crates/odd-service`: la logique de l'application derrière l'interface (réglages, état, test de connexion).
+- `docs/`: décisions, schémas JSON, inventaire des champs (documentation privée, non versionnée).
+- `captures/`: captures réelles du jeu servant de jeux d'essai (non versionnées).
 
-**Requirements:** Windows 11 and [Npcap](https://npcap.com). No Python needed.
+## Prérequis
 
-**1. Install Npcap**
+- Windows 10 ou 11 (64 bits), avec WebView2 (présent sur Windows 11 et sur les Windows 10 à jour).
+- [Npcap](https://npcap.com/) pour la capture réseau. Aucun droit administrateur n'est requis.
+- Pour développer: Node.js, Rust (édition 2024) et les outils de build C++ de Visual Studio. Le programme de capture se lie à `wpcap.lib`, que `scripts/make-wpcap-lib.ps1` fabrique depuis le Npcap installé (sans télécharger le SDK).
 
-Download and install [Npcap](https://npcap.com). It is not bundled with OpenDofusData.
+## Développement
 
-- Leave *"Restrict Npcap driver's access to Administrators only"* **unchecked**, otherwise run OpenDofusData as administrator.
-- The *"WinPcap API-compatible mode"* is not needed.
-
-**2. Download the app**
-
-Get `OpenDofusData.exe` from the [latest release](https://github.com/NathanRodet/OpenDofusData/releases/latest).
-To verify the download, compare it with the SHA-256 in `OpenDofusData.exe.sha256`:
+Les commandes Tauri se lancent dans **PowerShell**, pas dans Git Bash (le `link` de Git Bash masque celui de Visual Studio).
 
 ```powershell
-Get-FileHash OpenDofusData.exe
+npm install
+npm run worker         # construit le programme de capture (aussi lancé par tauri dev et tauri build)
+npm run tauri dev      # application en mode développement
+npm test               # tests de l'interface
+npm run tauri build    # exécutable de production
+npm run tauri icon src-tauri/icons/source/app-icon.svg   # régénère les icônes
+
+cd src-tauri
+cargo test --workspace
+cargo clippy --workspace --all-targets -- -D warnings
 ```
 
-**3. Run it before you log in to the game**
+## Règles de code Rust
 
-Double-click `OpenDofusData.exe`. The app is not code-signed, so Windows SmartScreen may show *"Windows protected your PC"*: click **More info**, then **Run anyway**.
+`unsafe` est interdit. `unwrap`, `expect` et `panic` sont refusés hors des tests. Le détail est dans `CLAUDE.md`.
 
-**4. Pick your game server**
+## Droits
 
-Open **Réglages** and choose your server (the traffic does not reveal it). Capture restarts by itself with your choice. Optionally click **Télécharger les données de référence** to show item names instead of numbers and to fill the Craft and Brisage pages (recipes and effects).
-
-That's it: play, and the pages fill up.
-
-
-## Features
-
-OpenDofusData listens while you play and turns what it understands into tables, charts and estimates.
-
-| Page | What you get |
-|---|---|
-| **HDV** (market) | Every item whose listing you opened: latest price, 24 h median, units sold, 24 h / 7 d / 30 d price curves, lot prices ×1 / ×10 / ×100 / ×1000 and the full history of snapshots. |
-| **Brisage** (breaking) | Your breakings, item by item: lowest market price, average breaking coefficient and average plus-value (value of the runes obtained minus the item price). Click an item to see the plus-value rune by rune, in classic breaking and in focus on the most profitable stat. |
-| **Craft** | Every craft whose prices are all known, from most to least profitable, with the detail of its resources. Tick *Afficher les crafts incomplets* to also list the crafts with a missing price (the detail says which), and mark crafts as **favorites** (stored locally): a favorite stays listed even when a price is missing, and *Favoris seulement* keeps only them. |
-| **Familiers** (pets) | How much XP a resource gives a pet and what one XP point costs you, cheapest first. Add your own observed XP for *x* resources, see the **price stop** at 25 kamas per XP, mark resources as **favorites** (stored locally, with a "favorites only" filter), and open the **Coverage** tab to see how many resources have a known coefficient and which ones are still missing (filterable by category). |
-| **Logs** | What is being captured right now, filterable by type, period and name. |
-| **Réglages** (settings) | Game server, database location, item names, the price used for estimates, the synchronization key (connection test), the optional purge of old local data, updates. |
-
-Every page can be filtered with the period dropdown (last hour, 6 hours, today, 7 days, 30 days, all time, or a custom range), sorted by clicking a column header, and only shows the server you picked.
-
-> **Beta:** breaking and pet data were validated on the captures of a single player. Compare what you see with the game screen.
-
-## Using it
-
-- **Start the app before you log in to Dofus**, then play normally. You can leave the window open in the background; closing it stops the capture. It does not start with Windows.
-- **Market:** only the items whose listing you open are recorded.
-- **Pets:** the app needs the inventory sent at login to recognize resources. If the Logs say *"reconnecte-toi au jeu"*, log out and back in once the app is running.
-- **Breaking and crafts:** some estimates need reference data (item effects, runes, recipes) downloaded once from the public DofusDB API. See the [developer documentation](docs/developpement.md) (in French).
-- The bottom of the left menu shows the capture status (running, stopped, or a clear error such as *Npcap missing*), your server and the **Stop / Restart** button.
-
-## Where your data lives
-
-Everything is in `%APPDATA%\OpenDofusData`:
-
-| File | Content |
-|---|---|
-| `prices.db` | Your SQLite database (location can be changed in Réglages) |
-| `config.json` | Your settings |
-| `opendofusdata.log` | Technical log |
-
-## Updates
-
-Updates are **never automatic**. At startup the app asks GitHub whether a newer version exists (one anonymous request, can be turned off in Réglages). If there is one, a blue dot appears next to **Réglages**. Click **Mettre à jour et relancer** to download it, verify its SHA-256 checksum and restart. Since the app is not code-signed, only update from the Releases of this repository.
-
-## Privacy
-
-- Only game data is stored: item IDs, prices, quantities, timestamps and the game server you chose.
-- IP addresses, accounts, character names and chat are **never stored or sent**.
-- **Game data leaves your machine only once you save a synchronization key.** The only network requests the app makes by itself are the update check (`api.github.com`, can be disabled) and the download of item names, servers, recipes and effects from the public `api.dofusdb.fr`, which starts by itself on the first launch (while that data is missing) and again when you click *Télécharger les données de référence*. That download sends nothing about you.
-- **Synchronization** needs a key given to you by the server owner. Saving it in **Réglages** switches sharing on: the app then sends, for each item you looked at in the market, its item ID, lot size (x1, x10, x100, x1000), total price, the time you saw it and the game server you chose, with your key in the request header, and downloads what the others sent. The same goes for each object you break (item, quantity, coefficient and runes obtained) and each pet upgrade the app sees (pet, resources given, and the pet's level and experience before and after), with the same key and time. Figures you type in yourself (the pet XP form) are never sent. Removing the key stops it. *Tester la connexion* sends your key, and nothing else, only when you click.
-- **What other players see:** each price, breaking or pet upgrade you send carries the 11-character code of your key. It is a pseudonym that lets the server owner revoke a key (and optionally delete everything it sent); it is not linked to your account or your character. The server keeps all of it for 14 days, and a new or emptied database gets your own data of those days back the first time it synchronizes. Your IP address is never stored and never read by the server application.
-- The source code is public so this behavior can be verified.
-
-## Known limitations
-
-- Dofus message names change with game updates. After a game update the app may stop decoding until a new version is released (see the [developer documentation](docs/developpement.md)).
-- Only the market, breaking and pets are decoded. No purchases, sales or price changes.
-- An item with no offer on the market is not recorded: no snapshot does not mean a price of 0.
-- The game server is not detected automatically: you choose it.
-
-## Learn more
-
-*The following documents are written in French.*
-
-- [Developer documentation](docs/developpement.md): running from source, commands, building and releasing.
-- [Roadmap](docs/roadmap.md) and [protocol notes](docs/protocol-notes.md).
-
-## License
-
-All rights reserved. The code is published on GitHub so it can be read and verified, but no license allows reusing, modifying or redistributing it without the author's permission.
+Tous droits réservés. Le code est visible, mais aucune licence d'utilisation, de modification ou de redistribution n'est accordée.

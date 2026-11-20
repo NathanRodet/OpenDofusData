@@ -1,0 +1,13 @@
+[package]
+name = "odd-capture-worker"
+description = "The only program linked to Npcap: captures the game traffic and writes the raw frames on its output."
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+odd-capture.workspace = true
+pcap.workspace = true
+
+[lints]
+workspace = true

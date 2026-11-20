@@ -1,0 +1,8 @@
+{"direction":"client_to_server","type":"kcp","fields":[{"number":2,"wire_type":0,"value":336},{"number":3,"wire_type":0,"value":1}]}
+{"direction":"server_to_client","type":"kbj","fields":[{"number":1,"wire_type":2,"length":6,"packed":[34547,34549]},{"number":2,"wire_type":0,"value":336}]}
+{"direction":"client_to_server","type":"kcp","fields":[{"number":2,"wire_type":0,"value":336}]}
+{"direction":"client_to_server","type":"kcp","fields":[{"number":2,"wire_type":0,"value":335},{"number":3,"wire_type":0,"value":1}]}
+{"direction":"server_to_client","type":"kbj","fields":[{"number":1,"wire_type":2,"length":24,"packed":[34544,34545,34546,34539,34540,34541,34542,34543]},{"number":2,"wire_type":0,"value":335}]}
+{"direction":"client_to_server","type":"kcp","fields":[{"number":2,"wire_type":0,"value":335}]}
+{"direction":"client_to_server","type":"kcp","fields":[{"number":2,"wire_type":0,"value":336},{"number":3,"wire_type":0,"value":1}]}
+{"direction":"server_to_client","type":"kbj","fields":[{"number":1,"wire_type":2,"length":6,"packed":[34547,34549]},{"number":2,"wire_type":0,"value":336}]}

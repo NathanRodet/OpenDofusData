@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="egg" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#FBD47A"/>
+      <stop offset="0.55" stop-color="#F2B84B"/>
+      <stop offset="1" stop-color="#D98F1E"/>
+    </linearGradient>
+    <linearGradient id="ground" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#17343B"/>
+      <stop offset="1" stop-color="#0C1D21"/>
+    </linearGradient>
+  </defs>
+  <rect x="32" y="32" width="960" height="960" rx="224" fill="url(#ground)"/>
+  <rect x="40" y="40" width="944" height="944" rx="216" fill="none" stroke="#2C4B53" stroke-width="8"/>
+  <path d="M512 130C700 130 826 350 826 566C826 772 692 896 512 896C332 896 198 772 198 566C198 350 324 130 512 130Z" fill="url(#egg)"/>
+  <path d="M338 300C376 214 440 172 500 162C430 214 384 292 372 392C352 380 332 340 338 300Z" fill="#FFFFFF" fill-opacity="0.32"/>
+  <rect x="372" y="640" width="72" height="140" rx="16" fill="#10252A"/>
+  <rect x="476" y="552" width="72" height="228" rx="16" fill="#10252A"/>
+  <rect x="580" y="450" width="72" height="330" rx="16" fill="#10252A"/>
+</svg>

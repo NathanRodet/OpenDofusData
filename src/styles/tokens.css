@@ -1,0 +1,22 @@
+:root {
+  color-scheme: dark;
+  --ground: #10252a;
+  --rail: #0c1d21;
+  --surface: #173037;
+  --raised: #1d3b43;
+  --line: #2c4b53;
+  --text: #e8f0ee;
+  --muted: #9db6b5;
+  --accent: #f2b84b;
+  --accent-ink: #2a1d00;
+  --ok: #6fd3a0;
+  --warn: #f2b84b;
+  --bad: #ff8f7e;
+  --info: #8fc7ff;
+  --font-display: "Bricolage Grotesque Variable", system-ui, sans-serif;
+  --font-body: "Public Sans Variable", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+  --rail-width: 232px;
+  --content-max: 1120px;
+  --narrow: 860px;
+}

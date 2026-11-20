@@ -1,0 +1,27 @@
+[package]
+name = "odd-service"
+description = "The logic of the application behind the interface: settings, status, connection test, life of the agent."
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+odd-agent.workspace = true
+odd-capture.workspace = true
+odd-sync.workspace = true
+odd-reference.workspace = true
+odd-update.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+time = { workspace = true, features = ["formatting", "parsing"] }
+tokio.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+axum.workspace = true
+sha2 = "0.10"
+time = { workspace = true, features = ["macros"] }
+
+[lints]
+workspace = true

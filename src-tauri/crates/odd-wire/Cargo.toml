@@ -1,0 +1,19 @@
+[package]
+name = "odd-wire"
+description = "Game protocol plumbing: protobuf reading and extraction of messages from a reassembled stream."
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[features]
+# Helpers that build protobuf bytes, for the tests of this crate and of the crates that decode with it.
+testkit = []
+
+[dependencies]
+thiserror.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+
+[lints]
+workspace = true

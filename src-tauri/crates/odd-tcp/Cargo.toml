@@ -1,0 +1,15 @@
+[package]
+name = "odd-tcp"
+description = "TCP packet parsing and stream reassembly. Pure logic: no capture, no network access."
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+etherparse.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+
+[lints]
+workspace = true
