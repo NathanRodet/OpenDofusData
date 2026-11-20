@@ -27,6 +27,8 @@ jobs:
         run: ./scripts/fetch-npcap-sdk.ps1
         shell: pwsh
       - run: npm ci
+      - name: Capture worker (Tauri needs it in src-tauri/binaries before any build)
+        run: npm run worker
       - run: npm test
       - run: npm run build
       - name: Rust checks
