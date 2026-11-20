@@ -11,6 +11,9 @@ use crate::ipc::{FrameReader, IpcError};
 
 const NPCAP_LIBRARY: &str = "wpcap.dll";
 const DEFAULT_SYSTEM_ROOT: &str = r"C:\Windows";
+/// Windows process creation flag: start a console program without a console window.
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 
 /// The worker could not be started or read.
 #[derive(Debug, thiserror::Error)]
@@ -47,9 +50,20 @@ pub fn path_with_npcap(npcap_directory: &Path, current: Option<&OsStr>) -> Resul
     env::join_paths(std::iter::once(npcap_directory.to_path_buf()).chain(existing))
 }
 
+/// The worker is a console program: without this flag Windows opens a console window each time it starts.
+#[cfg(windows)]
+fn hide_console_window(command: &mut Command) {
+    use std::os::windows::process::CommandExt;
+    command.creation_flags(CREATE_NO_WINDOW);
+}
+
+#[cfg(not(windows))]
+fn hide_console_window(_command: &mut Command) {}
+
 /// The command that starts the worker, with the Npcap directory added to its search path.
 pub fn worker_command(worker: &Path, npcap_directory: Option<&Path>) -> Result<Command, JoinPathsError> {
     let mut command = Command::new(worker);
+    hide_console_window(&mut command);
     if let Some(directory) = npcap_directory {
         command.env("PATH", path_with_npcap(directory, env::var_os("PATH").as_deref())?);
     }
