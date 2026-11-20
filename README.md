@@ -1,75 +1,82 @@
+<div align="center">
+
 # OpenDofusData
 
-Client Windows qui observe, pendant que le joueur joue à Dofus, les données du marché (HDV) et du brisage affichées par le jeu, les analyse et les envoie à un serveur de collecte, pour qu'elles soient consultables par tous les joueurs sur un site web.
+**Turn your Dofus 3 play session into market data you can act on.**
 
-Version en cours de développement: **2.4.0** (réécriture en Tauri 2). La version 2.3 (Python) reste dans l'historique git, sous le tag `pre-tauri-rewrite`.
+A small Windows app that passively reads Dofus network traffic, decodes the market (HDV) and breaking (brisage) results the game already shows you, and sends them to the OpenDofusData server, so every player can browse them on the website.
 
-## Ce que fait le client
+![release](https://img.shields.io/github/v/release/NathanRodet/OpenDofusData?label=release&color=3b82c4)
+![platform](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-3b82c4)
+![privacy](https://img.shields.io/badge/privacy-no%20IP%2C%20no%20chat-2ea66a)
+![license](https://img.shields.io/badge/license-all%20rights%20reserved-lightgrey)
 
-- Lit le trafic réseau du jeu (TCP 5555) avec Npcap, sans rien modifier ni injecter.
-- Décode uniquement ce qui sert: les offres et les prix de l'HDV, et le résultat des brisages.
-- Envoie ces données au serveur avec la clé du joueur. Aucun texte de chat n'est lu, enregistré ni envoyé.
-- Aucune adresse IP de joueur n'est collectée, enregistrée ni transmise.
-- N'envoie rien tant qu'aucune clé n'est enregistrée. Le joueur voit dans la page Logs le JSON exact de chaque envoi.
+[Download](#download) | [Install](#install) | [Features](#features) | [Privacy](#privacy) | [Development](#development)
 
-## État d'avancement
+</div>
 
-| Partie | État |
-|---|---|
-| Interface (React, TypeScript) | Terminée, branchée sur l'application (en navigateur seul, elle garde les données simulées) |
-| Décodage des messages (Rust) | Terminé et validé sur des captures réelles |
-| Format d'échange avec le serveur | Spécifié et testé (`odd-core`) |
-| Capture réseau (Npcap) | Écrite et testée sur du vrai trafic (programme séparé `odd-capture-worker`) |
-| Reconstruction TCP, circuit de décodage | Terminés, testés de bout en bout sur les captures de référence |
-| Envoi au serveur (file, lots, nouvelles tentatives) | Terminé et testé |
-| Application Tauri (réglages, état, test de connexion, logs en direct) | Terminée, testée contre le vrai serveur en HTTPS |
-| Données de référence (DofusDB): 21 622 objets, copie locale rafraîchie chaque semaine | Fait, testé sur le vrai DofusDB |
-| Installateur (NSIS, sans droits administrateur) et mise à jour: GitHub Release, SHA-256 vérifié, installation et relance en un clic | Fait, publication par étiquette `vX.Y.Z` (jamais testée sur GitHub) |
+## Download
 
-Pas encore testé avec le jeu lancé : le trafic réel du jeu n'a traversé le circuit que sous forme de captures rejouées.
+Get the latest installer from the [Releases page](https://github.com/NathanRodet/OpenDofusData/releases/latest). The installer does not need administrator rights.
 
-## Organisation du dépôt
+## Install
 
-- `src/`: interface React et TypeScript.
-- `src-tauri/`: application Tauri et crates Rust.
-  - `crates/odd-core`: format des objets échangés avec le serveur (partagé avec lui).
-  - `crates/odd-wire`: protobuf, découpage des trames, resynchronisation bornée du flux.
-  - `crates/odd-decode`: décodeurs des messages de l'HDV et du brisage.
-  - `crates/odd-tcp`: lecture des paquets et reconstruction des flux TCP.
-  - `crates/odd-capture`, `crates/odd-capture-worker`: la capture Npcap (programme séparé, seul lié à Npcap) et son transport.
-  - `crates/odd-agent`: du paquet brut aux objets décodés, puis à l'envoi.
-  - `crates/odd-sync`: file d'envoi (donnée la plus fraîche), lots, nouvelles tentatives.
-  - `crates/odd-service`: la logique de l'application derrière l'interface (réglages, état, test de connexion).
-- `docs/`: décisions, schémas JSON, inventaire des champs (documentation privée, non versionnée).
-- `captures/`: captures réelles du jeu servant de jeux d'essai (non versionnées).
+1. Install [Npcap](https://npcap.com/), which the app uses to watch the game traffic. Windows 10 and 11 (64 bits) are supported, with WebView2 (already on Windows 11 and on up to date Windows 10).
+2. Run the OpenDofusData installer.
+3. Sign in on the website with Discord, create your API key and paste it into the app. One key per account, valid for one week.
+4. Play. Prices and breaking results you open in game are read and sent in the background.
 
-## Prérequis
+Nothing is sent until a key is saved.
 
-- Windows 10 ou 11 (64 bits), avec WebView2 (présent sur Windows 11 et sur les Windows 10 à jour).
-- [Npcap](https://npcap.com/) pour la capture réseau. Aucun droit administrateur n'est requis.
-- Pour développer: Node.js, Rust (édition 2024) et les outils de build C++ de Visual Studio. Le programme de capture se lie à `wpcap.lib`, que `scripts/make-wpcap-lib.ps1` fabrique depuis le Npcap installé (sans télécharger le SDK).
+## Features
 
-## Développement
+- **Market prices.** Lots and offers of the HDV, with the effects of each item, so the website can show the cheapest offers and the price history.
+- **Breaking results.** What a breaking gives, to estimate its value.
+- **See what is sent.** The Logs page shows the exact JSON of every upload.
+- **Choose what you share.** Each category of data can be switched off on its own.
+- **Updates under your control.** The About page tells you when a newer release exists. One click downloads it, checks its SHA-256, installs it and restarts the app. Nothing updates by itself.
+- **Reference data.** Item names come from DofusDB, copied locally and refreshed every week.
 
-Les commandes Tauri se lancent dans **PowerShell**, pas dans Git Bash (le `link` de Git Bash masque celui de Visual Studio).
+## Privacy
+
+- The app only reads the traffic of the game (TCP port 5555). It changes and injects nothing.
+- Only the HDV and breaking messages are decoded. No chat text is read, stored or sent.
+- No player address (IPv4 or IPv6) is collected, stored, logged or sent. The server does not log addresses either.
+- Your API key is stored in your own configuration file on your computer.
+
+## Development
+
+Requirements: Node.js, Rust (edition 2024), the C++ build tools of Visual Studio, and Npcap. The capture program links to `wpcap.lib`, which `scripts/make-wpcap-lib.ps1` builds from the installed Npcap (no SDK download).
+
+Run Tauri commands in **PowerShell**, not in Git Bash (the `link` of Git Bash hides the one of Visual Studio).
 
 ```powershell
 npm install
-npm run worker         # construit le programme de capture (aussi lancé par tauri dev et tauri build)
-npm run tauri dev      # application en mode développement
-npm test               # tests de l'interface
-npm run tauri build    # exécutable de production
-npm run tauri icon src-tauri/icons/source/app-icon.svg   # régénère les icônes
+npm run tauri dev      # development app (builds the capture worker first)
+npm test               # interface tests
+npm run tauri build    # production installer
 
 cd src-tauri
-cargo test --workspace
+cargo fmt --check
 cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace --all-features
 ```
 
-## Règles de code Rust
+### Repository layout
 
-`unsafe` est interdit. `unwrap`, `expect` et `panic` sont refusés hors des tests. Le détail est dans `CLAUDE.md`.
+- `src/`: the React and TypeScript interface.
+- `src-tauri/`: the Tauri app and the Rust crates.
+  - `odd-core`: format of the objects exchanged with the server (shared with it).
+  - `odd-wire`: protobuf, frame splitting, bounded resynchronisation of the stream.
+  - `odd-decode`: decoders of the HDV and breaking messages.
+  - `odd-tcp`: packet reading and TCP stream reassembly.
+  - `odd-capture`, `odd-capture-worker`: the Npcap capture (a separate program, the only one linked to Npcap) and its transport.
+  - `odd-agent`: from raw packet to decoded objects, then to upload.
+  - `odd-sync`: upload queue (freshest data first), batches, retries.
+  - `odd-service`: the app logic behind the interface (settings, state, connection test).
 
-## Droits
+Rust rules: `unsafe` is forbidden, and `unwrap`, `expect` and `panic` are denied outside tests. Both are enforced by the compiler and clippy.
 
-Tous droits réservés. Le code est visible, mais aucune licence d'utilisation, de modification ou de redistribution n'est accordée.
+## License
+
+All rights reserved. The code is visible, but no license to use, modify or redistribute it is granted.
