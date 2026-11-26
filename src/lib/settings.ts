@@ -6,6 +6,7 @@ export const DEFAULT_SETTINGS: Settings = {
   gameServer: DEFAULT_GAME_SERVER,
   apiKey: "",
   logsEnabled: true,
+  launchAtStartup: false,
 };
 
 const HOST_PATTERN = /^(https:\/\/)?([a-z0-9]([a-z0-9-]*[a-z0-9])?)(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*(:\d{1,5})?(\/.*)?$/i;
@@ -54,7 +55,8 @@ export function isComplete(settings: Settings): boolean {
 
 export function sameSettings(left: Settings, right: Settings): boolean {
   return left.serverUrl === right.serverUrl && left.gameServer === right.gameServer
-    && left.apiKey === right.apiKey && left.logsEnabled === right.logsEnabled;
+    && left.apiKey === right.apiKey && left.logsEnabled === right.logsEnabled
+    && left.launchAtStartup === right.launchAtStartup;
 }
 
 /** How many settings differ from the saved ones (shown in the save bar). */

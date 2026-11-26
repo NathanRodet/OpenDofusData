@@ -15,6 +15,7 @@ fn player() -> Settings {
         game_server: "Dakal".to_owned(),
         api_key: "odd_secret".to_owned(),
         logs_enabled: false,
+        launch_at_startup: true,
     }
 }
 
@@ -25,6 +26,10 @@ fn without_a_file_the_defaults_are_used() {
     assert_eq!(settings.game_server, "Kourial");
     assert_eq!(settings.server_url, "opendofusdata.reseaudesentrepreneurs.fr");
     assert!(settings.api_key.is_empty() && settings.logs_enabled);
+    assert!(
+        !settings.launch_at_startup,
+        "the application does not start with Windows by default"
+    );
 }
 
 #[test]
@@ -40,7 +45,7 @@ fn the_file_uses_the_names_of_the_interface_and_leaves_no_temporary_file() {
     let store = SettingsStore::new(directory.clone());
     store.save(&player()).unwrap();
     let text = std::fs::read_to_string(directory.join("settings.json")).unwrap();
-    for name in ["serverUrl", "gameServer", "apiKey", "logsEnabled"] {
+    for name in ["serverUrl", "gameServer", "apiKey", "logsEnabled", "launchAtStartup"] {
         assert!(text.contains(name), "{name} in {text}");
     }
     let leftovers: Vec<_> = std::fs::read_dir(&directory).unwrap().filter_map(Result::ok).collect();
@@ -63,6 +68,10 @@ fn missing_fields_keep_their_default() {
     let settings = SettingsStore::new(directory).load();
     assert_eq!(settings.api_key, "odd_x");
     assert_eq!(settings.game_server, "Kourial");
+    assert!(
+        !settings.launch_at_startup,
+        "an older file without the field keeps it off"
+    );
 }
 
 #[test]

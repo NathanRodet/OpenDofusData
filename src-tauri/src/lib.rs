@@ -1,6 +1,7 @@
 //! The OpenDofusData desktop application: a thin Tauri shell around the service.
 #![forbid(unsafe_code)]
 
+mod autostart;
 mod commands;
 
 use std::path::PathBuf;
@@ -28,8 +29,13 @@ pub fn run() -> Result<(), tauri::Error> {
     init_logging();
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
         .setup(|app| {
             let service = start_service(app)?;
+            sync_autostart(app.handle(), &service);
             app.manage(service);
             Ok(())
         })
@@ -51,6 +57,13 @@ pub fn run() -> Result<(), tauri::Error> {
         }
     });
     Ok(())
+}
+
+/// Brings the Windows startup entry back in line with the saved setting (a reinstall or an older build may have left it different).
+fn sync_autostart(app: &tauri::AppHandle, service: &Service) {
+    if let Err(error) = autostart::apply(app, service.settings().launch_at_startup) {
+        tracing::warn!(%error, "the startup entry could not be checked");
+    }
 }
 
 fn start_service(app: &tauri::App) -> Result<Service, Box<dyn std::error::Error>> {

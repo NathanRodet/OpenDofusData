@@ -26,6 +26,8 @@ pub struct Settings {
     pub api_key: String,
     /// Whether the logs are shown and kept.
     pub logs_enabled: bool,
+    /// Whether the application starts with Windows. Off until the player turns it on.
+    pub launch_at_startup: bool,
 }
 
 impl Default for Settings {
@@ -35,6 +37,7 @@ impl Default for Settings {
             game_server: DEFAULT_GAME_SERVER.to_owned(),
             api_key: String::new(),
             logs_enabled: true,
+            launch_at_startup: false,
         }
     }
 }

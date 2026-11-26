@@ -7,6 +7,8 @@ use std::process::Command;
 use odd_service::{AppStatus, ConnectionTest, LogEntry, Service, Settings, SyncProgress, UpdateInfo};
 use tauri::{AppHandle, Manager, State};
 
+use crate::autostart;
+
 /// The installer made by Tauri (NSIS): `/P` shows a progress bar only, `/R` starts the application again.
 const INSTALLER_ARGUMENTS: [&str; 2] = ["/P", "/R"];
 
@@ -16,7 +18,9 @@ pub fn load_settings(service: State<'_, Service>) -> Settings {
 }
 
 #[tauri::command]
-pub async fn save_settings(service: State<'_, Service>, settings: Settings) -> Result<(), String> {
+pub async fn save_settings(app: AppHandle, service: State<'_, Service>, settings: Settings) -> Result<(), String> {
+    // The startup entry first: when Windows refuses it, nothing is saved and the player sees why.
+    autostart::apply(&app, settings.launch_at_startup)?;
     service.save_settings(settings).await.map_err(|error| error.to_string())
 }
 

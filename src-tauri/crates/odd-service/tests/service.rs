@@ -140,6 +140,7 @@ fn player(url: &str, key: &str) -> Settings {
         game_server: "Kourial".to_owned(),
         api_key: key.to_owned(),
         logs_enabled: true,
+        launch_at_startup: false,
     }
 }
 

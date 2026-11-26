@@ -7,6 +7,8 @@ export interface Settings {
   gameServer: string;
   apiKey: string;
   logsEnabled: boolean;
+  /** Start with Windows. Off until the player turns it on. */
+  launchAtStartup: boolean;
 }
 
 export type NpcapState = "ok" | "missing";

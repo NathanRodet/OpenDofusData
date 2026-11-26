@@ -72,6 +72,7 @@ export function SettingsPage({ saved, status, scrollRef, onSaved, onRefreshStatu
   const [testing, setTesting] = useState(false);
   const [checking, setChecking] = useState(false);
   const [confirmPurge, setConfirmPurge] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const errors = validateSettings(draft);
   const changes = changedCount(saved, draft);
@@ -84,7 +85,13 @@ export function SettingsPage({ saved, status, scrollRef, onSaved, onRefreshStatu
     setSubmitted(true);
     if (errors.serverUrl !== null || errors.gameServer !== null || errors.apiKey !== null) return;
     const clean = { ...draft, serverUrl: draft.serverUrl.trim(), apiKey: draft.apiKey.trim() };
-    await backend.saveSettings(clean);
+    try {
+      await backend.saveSettings(clean);
+    } catch (error) {
+      setSaveError(String(error));
+      return;
+    }
+    setSaveError(null);
     setSubmitted(false);
     onSaved(clean);
     onRefreshStatus();
@@ -161,6 +168,16 @@ export function SettingsPage({ saved, status, scrollRef, onSaved, onRefreshStatu
           </div>
         </Group>
 
+        <Group id="demarrage" title="Démarrage" hint="Désactivé par défaut.">
+          <div className="switch">
+            <Switch checked={draft.launchAtStartup} label="Lancer OpenDofusData au démarrage de Windows" onChange={(launchAtStartup) => change({ launchAtStartup })} />
+            <div>
+              <b>{draft.launchAtStartup ? "Lancé au démarrage de Windows" : "Lancé à la main"}</b>
+              <p className="help flush">Ouvre OpenDofusData à chaque ouverture de session Windows.</p>
+            </div>
+          </div>
+        </Group>
+
         <Group id="maj" title="Mises à jour et données" hint="Rien n'est gardé sur ce PC sauf si tu enregistres les logs.">
           {status !== null ? (
             <UpdateBox status={status} checking={checking} onCheck={() => void check()} onStart={() => void backend.startUpdate().catch(() => undefined).then(onRefreshStatus)} />
@@ -181,7 +198,7 @@ export function SettingsPage({ saved, status, scrollRef, onSaved, onRefreshStatu
         </Group>
       </div>
       <footer className="savebar">
-        <span className="msg">{changes === 0 ? "Aucune modification" : `${changes} modification${changes > 1 ? "s" : ""} non enregistrée${changes > 1 ? "s" : ""}`}</span>
+        <span className="msg" role={saveError === null ? undefined : "alert"}>{saveError !== null ? `Enregistrement impossible : ${saveError}` : changes === 0 ? "Aucune modification" : `${changes} modification${changes > 1 ? "s" : ""} non enregistrée${changes > 1 ? "s" : ""}`}</span>
         <button type="button" className="btn ghost" disabled={changes === 0} onClick={() => { setDraft(saved); setSubmitted(false); setTest(null); }}>Annuler</button>
         <button type="button" className="btn primary" disabled={changes === 0} onClick={() => void save()}>Enregistrer</button>
       </footer>
