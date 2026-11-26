@@ -2737,7 +2737,7 @@ dependencies = [
 
 [[package]]
 name = "odd-agent"
-version = "2.4.1"
+version = "2.4.2"
 dependencies = [
  "axum",
  "etherparse",
@@ -2756,14 +2756,14 @@ dependencies = [
 
 [[package]]
 name = "odd-capture"
-version = "2.4.1"
+version = "2.4.2"
 dependencies = [
  "thiserror 2.0.21",
 ]
 
 [[package]]
 name = "odd-capture-worker"
-version = "2.4.1"
+version = "2.4.2"
 dependencies = [
  "odd-capture",
  "pcap",
@@ -2771,7 +2771,7 @@ dependencies = [
 
 [[package]]
 name = "odd-core"
-version = "2.4.1"
+version = "2.4.2"
 dependencies = [
  "proptest",
  "serde",
@@ -2782,7 +2782,7 @@ dependencies = [
 
 [[package]]
 name = "odd-decode"
-version = "2.4.1"
+version = "2.4.2"
 dependencies = [
  "odd-core",
  "odd-wire",
@@ -2794,7 +2794,7 @@ dependencies = [
 
 [[package]]
 name = "odd-reference"
-version = "2.4.1"
+version = "2.4.2"
 dependencies = [
  "axum",
  "reqwest",
@@ -2807,7 +2807,7 @@ dependencies = [
 
 [[package]]
 name = "odd-service"
-version = "2.4.1"
+version = "2.4.2"
 dependencies = [
  "axum",
  "odd-agent",
@@ -2826,7 +2826,7 @@ dependencies = [
 
 [[package]]
 name = "odd-sync"
-version = "2.4.1"
+version = "2.4.2"
 dependencies = [
  "axum",
  "odd-core",
@@ -2842,7 +2842,7 @@ dependencies = [
 
 [[package]]
 name = "odd-tcp"
-version = "2.4.1"
+version = "2.4.2"
 dependencies = [
  "etherparse",
  "proptest",
@@ -2850,7 +2850,7 @@ dependencies = [
 
 [[package]]
 name = "odd-update"
-version = "2.4.1"
+version = "2.4.2"
 dependencies = [
  "axum",
  "reqwest",
@@ -2864,7 +2864,7 @@ dependencies = [
 
 [[package]]
 name = "odd-wire"
-version = "2.4.1"
+version = "2.4.2"
 dependencies = [
  "proptest",
  "thiserror 2.0.21",
@@ -2889,7 +2889,7 @@ dependencies = [
 
 [[package]]
 name = "open-dofus-data-client"
-version = "2.4.1"
+version = "2.4.2"
 dependencies = [
  "odd-service",
  "serde",
