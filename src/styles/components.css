@@ -126,3 +126,5 @@ section#messages { scroll-margin-top: 8px; }
   .cell-origin { grid-area: origin; font-size: 12.5px; }
   .trow .chev { grid-area: chev; }
 }
+.pill .pill-link { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.pill .pill-link:hover { color: var(--accent); }
