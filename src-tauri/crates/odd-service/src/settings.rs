@@ -30,6 +30,8 @@ pub struct Settings {
     pub launch_at_startup: bool,
     /// Dev mode: every game message is written to files, with the bytes of its opaque fields (text included). Off until the player turns it on.
     pub dev_capture: bool,
+    /// Whether the tax collectors window (alliance, value, place and owner pseudo) is sent. On by default.
+    pub share_percepteurs: bool,
 }
 
 impl Default for Settings {
@@ -41,6 +43,7 @@ impl Default for Settings {
             logs_enabled: true,
             launch_at_startup: false,
             dev_capture: false,
+            share_percepteurs: true,
         }
     }
 }

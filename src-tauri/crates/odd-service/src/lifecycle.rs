@@ -59,6 +59,7 @@ impl Inner {
             game_server: settings.game_server.clone(),
             client_version: self.config.app_version.clone(),
             capture_dir: settings.dev_capture.then(|| self.capture_dir()),
+            share_percepteurs: settings.share_percepteurs,
         };
         let weak: Weak<Inner> = Arc::downgrade(self);
         let sink: LogSink = Arc::new(move |line| {

@@ -22,6 +22,8 @@ pub enum LogCategory {
     Hdv,
     /// Breaking items into runes.
     Brisage,
+    /// The tax collectors of greatest value.
+    Percepteurs,
 }
 
 /// Wraps a decoded payload into the object sent to the collector. The date is sent in UTC.
@@ -42,13 +44,18 @@ pub fn build_event(
     }
 }
 
+/// Whether the player lets this kind of object leave the application. Only the tax collectors can be refused.
+pub fn is_shared(payload: &Payload, share_percepteurs: bool) -> bool {
+    share_percepteurs || !matches!(payload, Payload::Percepteurs(_))
+}
+
 /// The item a payload is about; a whole category has none.
 pub fn item_id(payload: &Payload) -> Option<i64> {
     match payload {
         Payload::HdvLots(lots) => Some(lots.item_id),
         Payload::HdvStats(stats) => Some(stats.item_id),
         Payload::Brisage(breaking) => Some(breaking.item.id),
-        Payload::HdvCategory(_) => None,
+        Payload::HdvCategory(_) | Payload::Percepteurs(_) => None,
     }
 }
 
@@ -86,6 +93,14 @@ pub fn describe(payload: &Payload) -> (LogCategory, String) {
                 format!("Brisage de l'objet {}, coefficient {percent:.0} %", breaking.item.id),
             )
         }
+        Payload::Percepteurs(window) => (
+            LogCategory::Percepteurs,
+            format!(
+                "Percepteurs de plus grande valeur: {} en classique, {} en donjon",
+                window.classic.len(),
+                window.dungeon.len()
+            ),
+        ),
     }
 }
 

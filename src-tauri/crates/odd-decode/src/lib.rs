@@ -9,6 +9,7 @@ mod effects;
 mod issue;
 mod lots;
 pub mod messages;
+mod percepteurs;
 mod periods;
 mod stats;
 

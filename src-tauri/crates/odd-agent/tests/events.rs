@@ -1,10 +1,10 @@
 //! Making the objects to send out of what was decoded, and describing them for the logs.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, missing_docs)]
 
-use odd_agent::{EventContext, LogCategory, build_event, describe};
+use odd_agent::{EventContext, LogCategory, build_event, describe, is_shared};
 use odd_core::{
-    Brisage, BrisageItem, HdvCategory, HdvLots, HdvStats, Listing, Lot, Offer, Payload, Period, Periods, Points,
-    SCHEMA_VERSION,
+    Brisage, BrisageItem, HdvCategory, HdvLots, HdvStats, Listing, Lot, Offer, Payload, Percepteurs, Period, Periods,
+    Points, SCHEMA_VERSION,
 };
 use time::macros::datetime;
 
@@ -154,4 +154,25 @@ fn event_ids_are_128_bit_hexadecimal_and_never_repeat() {
         ids.iter()
             .all(|id| id.len() == 32 && id.bytes().all(|byte| byte.is_ascii_hexdigit()))
     );
+}
+
+fn empty_window() -> Payload {
+    Payload::Percepteurs(Percepteurs {
+        classic: vec![],
+        dungeon: vec![],
+    })
+}
+
+#[test]
+fn the_player_can_refuse_the_tax_collectors_and_nothing_else() {
+    assert!(is_shared(&empty_window(), true));
+    assert!(!is_shared(&empty_window(), false));
+    assert!(is_shared(&breaking(0.5), false), "the other objects are not concerned");
+}
+
+#[test]
+fn the_tax_collectors_are_described_with_the_size_of_each_tab() {
+    let (category, text) = describe(&empty_window());
+    assert_eq!(category, LogCategory::Percepteurs);
+    assert_eq!(text, "Percepteurs de plus grande valeur: 0 en classique, 0 en donjon");
 }

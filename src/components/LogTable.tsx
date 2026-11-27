@@ -3,7 +3,7 @@ import { formatTime, prettyJson } from "../lib/format";
 import type { LogCategory, LogEntry, LogOrigin, LogStatus } from "../lib/types";
 
 const ORIGIN_LABEL: Record<LogOrigin, string> = { game: "Jeu", server: "Serveur" };
-const CATEGORY_LABEL: Record<LogCategory, string> = { hdv: "HDV", brisage: "Brisage", other: "Autre" };
+const CATEGORY_LABEL: Record<LogCategory, string> = { hdv: "HDV", brisage: "Brisage", percepteurs: "Percepteurs", other: "Autre" };
 const STATUS_LABEL: Record<LogStatus, string> = { analyzed: "Analysé", ignored: "Ignoré", error: "Erreur" };
 const STATUS_TONE: Record<LogStatus, string> = { analyzed: "ok", ignored: "skip", error: "bad" };
 

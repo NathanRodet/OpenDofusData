@@ -158,6 +158,18 @@ export function SettingsPage({ saved, status, scrollRef, onSaved, onRefreshStatu
           />
         </Group>
 
+        <Group id="donnees" title="Données envoyées" hint="Les prix de l'HDV et les brisages sont toujours envoyés. Ici, tu choisis le reste.">
+          <div className="switch">
+            <Switch checked={draft.sharePercepteurs} label="Envoyer les percepteurs de plus grande valeur" onChange={(sharePercepteurs) => change({ sharePercepteurs })} />
+            <div>
+              <b>{draft.sharePercepteurs ? "Percepteurs envoyés" : "Percepteurs non envoyés"}</b>
+              <p className="help flush">
+                Quand tu ouvres la fenêtre des percepteurs: alliance, valeur, sous-zone, coordonnées et pseudo du joueur qui l'a posé.
+              </p>
+            </div>
+          </div>
+        </Group>
+
         <Group id="journal" title="Journal" hint="Affiche les messages analysés dans l'onglet Logs.">
           <div className="switch">
             <Switch checked={draft.logsEnabled} label="Activer les logs" onChange={(logsEnabled) => change({ logsEnabled })} />

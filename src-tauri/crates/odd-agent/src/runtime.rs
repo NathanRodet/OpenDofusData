@@ -11,7 +11,7 @@ use time::OffsetDateTime;
 use tokio::runtime::Handle;
 
 use crate::discovery::{Recorded, Recorder};
-use crate::events::{EventContext, build_event};
+use crate::events::{EventContext, build_event, is_shared};
 use crate::ids::new_event_id;
 use crate::log::{LogSink, from_notice, notice, problem, unsent};
 use crate::pipeline::Pipeline;
@@ -29,6 +29,8 @@ pub struct AgentConfig {
     pub client_version: String,
     /// The folder where the dev mode capture writes the structure of every game message; `None` when it is off.
     pub capture_dir: Option<PathBuf>,
+    /// Whether the tax collectors window (with the pseudo of the owners) may be sent.
+    pub share_percepteurs: bool,
 }
 
 /// A running agent.
@@ -172,7 +174,11 @@ impl Reader {
             game_server: &self.config.game_server,
             client_version: &self.config.client_version,
         };
-        for payload in decoded.payloads {
+        for payload in decoded
+            .payloads
+            .into_iter()
+            .filter(|payload| is_shared(payload, self.config.share_percepteurs))
+        {
             let event = build_event(payload, now, new_event_id(), &context);
             match &self.sender {
                 Some(sender) => self.submit(sender, event),

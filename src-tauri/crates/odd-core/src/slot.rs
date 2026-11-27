@@ -37,6 +37,11 @@ pub enum Slot {
         /// The UTC day, `YYYY-MM-DD`.
         day: String,
     },
+    /// The tax collectors of greatest value of a game server.
+    Percepteurs {
+        /// Game server.
+        server: String,
+    },
 }
 
 impl Slot {
@@ -47,6 +52,7 @@ impl Slot {
             Self::HdvStats { .. } => "hdv_stats",
             Self::HdvCategory { .. } => "hdv_category",
             Self::Brisage { .. } => "brisage",
+            Self::Percepteurs { .. } => "percepteurs",
         }
     }
 
@@ -56,7 +62,8 @@ impl Slot {
             Self::HdvLots { server, .. }
             | Self::HdvStats { server, .. }
             | Self::HdvCategory { server, .. }
-            | Self::Brisage { server, .. } => server,
+            | Self::Brisage { server, .. }
+            | Self::Percepteurs { server } => server,
         }
     }
 
@@ -66,6 +73,7 @@ impl Slot {
             Self::HdvLots { item_id, .. } | Self::HdvStats { item_id, .. } => item_id.to_string(),
             Self::HdvCategory { item_type_id, .. } => item_type_id.to_string(),
             Self::Brisage { item_id, day, .. } => format!("{item_id}:{day}"),
+            Self::Percepteurs { .. } => "all".to_owned(),
         }
     }
 }
@@ -91,6 +99,7 @@ pub fn slot_of(event: &Event, observed_at: OffsetDateTime) -> Slot {
             item_id: breaking.item.id,
             day: utc_day(observed_at),
         },
+        Payload::Percepteurs(_) => Slot::Percepteurs { server },
     }
 }
 

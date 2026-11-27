@@ -26,6 +26,18 @@ describe("launch at startup", () => {
   });
 });
 
+describe("tax collectors sharing", () => {
+  it("is on by default, the player can refuse it", () => {
+    expect(DEFAULT_SETTINGS.sharePercepteurs).toBe(true);
+  });
+
+  it("counts as a change and breaks equality", () => {
+    const draft = { ...DEFAULT_SETTINGS, sharePercepteurs: false };
+    expect(sameSettings(DEFAULT_SETTINGS, draft)).toBe(false);
+    expect(changedCount(DEFAULT_SETTINGS, draft)).toBe(1);
+  });
+});
+
 describe("dev mode capture", () => {
   it("is off by default", () => {
     expect(DEFAULT_SETTINGS.devCapture).toBe(false);

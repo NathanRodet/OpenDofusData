@@ -11,6 +11,8 @@ export interface Settings {
   launchAtStartup: boolean;
   /** Dev mode: write every game message to files, with the bytes of its opaque fields (text included). Off until turned on. */
   devCapture: boolean;
+  /** Send the tax collectors window (alliance, value, place and owner pseudo). On until the player refuses. */
+  sharePercepteurs: boolean;
 }
 
 export type NpcapState = "ok" | "missing";
@@ -42,7 +44,7 @@ export interface SyncProgress {
   received: { count: number; lastAt: string | null };
 }
 
-export type LogCategory = "hdv" | "brisage" | "other";
+export type LogCategory = "hdv" | "brisage" | "percepteurs" | "other";
 export type LogOrigin = "game" | "server";
 export type LogStatus = "analyzed" | "ignored" | "error";
 

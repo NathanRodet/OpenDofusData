@@ -7,6 +7,7 @@ mod brisage;
 mod effect;
 mod event;
 mod lots;
+mod percepteurs;
 mod slot;
 mod stats;
 mod unmapped;
@@ -16,10 +17,11 @@ pub use brisage::{Brisage, BrisageItem, Rune};
 pub use effect::Effect;
 pub use event::{Event, Payload, SCHEMA_VERSION};
 pub use lots::{HdvLots, Listing, Lot, Offer};
+pub use percepteurs::{Percepteur, Percepteurs};
 pub use slot::{Slot, slot_of};
 pub use stats::{HdvCategory, HdvStats, Period, Periods, Point, Points};
 pub use unmapped::Unmapped;
 pub use validate::{
-    MAX_CATEGORY_ITEMS, MAX_EFFECTS, MAX_LOTS, MAX_OFFERS_PER_ITEM, MAX_POINTS_PER_SERIES, MAX_RUNES, MAX_TEXT_CHARS,
-    MAX_UNMAPPED, Violation,
+    MAX_CATEGORY_ITEMS, MAX_EFFECTS, MAX_LOTS, MAX_OFFERS_PER_ITEM, MAX_PERCEPTEURS, MAX_POINTS_PER_SERIES, MAX_RUNES,
+    MAX_TEXT_CHARS, MAX_UNMAPPED, Violation,
 };

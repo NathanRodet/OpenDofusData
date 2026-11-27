@@ -101,6 +101,7 @@ section#messages { scroll-margin-top: 8px; }
 .tag.bad { background: rgba(255, 143, 126, 0.16); color: var(--bad); }
 .cat.hdv { background: rgba(143, 199, 255, 0.15); color: var(--info); }
 .cat.brisage { background: rgba(242, 160, 90, 0.16); color: #f5a768; }
+.cat.percepteurs { background: rgba(176, 140, 240, 0.16); color: #c3a6f5; }
 .cat.other { background: rgba(157, 182, 181, 0.15); color: var(--muted); }
 .jsonbox { padding: 4px 16px 16px; }
 .jsonbar { display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 12.5px; margin-bottom: 8px; }

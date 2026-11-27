@@ -4,6 +4,7 @@ use crate::brisage::Brisage;
 use crate::effect::Effect;
 use crate::event::{Event, Payload, SCHEMA_VERSION};
 use crate::lots::{HdvLots, Listing};
+use crate::percepteurs::Percepteurs;
 use crate::stats::{HdvCategory, HdvStats};
 use crate::unmapped::Unmapped;
 
@@ -23,6 +24,8 @@ pub const MAX_CATEGORY_ITEMS: usize = 10_000;
 pub const MAX_RUNES: usize = 64;
 /// Lot sizes allowed in one resource listing.
 pub const MAX_LOTS: usize = 16;
+/// Lines allowed in one tab of the tax collectors window (the game shows 10).
+pub const MAX_PERCEPTEURS: usize = 50;
 
 /// Why an event is refused.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -84,6 +87,7 @@ impl Event {
             Payload::HdvStats(stats) => check_stats(stats, &mut found),
             Payload::HdvCategory(category) => check_category(category, &mut found),
             Payload::Brisage(breaking) => check_brisage(breaking, &mut found),
+            Payload::Percepteurs(window) => check_percepteurs(window, &mut found),
         }
         if found.is_empty() { Ok(()) } else { Err(found) }
     }
@@ -138,6 +142,19 @@ fn check_stats(stats: &HdvStats, found: &mut Vec<Violation>) {
 
 fn check_category(category: &HdvCategory, found: &mut Vec<Violation>) {
     check_len("category items", category.item_ids.len(), MAX_CATEGORY_ITEMS, found);
+}
+
+fn check_percepteurs(window: &Percepteurs, found: &mut Vec<Violation>) {
+    check_len("classic collectors", window.classic.len(), MAX_PERCEPTEURS, found);
+    check_len("dungeon collectors", window.dungeon.len(), MAX_PERCEPTEURS, found);
+    for line in window.classic.iter().chain(&window.dungeon) {
+        for text in [&line.alliance, &line.tag, &line.owner] {
+            let chars = text.chars().count();
+            if chars > MAX_TEXT_CHARS {
+                found.push(Violation::TextTooLong { chars });
+            }
+        }
+    }
 }
 
 fn check_brisage(breaking: &Brisage, found: &mut Vec<Violation>) {

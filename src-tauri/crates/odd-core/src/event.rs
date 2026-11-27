@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::brisage::Brisage;
 use crate::lots::HdvLots;
+use crate::percepteurs::Percepteurs;
 use crate::stats::{HdvCategory, HdvStats};
 
 /// Version of the format described in docs/json-schemas.md.
@@ -25,6 +26,9 @@ pub enum Payload {
     /// An item broken at the Concasseur.
     #[serde(rename = "brisage")]
     Brisage(Brisage),
+    /// The tax collectors of greatest value.
+    #[serde(rename = "percepteurs")]
+    Percepteurs(Percepteurs),
 }
 
 impl Payload {
@@ -35,6 +39,7 @@ impl Payload {
             Self::HdvStats(_) => "hdv.stats",
             Self::HdvCategory(_) => "hdv.category",
             Self::Brisage(_) => "brisage",
+            Self::Percepteurs(_) => "percepteurs",
         }
     }
 }

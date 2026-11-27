@@ -18,6 +18,7 @@ export const SECTIONS: Record<Page, readonly Section[]> = {
     { id: "serveur", title: "Serveur de synchronisation" },
     { id: "jeu", title: "Serveur de jeu" },
     { id: "cle", title: "Clé d'API" },
+    { id: "donnees", title: "Données envoyées" },
     { id: "journal", title: "Journal" },
     { id: "demarrage", title: "Démarrage" },
     { id: "dev", title: "Dev Mode - Capture" },

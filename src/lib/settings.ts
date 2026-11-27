@@ -8,6 +8,7 @@ export const DEFAULT_SETTINGS: Settings = {
   logsEnabled: true,
   launchAtStartup: false,
   devCapture: false,
+  sharePercepteurs: true,
 };
 
 const HOST_PATTERN = /^(https:\/\/)?([a-z0-9]([a-z0-9-]*[a-z0-9])?)(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*(:\d{1,5})?(\/.*)?$/i;
@@ -57,7 +58,8 @@ export function isComplete(settings: Settings): boolean {
 export function sameSettings(left: Settings, right: Settings): boolean {
   return left.serverUrl === right.serverUrl && left.gameServer === right.gameServer
     && left.apiKey === right.apiKey && left.logsEnabled === right.logsEnabled
-    && left.launchAtStartup === right.launchAtStartup && left.devCapture === right.devCapture;
+    && left.launchAtStartup === right.launchAtStartup && left.devCapture === right.devCapture
+    && left.sharePercepteurs === right.sharePercepteurs;
 }
 
 /** How many settings differ from the saved ones (shown in the save bar). */

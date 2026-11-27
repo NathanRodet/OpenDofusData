@@ -7,9 +7,10 @@ use crate::brisage::BrisageTracker;
 use crate::issue::Decoded;
 use crate::lots::LotsTracker;
 use crate::messages::{
-    BREAK_REQUEST, BREAK_RESULT, CATEGORY_RESPONSE, LOT_REQUEST, LOT_RESPONSE, STATS_REQUEST, STATS_RESPONSE,
-    WINDOW_ADD, WINDOW_CLOSE, WINDOW_UPDATE,
+    BREAK_REQUEST, BREAK_RESULT, CATEGORY_RESPONSE, LOT_REQUEST, LOT_RESPONSE, PERCEPTEURS_RESPONSE, STATS_REQUEST,
+    STATS_RESPONSE, WINDOW_ADD, WINDOW_CLOSE, WINDOW_UPDATE,
 };
+use crate::percepteurs::decode_percepteurs;
 use crate::stats::{StatsTracker, decode_category};
 
 /// Which way a message travelled.
@@ -67,6 +68,7 @@ impl Decoder {
             (Direction::ToServer, STATS_REQUEST) => self.stats.on_request(message),
             (Direction::ToClient, STATS_RESPONSE) => self.stats.on_response(message, now, out),
             (Direction::ToClient, CATEGORY_RESPONSE) => decode_category(message, out),
+            (Direction::ToClient, PERCEPTEURS_RESPONSE) => decode_percepteurs(message, out),
             (Direction::ToClient, WINDOW_ADD | WINDOW_UPDATE) => self.breaking.on_window_item(message),
             (Direction::ToServer, BREAK_REQUEST) => self.breaking.on_request(message),
             (Direction::ToClient, BREAK_RESULT) => self.breaking.on_result(message, out),
@@ -83,6 +85,7 @@ fn is_known(name: &str) -> bool {
         STATS_REQUEST,
         STATS_RESPONSE,
         CATEGORY_RESPONSE,
+        PERCEPTEURS_RESPONSE,
         WINDOW_ADD,
         WINDOW_UPDATE,
         BREAK_REQUEST,

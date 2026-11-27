@@ -11,7 +11,7 @@ mod pipeline;
 mod runtime;
 
 pub use discovery::{MAX_CAPTURE_BYTES, Observation, Recorded, Recorder, describe_message};
-pub use events::{EventContext, LogCategory, build_event, describe};
+pub use events::{EventContext, LogCategory, build_event, describe, is_shared};
 pub use ids::new_event_id;
 pub use log::{LogLine, LogSink, LogStatus, NOTE_SENT, SUMMARY_SEND_FAILED, notice, problem};
 pub use pipeline::Pipeline;

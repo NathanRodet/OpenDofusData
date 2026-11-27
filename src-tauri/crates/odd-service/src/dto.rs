@@ -137,6 +137,8 @@ pub enum EntryCategory {
     Hdv,
     /// Breaking items.
     Brisage,
+    /// The tax collectors of greatest value.
+    Percepteurs,
     /// Anything else.
     Other,
 }

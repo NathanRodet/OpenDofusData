@@ -17,6 +17,7 @@ fn player() -> Settings {
         logs_enabled: false,
         launch_at_startup: true,
         dev_capture: true,
+        share_percepteurs: false,
     }
 }
 
@@ -32,6 +33,10 @@ fn without_a_file_the_defaults_are_used() {
         "the application does not start with Windows by default"
     );
     assert!(!settings.dev_capture, "the dev mode capture is off by default");
+    assert!(
+        settings.share_percepteurs,
+        "the tax collectors are sent unless the player refuses"
+    );
 }
 
 #[test]
@@ -54,6 +59,7 @@ fn the_file_uses_the_names_of_the_interface_and_leaves_no_temporary_file() {
         "logsEnabled",
         "launchAtStartup",
         "devCapture",
+        "sharePercepteurs",
     ] {
         assert!(text.contains(name), "{name} in {text}");
     }

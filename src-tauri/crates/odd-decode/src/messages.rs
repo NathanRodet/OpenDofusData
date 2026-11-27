@@ -23,6 +23,8 @@ pub const WINDOW_CLOSE: &str = "kiq";
 pub const BREAK_REQUEST: &str = "jxy";
 /// Server to client: the result of a breaking, one entry per item.
 pub const BREAK_RESULT: &str = "kag";
+/// Server to client: the tax collectors of greatest value, both tabs.
+pub const PERCEPTEURS_RESPONSE: &str = "hht";
 
 /// Sizes of the lots of a stackable resource, in the order of the prices.
 pub const LOT_SIZES: [u32; 4] = [1, 10, 100, 1000];
@@ -56,6 +58,23 @@ pub(crate) mod stats {
 pub(crate) mod category {
     pub(crate) const ITEM_IDS: u32 = 1;
     pub(crate) const ITEM_TYPE: u32 = 2;
+}
+
+/// Fields of the tax collectors window.
+pub(crate) mod percepteurs {
+    pub(crate) const CLASSIC_LINE: u32 = 1;
+    pub(crate) const DUNGEON_LINE: u32 = 2;
+    pub(crate) const LINE_VALUE_BOX: u32 = 1;
+    pub(crate) const VALUE_BOX_INNER: u32 = 2;
+    pub(crate) const VALUE: u32 = 3;
+    pub(crate) const LINE_POSITION: u32 = 2;
+    pub(crate) const POSITION_Y: u32 = 1;
+    pub(crate) const POSITION_X: u32 = 3;
+    pub(crate) const LINE_OWNER: u32 = 8;
+    pub(crate) const LINE_SUB_AREA: u32 = 9;
+    pub(crate) const LINE_ALLIANCE: u32 = 16;
+    pub(crate) const ALLIANCE_TAG: u32 = 4;
+    pub(crate) const ALLIANCE_NAME: u32 = 6;
 }
 
 /// Fields of the Concasseur messages.

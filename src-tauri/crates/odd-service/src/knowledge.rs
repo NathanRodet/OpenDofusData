@@ -72,6 +72,7 @@ pub fn to_entry(id: u64, line: &LogLine) -> LogEntry {
         category: match line.category {
             Some(LogCategory::Hdv) => EntryCategory::Hdv,
             Some(LogCategory::Brisage) => EntryCategory::Brisage,
+            Some(LogCategory::Percepteurs) => EntryCategory::Percepteurs,
             None => EntryCategory::Other,
         },
         status: match line.status {
