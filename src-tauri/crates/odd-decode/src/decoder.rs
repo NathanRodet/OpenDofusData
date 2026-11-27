@@ -7,10 +7,11 @@ use crate::brisage::BrisageTracker;
 use crate::issue::Decoded;
 use crate::lots::LotsTracker;
 use crate::messages::{
-    BREAK_REQUEST, BREAK_RESULT, CATEGORY_RESPONSE, LOT_REQUEST, LOT_RESPONSE, PERCEPTEURS_RESPONSE, STATS_REQUEST,
-    STATS_RESPONSE, WINDOW_ADD, WINDOW_CLOSE, WINDOW_UPDATE,
+    BREAK_REQUEST, BREAK_RESULT, CATEGORY_RESPONSE, DIALOG_OPENED, LOT_REQUEST, LOT_RESPONSE, MAP_ENTRY,
+    PERCEPTEUR_SHEET, PERCEPTEURS_RESPONSE, STATS_REQUEST, STATS_RESPONSE, WINDOW_ADD, WINDOW_CLOSE, WINDOW_UPDATE,
 };
 use crate::percepteurs::decode_percepteurs;
+use crate::roaming::RoamingTracker;
 use crate::stats::{StatsTracker, decode_category};
 
 /// Which way a message travelled.
@@ -28,6 +29,7 @@ pub struct Decoder {
     lots: LotsTracker,
     stats: StatsTracker,
     breaking: BrisageTracker,
+    roaming: RoamingTracker,
 }
 
 impl Decoder {
@@ -69,6 +71,9 @@ impl Decoder {
             (Direction::ToClient, STATS_RESPONSE) => self.stats.on_response(message, now, out),
             (Direction::ToClient, CATEGORY_RESPONSE) => decode_category(message, out),
             (Direction::ToClient, PERCEPTEURS_RESPONSE) => decode_percepteurs(message, out),
+            (Direction::ToClient, MAP_ENTRY) => self.roaming.on_map(message, out),
+            (Direction::ToClient, DIALOG_OPENED) => self.roaming.on_opened(message),
+            (Direction::ToClient, PERCEPTEUR_SHEET) => self.roaming.on_sheet(message, out),
             (Direction::ToClient, WINDOW_ADD | WINDOW_UPDATE) => self.breaking.on_window_item(message),
             (Direction::ToServer, BREAK_REQUEST) => self.breaking.on_request(message),
             (Direction::ToClient, BREAK_RESULT) => self.breaking.on_result(message, out),
@@ -86,6 +91,9 @@ fn is_known(name: &str) -> bool {
         STATS_RESPONSE,
         CATEGORY_RESPONSE,
         PERCEPTEURS_RESPONSE,
+        MAP_ENTRY,
+        DIALOG_OPENED,
+        PERCEPTEUR_SHEET,
         WINDOW_ADD,
         WINDOW_UPDATE,
         BREAK_REQUEST,

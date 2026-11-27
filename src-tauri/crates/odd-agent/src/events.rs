@@ -46,7 +46,11 @@ pub fn build_event(
 
 /// Whether the player lets this kind of object leave the application. Only the tax collectors can be refused.
 pub fn is_shared(payload: &Payload, share_percepteurs: bool) -> bool {
-    share_percepteurs || !matches!(payload, Payload::Percepteurs(_))
+    share_percepteurs
+        || !matches!(
+            payload,
+            Payload::Percepteurs(_) | Payload::PercepteurSeen(_) | Payload::PercepteurSheet(_)
+        )
 }
 
 /// The item a payload is about; a whole category has none.
@@ -55,7 +59,10 @@ pub fn item_id(payload: &Payload) -> Option<i64> {
         Payload::HdvLots(lots) => Some(lots.item_id),
         Payload::HdvStats(stats) => Some(stats.item_id),
         Payload::Brisage(breaking) => Some(breaking.item.id),
-        Payload::HdvCategory(_) | Payload::Percepteurs(_) => None,
+        Payload::HdvCategory(_)
+        | Payload::Percepteurs(_)
+        | Payload::PercepteurSeen(_)
+        | Payload::PercepteurSheet(_) => None,
     }
 }
 
@@ -99,6 +106,20 @@ pub fn describe(payload: &Payload) -> (LogCategory, String) {
                 "Percepteurs de plus grande valeur: {} en classique, {} en donjon",
                 window.classic.len(),
                 window.dungeon.len()
+            ),
+        ),
+        Payload::PercepteurSeen(seen) => (
+            LogCategory::Percepteurs,
+            format!(
+                "Percepteur de l'alliance {} croisé sur la carte {}, case {}",
+                seen.alliance, seen.map_id, seen.cell
+            ),
+        ),
+        Payload::PercepteurSheet(sheet) => (
+            LogCategory::Percepteurs,
+            format!(
+                "Fiche d'un percepteur de l'alliance {}: {} pods, valeur {} kamas",
+                sheet.alliance, sheet.pods, sheet.value
             ),
         ),
     }

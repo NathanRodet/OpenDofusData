@@ -42,6 +42,24 @@ pub enum Slot {
         /// Game server.
         server: String,
     },
+    /// A tax collector met on a map (the latest sighting of that cell).
+    PercepteurSeen {
+        /// Game server.
+        server: String,
+        /// The map.
+        map_id: i64,
+        /// The cell.
+        cell: i64,
+    },
+    /// The dialog of a tax collector (the latest one of that cell).
+    PercepteurSheet {
+        /// Game server.
+        server: String,
+        /// The map.
+        map_id: i64,
+        /// The cell.
+        cell: i64,
+    },
 }
 
 impl Slot {
@@ -53,6 +71,8 @@ impl Slot {
             Self::HdvCategory { .. } => "hdv_category",
             Self::Brisage { .. } => "brisage",
             Self::Percepteurs { .. } => "percepteurs",
+            Self::PercepteurSeen { .. } => "percepteur_seen",
+            Self::PercepteurSheet { .. } => "percepteur_sheet",
         }
     }
 
@@ -63,7 +83,9 @@ impl Slot {
             | Self::HdvStats { server, .. }
             | Self::HdvCategory { server, .. }
             | Self::Brisage { server, .. }
-            | Self::Percepteurs { server } => server,
+            | Self::Percepteurs { server }
+            | Self::PercepteurSeen { server, .. }
+            | Self::PercepteurSheet { server, .. } => server,
         }
     }
 
@@ -74,6 +96,9 @@ impl Slot {
             Self::HdvCategory { item_type_id, .. } => item_type_id.to_string(),
             Self::Brisage { item_id, day, .. } => format!("{item_id}:{day}"),
             Self::Percepteurs { .. } => "all".to_owned(),
+            Self::PercepteurSeen { map_id, cell, .. } | Self::PercepteurSheet { map_id, cell, .. } => {
+                format!("{map_id}:{cell}")
+            }
         }
     }
 }
@@ -100,6 +125,16 @@ pub fn slot_of(event: &Event, observed_at: OffsetDateTime) -> Slot {
             day: utc_day(observed_at),
         },
         Payload::Percepteurs(_) => Slot::Percepteurs { server },
+        Payload::PercepteurSeen(seen) => Slot::PercepteurSeen {
+            server,
+            map_id: seen.map_id,
+            cell: seen.cell,
+        },
+        Payload::PercepteurSheet(sheet) => Slot::PercepteurSheet {
+            server,
+            map_id: sheet.map_id,
+            cell: sheet.cell,
+        },
     }
 }
 

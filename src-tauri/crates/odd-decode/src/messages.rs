@@ -25,6 +25,12 @@ pub const BREAK_REQUEST: &str = "jxy";
 pub const BREAK_RESULT: &str = "kag";
 /// Server to client: the tax collectors of greatest value, both tabs.
 pub const PERCEPTEURS_RESPONSE: &str = "hht";
+/// Server to client: the player entered a map (lists the actors on it, collectors included).
+pub const MAP_ENTRY: &str = "jnj";
+/// Server to client: the player opened the dialog of an entity of the map.
+pub const DIALOG_OPENED: &str = "ilx";
+/// Server to client: the dialog of a tax collector.
+pub const PERCEPTEUR_SHEET: &str = "iku";
 
 /// Sizes of the lots of a stackable resource, in the order of the prices.
 pub const LOT_SIZES: [u32; 4] = [1, 10, 100, 1000];
@@ -75,6 +81,35 @@ pub(crate) mod percepteurs {
     pub(crate) const LINE_ALLIANCE: u32 = 16;
     pub(crate) const ALLIANCE_TAG: u32 = 4;
     pub(crate) const ALLIANCE_NAME: u32 = 6;
+}
+
+/// Fields of the map entry, of the dialog opening and of the tax collector dialog.
+pub(crate) mod roaming {
+    pub(crate) const MAP_ID: u32 = 10;
+    pub(crate) const MAP_SUB_AREA: u32 = 12;
+    pub(crate) const MAP_ACTOR: u32 = 3;
+    pub(crate) const ACTOR_ENTITY: u32 = 1;
+    pub(crate) const ACTOR_POSITION: u32 = 2;
+    pub(crate) const ACTOR_BODY: u32 = 3;
+    pub(crate) const BODY_KIND: u32 = 1;
+    pub(crate) const KIND_COLLECTOR: u32 = 7;
+    pub(crate) const COLLECTOR_DATA: u32 = 2;
+    pub(crate) const POSITION_CELL: u32 = 3;
+    pub(crate) const POSITION_DIRECTION: u32 = 4;
+    pub(crate) const DATA_ALLIANCE: u32 = 1;
+    pub(crate) const DATA_NAME_FIRST: u32 = 3;
+    pub(crate) const DATA_NAME_SECOND: u32 = 5;
+    pub(crate) const ALLIANCE_EMBLEM: u32 = 3;
+    pub(crate) const ALLIANCE_TAG: u32 = 4;
+    pub(crate) const ALLIANCE_NAME: u32 = 6;
+    pub(crate) const OPENED_MAP: u32 = 3;
+    pub(crate) const OPENED_ENTITY: u32 = 5;
+    pub(crate) const SHEET_ALLIANCE_COLLECTORS: u32 = 1;
+    pub(crate) const SHEET_ALLIANCE: u32 = 2;
+    pub(crate) const SHEET_POD_CAPACITY: u32 = 3;
+    pub(crate) const SHEET_PROSPECTING: u32 = 4;
+    pub(crate) const SHEET_PODS: u32 = 5;
+    pub(crate) const SHEET_VALUE: u32 = 6;
 }
 
 /// Fields of the Concasseur messages.

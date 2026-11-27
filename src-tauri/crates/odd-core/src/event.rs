@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::brisage::Brisage;
 use crate::lots::HdvLots;
 use crate::percepteurs::Percepteurs;
+use crate::roaming::{PercepteurSeen, PercepteurSheet};
 use crate::stats::{HdvCategory, HdvStats};
 
 /// Version of the format described in docs/json-schemas.md.
@@ -29,6 +30,12 @@ pub enum Payload {
     /// The tax collectors of greatest value.
     #[serde(rename = "percepteurs")]
     Percepteurs(Percepteurs),
+    /// A tax collector met on the map the player entered.
+    #[serde(rename = "percepteur.seen")]
+    PercepteurSeen(PercepteurSeen),
+    /// The dialog of a tax collector.
+    #[serde(rename = "percepteur.sheet")]
+    PercepteurSheet(PercepteurSheet),
 }
 
 impl Payload {
@@ -40,6 +47,8 @@ impl Payload {
             Self::HdvCategory(_) => "hdv.category",
             Self::Brisage(_) => "brisage",
             Self::Percepteurs(_) => "percepteurs",
+            Self::PercepteurSeen(_) => "percepteur.seen",
+            Self::PercepteurSheet(_) => "percepteur.sheet",
         }
     }
 }

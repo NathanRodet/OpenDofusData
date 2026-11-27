@@ -160,11 +160,11 @@ export function SettingsPage({ saved, status, scrollRef, onSaved, onRefreshStatu
 
         <Group id="donnees" title="Données envoyées" hint="Les prix de l'HDV et les brisages sont toujours envoyés. Ici, tu choisis le reste.">
           <div className="switch">
-            <Switch checked={draft.sharePercepteurs} label="Envoyer les percepteurs de plus grande valeur" onChange={(sharePercepteurs) => change({ sharePercepteurs })} />
+            <Switch checked={draft.sharePercepteurs} label="Envoyer les données des percepteurs" onChange={(sharePercepteurs) => change({ sharePercepteurs })} />
             <div>
               <b>{draft.sharePercepteurs ? "Percepteurs envoyés" : "Percepteurs non envoyés"}</b>
               <p className="help flush">
-                Quand tu ouvres la fenêtre des percepteurs: alliance, valeur, sous-zone, coordonnées et pseudo du joueur qui l'a posé.
+                Fenêtre des percepteurs (alliance, valeur, sous-zone, coordonnées, pseudo du joueur qui l'a posé), et percepteurs croisés sur une carte (alliance, case, fiche avec pods et valeur).
               </p>
             </div>
           </div>

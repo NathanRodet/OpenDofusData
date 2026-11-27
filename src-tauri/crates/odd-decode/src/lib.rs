@@ -11,6 +11,7 @@ mod lots;
 pub mod messages;
 mod percepteurs;
 mod periods;
+mod roaming;
 mod stats;
 
 pub use decoder::{Decoder, Direction};

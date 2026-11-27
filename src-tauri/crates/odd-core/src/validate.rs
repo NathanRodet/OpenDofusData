@@ -5,6 +5,7 @@ use crate::effect::Effect;
 use crate::event::{Event, Payload, SCHEMA_VERSION};
 use crate::lots::{HdvLots, Listing};
 use crate::percepteurs::Percepteurs;
+use crate::roaming::PercepteurSeen;
 use crate::stats::{HdvCategory, HdvStats};
 use crate::unmapped::Unmapped;
 
@@ -88,6 +89,8 @@ impl Event {
             Payload::HdvCategory(category) => check_category(category, &mut found),
             Payload::Brisage(breaking) => check_brisage(breaking, &mut found),
             Payload::Percepteurs(window) => check_percepteurs(window, &mut found),
+            Payload::PercepteurSeen(seen) => check_seen(seen, &mut found),
+            Payload::PercepteurSheet(sheet) => check_texts([&sheet.alliance, &sheet.tag], &mut found),
         }
         if found.is_empty() { Ok(()) } else { Err(found) }
     }
@@ -142,6 +145,21 @@ fn check_stats(stats: &HdvStats, found: &mut Vec<Violation>) {
 
 fn check_category(category: &HdvCategory, found: &mut Vec<Violation>) {
     check_len("category items", category.item_ids.len(), MAX_CATEGORY_ITEMS, found);
+}
+
+fn check_texts<'a>(texts: impl IntoIterator<Item = &'a String>, found: &mut Vec<Violation>) {
+    for text in texts {
+        let chars = text.chars().count();
+        if chars > MAX_TEXT_CHARS {
+            found.push(Violation::TextTooLong { chars });
+        }
+    }
+}
+
+fn check_seen(seen: &PercepteurSeen, found: &mut Vec<Violation>) {
+    check_texts([&seen.alliance, &seen.tag], found);
+    check_len("collector name ids", seen.name_ids.len(), MAX_UNMAPPED, found);
+    check_unmapped(&seen.emblem, found);
 }
 
 fn check_percepteurs(window: &Percepteurs, found: &mut Vec<Violation>) {
