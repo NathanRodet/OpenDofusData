@@ -58,7 +58,7 @@ function StatusBanners({ status, onRefresh }: { status: AppStatus; onRefresh: ()
           title="Ta clé d'API a expiré"
           actions={KEY_PAGE_URL === "" ? undefined : <ExternalLink href={KEY_PAGE_URL} className="btn primary"><OpenIcon size={16} aria-hidden="true" />Mon espace</ExternalLink>}
         >
-          Elle vivait une semaine. Génère-en une nouvelle depuis ton espace, puis colle-la ici.
+          Elle vivait un mois. Génère-en une nouvelle depuis ton espace, puis colle-la ici.
         </Banner>
       ) : null}
     </>

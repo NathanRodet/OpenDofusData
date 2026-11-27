@@ -23,7 +23,7 @@ Get the latest installer from the [Releases page](https://github.com/NathanRodet
 
 1. Install [Npcap](https://npcap.com/), which the app uses to watch the game traffic. Windows 10 and 11 (64 bits) are supported, with WebView2 (already on Windows 11 and on up to date Windows 10).
 2. Run the OpenDofusData installer.
-3. Sign in on the website with Discord, create your API key and paste it into the app. One key per account, valid for one week.
+3. Sign in on the website with Discord, create your API key and paste it into the app. One key per account, valid for one month.
 4. Play. Prices and breaking results you open in game are read and sent in the background.
 
 Nothing is sent until a key is saved.
