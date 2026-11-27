@@ -8,6 +8,7 @@ mod effect;
 mod event;
 mod lots;
 mod percepteurs;
+mod retention;
 mod roaming;
 mod slot;
 mod stats;
@@ -19,6 +20,9 @@ pub use effect::Effect;
 pub use event::{Event, Payload, SCHEMA_VERSION};
 pub use lots::{HdvLots, Listing, Lot, Offer};
 pub use percepteurs::{Percepteur, Percepteurs};
+pub use retention::{
+    DEFAULT_RETENTION, PERCEPTEURS_MET_RETENTION, PERCEPTEURS_RETENTION, SHORT_RETENTIONS, retention_of_slot_kind,
+};
 pub use roaming::{PercepteurSeen, PercepteurSheet};
 pub use slot::{Slot, slot_of};
 pub use stats::{HdvCategory, HdvStats, Period, Periods, Point, Points};
