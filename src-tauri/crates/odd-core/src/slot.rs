@@ -42,23 +42,19 @@ pub enum Slot {
         /// Game server.
         server: String,
     },
-    /// A tax collector met on a map (the latest sighting of that cell).
+    /// The tax collector met on a map (a map holds one: the latest sighting replaces the older one).
     PercepteurSeen {
         /// Game server.
         server: String,
         /// The map.
         map_id: i64,
-        /// The cell.
-        cell: i64,
     },
-    /// The dialog of a tax collector (the latest one of that cell).
+    /// The dialog of the tax collector of a map (the latest one replaces the older one).
     PercepteurSheet {
         /// Game server.
         server: String,
         /// The map.
         map_id: i64,
-        /// The cell.
-        cell: i64,
     },
 }
 
@@ -96,9 +92,7 @@ impl Slot {
             Self::HdvCategory { item_type_id, .. } => item_type_id.to_string(),
             Self::Brisage { item_id, day, .. } => format!("{item_id}:{day}"),
             Self::Percepteurs { .. } => "all".to_owned(),
-            Self::PercepteurSeen { map_id, cell, .. } | Self::PercepteurSheet { map_id, cell, .. } => {
-                format!("{map_id}:{cell}")
-            }
+            Self::PercepteurSeen { map_id, .. } | Self::PercepteurSheet { map_id, .. } => map_id.to_string(),
         }
     }
 }
@@ -128,12 +122,10 @@ pub fn slot_of(event: &Event, observed_at: OffsetDateTime) -> Slot {
         Payload::PercepteurSeen(seen) => Slot::PercepteurSeen {
             server,
             map_id: seen.map_id,
-            cell: seen.cell,
         },
         Payload::PercepteurSheet(sheet) => Slot::PercepteurSheet {
             server,
             map_id: sheet.map_id,
-            cell: sheet.cell,
         },
     }
 }
