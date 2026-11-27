@@ -11,6 +11,8 @@ export interface Settings {
   launchAtStartup: boolean;
   /** Dev mode: write the structure of every game message to files (numbers only, no text). Off until turned on. */
   devCapture: boolean;
+  /** Message types (short names, comma separated) whose opaque fields the capture also writes as bytes and numbers. */
+  devCaptureTypes: string;
 }
 
 export type NpcapState = "ok" | "missing";

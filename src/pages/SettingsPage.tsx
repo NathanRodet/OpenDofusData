@@ -189,6 +189,13 @@ export function SettingsPage({ saved, status, scrollRef, onSaved, onRefreshStatu
               </p>
             </div>
           </div>
+          {draft.devCapture ? (
+            <label className="field">
+              <span>Types à détailler (facultatif)</span>
+              <input type="text" value={draft.devCaptureTypes} placeholder="jnj, kpy" spellCheck={false} autoComplete="off" onChange={(event) => change({ devCaptureTypes: event.target.value })} />
+              <p className="help flush">Pour ces types de message seulement, ajoute les octets et les listes de nombres des champs opaques. Peut contenir du texte: relis le fichier avant de le partager.</p>
+            </label>
+          ) : null}
           <div className="row">
             <button type="button" className="btn ghost" onClick={() => void backend.openCaptureFolder().catch(() => undefined)}>
               Ouvrir le dossier des captures

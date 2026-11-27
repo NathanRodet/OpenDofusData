@@ -7,7 +7,7 @@ use std::io::{self, BufWriter, Write};
 use std::path::{Path, PathBuf};
 
 use odd_decode::Direction;
-use odd_wire::{Envelope, Message, Value};
+use odd_wire::{Envelope, Message, Value, unpack_varints};
 use serde_json::{Map, Value as Json, json};
 use time::OffsetDateTime;
 use time::format_description::well_known::Rfc3339;
@@ -21,6 +21,10 @@ const WIRE_FIXED64: u8 = 1;
 const WIRE_BYTES: u8 = 2;
 const WIRE_FIXED32: u8 = 5;
 const NAME_TIME_LENGTH: usize = 19;
+/// Bytes shown in the hex preview of a detailed opaque field.
+const MAX_HEX_BYTES: usize = 64;
+/// Numbers shown from a packed list of a detailed opaque field.
+const MAX_PACKED_VALUES: usize = 32;
 
 /// One game message seen on the connection.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -49,7 +53,7 @@ fn wire_type_of(value: Value<'_>) -> u8 {
     }
 }
 
-fn describe_value(number: u32, value: Value<'_>, depth: usize) -> Json {
+fn describe_value(number: u32, value: Value<'_>, depth: usize, detailed: bool) -> Json {
     let mut node = leaf(number, wire_type_of(value));
     match value {
         Value::Varint(value) | Value::Fixed64(value) => {
@@ -60,36 +64,53 @@ fn describe_value(number: u32, value: Value<'_>, depth: usize) -> Json {
         }
         Value::Bytes(bytes) => {
             node.insert("length".to_owned(), json!(bytes.len()));
-            if let Some(fields) = nested(bytes, depth) {
-                node.insert("fields".to_owned(), Json::Array(fields));
-            }
+            match nested(bytes, depth, detailed) {
+                Some(fields) => node.insert("fields".to_owned(), Json::Array(fields)),
+                None if detailed => preview(bytes, &mut node),
+                None => None,
+            };
         }
     }
     Json::Object(node)
 }
 
 /// The fields of `bytes` when they are a whole protobuf message (and not too deep).
-fn nested(bytes: &[u8], depth: usize) -> Option<Vec<Json>> {
+fn nested(bytes: &[u8], depth: usize, detailed: bool) -> Option<Vec<Json>> {
     if depth >= MAX_DEPTH || bytes.is_empty() {
         return None;
     }
     Message::parse(bytes)
         .ok()
-        .map(|message| describe_fields(&message, depth + 1))
+        .map(|message| describe_fields(&message, depth + 1, detailed))
 }
 
-fn describe_fields(message: &Message<'_>, depth: usize) -> Vec<Json> {
+fn describe_fields(message: &Message<'_>, depth: usize, detailed: bool) -> Vec<Json> {
     message
         .fields()
-        .map(|field| describe_value(field.number, field.value, depth))
+        .map(|field| describe_value(field.number, field.value, depth, detailed))
         .collect()
 }
 
+/// The hex of the first bytes of an opaque field, and its numbers when it is exactly a list of packed varints.
+/// It can hold text: only the types the developer asked for get it.
+fn preview(bytes: &[u8], node: &mut Map<String, Json>) -> Option<Json> {
+    let hex: String = bytes
+        .iter()
+        .take(MAX_HEX_BYTES)
+        .map(|byte| format!("{byte:02x}"))
+        .collect();
+    node.insert("hex".to_owned(), json!(hex));
+    let numbers = unpack_varints(bytes).ok().filter(|numbers| !numbers.is_empty())?;
+    let shown: Vec<u64> = numbers.into_iter().take(MAX_PACKED_VALUES).collect();
+    node.insert("packed".to_owned(), json!(shown))
+}
+
 /// The JSON line of one message: time, direction, type, size and the structure of its fields.
-pub fn describe_message(observation: &Observation) -> Result<String, serde_json::Error> {
+/// With `detailed`, opaque fields also give their first bytes and their packed numbers.
+pub fn describe_message(observation: &Observation, detailed: bool) -> Result<String, serde_json::Error> {
     let envelope = &observation.envelope;
     let fields = Message::parse(&envelope.payload)
-        .map(|message| describe_fields(&message, 0))
+        .map(|message| describe_fields(&message, 0, detailed))
         .unwrap_or_default();
     let direction = match observation.direction {
         Direction::ToServer => "client_to_server",
@@ -117,13 +138,15 @@ pub enum Recorded {
 #[derive(Debug)]
 pub struct Recorder {
     file: BufWriter<File>,
+    detailed_types: Vec<String>,
     path: PathBuf,
     written: u64,
 }
 
 impl Recorder {
     /// Creates `capture-YYYY-MM-DD-HH-MM-SS.jsonl` in `directory` (made when missing).
-    pub fn create(directory: &Path, now: OffsetDateTime) -> io::Result<Self> {
+    /// The types in `detailed_types` get the bytes and packed numbers of their opaque fields.
+    pub fn create(directory: &Path, now: OffsetDateTime, detailed_types: &[String]) -> io::Result<Self> {
         fs::create_dir_all(directory)?;
         let stamp: String = now
             .format(&Rfc3339)
@@ -133,7 +156,12 @@ impl Recorder {
             .collect();
         let path = directory.join(format!("capture-{}.jsonl", stamp.replace(['T', ':'], "-")));
         let file = BufWriter::new(File::create(&path)?);
-        Ok(Self { file, path, written: 0 })
+        Ok(Self {
+            file,
+            detailed_types: detailed_types.to_vec(),
+            path,
+            written: 0,
+        })
     }
 
     /// The file being written.
@@ -146,7 +174,8 @@ impl Recorder {
         if self.written >= MAX_CAPTURE_BYTES {
             return Ok(Recorded::Full);
         }
-        let line = describe_message(observation).map_err(io::Error::other)?;
+        let detailed = self.detailed_types.contains(&observation.envelope.type_name);
+        let line = describe_message(observation, detailed).map_err(io::Error::other)?;
         writeln!(self.file, "{line}")?;
         self.file.flush()?;
         self.written += u64::try_from(line.len()).unwrap_or(u64::MAX).saturating_add(1);

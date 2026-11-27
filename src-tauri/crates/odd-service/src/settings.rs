@@ -30,6 +30,8 @@ pub struct Settings {
     pub launch_at_startup: bool,
     /// Dev mode: the structure of every game message is written to files (numbers only, no text). Off until the player turns it on.
     pub dev_capture: bool,
+    /// The message types (short names, separated by commas) whose opaque fields the dev capture also writes as bytes and numbers.
+    pub dev_capture_types: String,
 }
 
 impl Default for Settings {
@@ -41,7 +43,20 @@ impl Default for Settings {
             logs_enabled: true,
             launch_at_startup: false,
             dev_capture: false,
+            dev_capture_types: String::new(),
         }
+    }
+}
+
+impl Settings {
+    /// The message types to detail in the dev capture, from the comma separated text.
+    pub fn capture_types(&self) -> Vec<String> {
+        self.dev_capture_types
+            .split(',')
+            .map(str::trim)
+            .filter(|name| !name.is_empty())
+            .map(str::to_owned)
+            .collect()
     }
 }
 
