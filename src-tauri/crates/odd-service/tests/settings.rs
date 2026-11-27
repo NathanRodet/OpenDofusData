@@ -16,6 +16,7 @@ fn player() -> Settings {
         api_key: "odd_secret".to_owned(),
         logs_enabled: false,
         launch_at_startup: true,
+        dev_capture: true,
     }
 }
 
@@ -30,6 +31,7 @@ fn without_a_file_the_defaults_are_used() {
         !settings.launch_at_startup,
         "the application does not start with Windows by default"
     );
+    assert!(!settings.dev_capture, "the dev mode capture is off by default");
 }
 
 #[test]
@@ -45,7 +47,14 @@ fn the_file_uses_the_names_of_the_interface_and_leaves_no_temporary_file() {
     let store = SettingsStore::new(directory.clone());
     store.save(&player()).unwrap();
     let text = std::fs::read_to_string(directory.join("settings.json")).unwrap();
-    for name in ["serverUrl", "gameServer", "apiKey", "logsEnabled", "launchAtStartup"] {
+    for name in [
+        "serverUrl",
+        "gameServer",
+        "apiKey",
+        "logsEnabled",
+        "launchAtStartup",
+        "devCapture",
+    ] {
         assert!(text.contains(name), "{name} in {text}");
     }
     let leftovers: Vec<_> = std::fs::read_dir(&directory).unwrap().filter_map(Result::ok).collect();
@@ -71,6 +80,10 @@ fn missing_fields_keep_their_default() {
     assert!(
         !settings.launch_at_startup,
         "an older file without the field keeps it off"
+    );
+    assert!(
+        !settings.dev_capture,
+        "an older file without the field keeps the dev capture off"
     );
 }
 

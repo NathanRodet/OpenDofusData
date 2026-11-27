@@ -141,6 +141,7 @@ fn player(url: &str, key: &str) -> Settings {
         api_key: key.to_owned(),
         logs_enabled: true,
         launch_at_startup: false,
+        dev_capture: false,
     }
 }
 
@@ -292,4 +293,32 @@ async fn the_logs_are_saved_in_a_file_of_the_chosen_folder() {
     assert_eq!(saved.len(), entries.len());
     assert!(saved[0]["payloadNote"].is_string() && saved[0]["summary"].is_string());
     running.service.shutdown().await;
+}
+
+#[tokio::test]
+async fn the_dev_mode_capture_starts_only_when_it_is_on_and_says_where_it_writes() {
+    let off = start("capture-off", Some(player("http://127.0.0.1:9", "")), false).await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    assert!(!off.directory.join("captures").exists(), "off: nothing is created");
+    off.service.shutdown().await;
+
+    let settings = Settings {
+        dev_capture: true,
+        ..player("http://127.0.0.1:9", "")
+    };
+    let on = start("capture-on", Some(settings), false).await;
+    wait_until("the capture is announced", || {
+        on.emitted
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|entry| entry.summary.contains("Capture de développement"))
+    })
+    .await;
+    assert!(on.service.capture_dir().starts_with(&on.directory));
+    assert!(
+        std::fs::read_dir(on.service.capture_dir()).unwrap().count() == 1,
+        "one capture file"
+    );
+    on.service.shutdown().await;
 }

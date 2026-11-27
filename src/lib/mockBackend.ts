@@ -117,6 +117,10 @@ export const mockBackend: Backend = {
     URL.revokeObjectURL(url);
   },
 
+  async openCaptureFolder() {
+    // In a browser there is no folder to open.
+  },
+
   onLog(listener) {
     const timer = window.setInterval(() => {
       const sample = SAMPLES[Math.floor(Math.random() * SAMPLES.length)];

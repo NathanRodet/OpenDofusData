@@ -26,6 +26,18 @@ describe("launch at startup", () => {
   });
 });
 
+describe("dev mode capture", () => {
+  it("is off by default", () => {
+    expect(DEFAULT_SETTINGS.devCapture).toBe(false);
+  });
+
+  it("counts as a change and breaks equality", () => {
+    const draft = { ...DEFAULT_SETTINGS, devCapture: true };
+    expect(sameSettings(DEFAULT_SETTINGS, draft)).toBe(false);
+    expect(changedCount(DEFAULT_SETTINGS, draft)).toBe(1);
+  });
+});
+
 describe("validateApiKey", () => {
   it("needs a key without spaces", () => {
     expect(validateApiKey("")).not.toBeNull();

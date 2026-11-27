@@ -64,6 +64,14 @@ pub fn problem(summary: &str, note: &str) -> LogLine {
     }
 }
 
+/// A line that only informs (the dev mode capture started, for instance): not game data and not a failure.
+pub fn notice(summary: &str, note: &str) -> LogLine {
+    LogLine {
+        status: LogStatus::Analyzed,
+        ..problem(summary, note)
+    }
+}
+
 /// An object that is understood but not sent because no key is registered.
 pub fn unsent(event: &Event) -> LogLine {
     about(

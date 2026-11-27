@@ -20,6 +20,7 @@ export const SECTIONS: Record<Page, readonly Section[]> = {
     { id: "cle", title: "Clé d'API" },
     { id: "journal", title: "Journal" },
     { id: "demarrage", title: "Démarrage" },
+    { id: "dev", title: "Dev Mode - Capture" },
     { id: "maj", title: "Mises à jour et données" },
   ],
 };

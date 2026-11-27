@@ -6,6 +6,7 @@ use std::process::Command;
 
 use odd_service::{AppStatus, ConnectionTest, LogEntry, Service, Settings, SyncProgress, UpdateInfo};
 use tauri::{AppHandle, Manager, State};
+use tauri_plugin_opener::OpenerExt;
 
 use crate::autostart;
 
@@ -60,6 +61,16 @@ fn run_installer(installer: &Path) -> std::io::Result<()> {
 #[tauri::command]
 pub async fn purge_local_data(service: State<'_, Service>) -> Result<(), String> {
     service.purge().await.map_err(|error| error.to_string())
+}
+
+/// Opens the folder of the dev mode capture in the file explorer, creating it when it does not exist yet.
+#[tauri::command]
+pub fn open_capture_folder(app: AppHandle, service: State<'_, Service>) -> Result<(), String> {
+    let folder = service.capture_dir();
+    std::fs::create_dir_all(&folder).map_err(|error| error.to_string())?;
+    app.opener()
+        .open_path(folder.to_string_lossy(), None::<&str>)
+        .map_err(|error| error.to_string())
 }
 
 #[tauri::command]

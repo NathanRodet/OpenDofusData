@@ -109,6 +109,11 @@ impl Service {
         Ok(())
     }
 
+    /// The folder where the dev mode capture writes its files.
+    pub fn capture_dir(&self) -> PathBuf {
+        self.inner.capture_dir()
+    }
+
     /// The state shown at the top of the interface.
     pub fn status(&self) -> AppStatus {
         let (state, now) = (self.inner.lock(), OffsetDateTime::now_utc());

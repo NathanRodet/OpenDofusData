@@ -17,6 +17,7 @@ export const tauriBackend: Backend = {
   startUpdate: () => invoke<void>("start_update"),
   purgeLocalData: () => invoke<void>("purge_local_data"),
   saveLogs: (entries: LogEntry[]) => invoke<void>("save_logs", { entries }),
+  openCaptureFolder: () => invoke<void>("open_capture_folder"),
   onLog(listener) {
     let stopped = false;
     let unlisten: (() => void) | null = null;

@@ -12,6 +12,9 @@ use crate::knowledge::{Knowledge, to_entry};
 use crate::service::{Inner, State};
 use crate::settings::{Settings, normalize_server_url};
 
+/// The folder of the dev mode capture files, in the configuration folder.
+const CAPTURE_FOLDER: &str = "captures";
+
 impl Inner {
     pub(crate) fn lock(&self) -> MutexGuard<'_, State> {
         self.state.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
@@ -37,6 +40,11 @@ impl Inner {
         }
     }
 
+    /// The folder where the dev mode capture writes its files.
+    pub(crate) fn capture_dir(&self) -> std::path::PathBuf {
+        self.config.config_dir.join(CAPTURE_FOLDER)
+    }
+
     fn start_agent(self: &Arc<Self>, settings: &Settings) -> Option<Agent> {
         let source = match self.factory.open() {
             Ok(source) => source,
@@ -50,6 +58,7 @@ impl Inner {
             api_key: settings.api_key.clone(),
             game_server: settings.game_server.clone(),
             client_version: self.config.app_version.clone(),
+            capture_dir: settings.dev_capture.then(|| self.capture_dir()),
         };
         let weak: Weak<Inner> = Arc::downgrade(self);
         let sink: LogSink = Arc::new(move |line| {

@@ -92,6 +92,7 @@ fn config(url: &str, key: &str) -> AgentConfig {
         api_key: key.to_owned(),
         game_server: "Kourial".to_owned(),
         client_version: "2.4.0".to_owned(),
+        capture_dir: None,
     }
 }
 
@@ -236,4 +237,48 @@ fn log_lines_never_use_a_dash_look_alike_or_a_middle_dot() {
         map
     });
     assert_eq!(counts.get(&true), None);
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn the_dev_mode_capture_writes_every_message_of_the_session_into_a_file() {
+    let directory = std::env::temp_dir().join(format!("odd-agent-capture-{}", std::process::id()));
+    let (url, _collector) = collector(StatusCode::ACCEPTED).await;
+    let (sink, lines) = sink();
+    let handle = tokio::runtime::Handle::current();
+    let mut settings = config(&url, "");
+    settings.capture_dir = Some(directory.clone());
+    let agent = Agent::start(settings, Box::new(frames_of("hdv-ressource")), &handle, sink).unwrap();
+    wait_until("the capture file", || {
+        std::fs::read_dir(&directory)
+            .map(|found| {
+                found
+                    .flatten()
+                    .any(|file| file.metadata().is_ok_and(|meta| meta.len() > 0))
+            })
+            .unwrap_or(false)
+    })
+    .await;
+    agent.stop().await;
+    let file = std::fs::read_dir(&directory).unwrap().flatten().next().unwrap().path();
+    let text = std::fs::read_to_string(file).unwrap();
+    let types: Vec<String> = text
+        .lines()
+        .map(|line| {
+            serde_json::from_str::<Value>(line).unwrap()["type"]
+                .as_str()
+                .unwrap()
+                .to_owned()
+        })
+        .collect();
+    assert!(
+        types.contains(&"kcy".to_owned()) && types.contains(&"jzs".to_owned()),
+        "{types:?}"
+    );
+    let lines = lines.lock().unwrap().clone();
+    assert!(
+        lines
+            .iter()
+            .any(|line| line.summary.contains("Capture de développement"))
+    );
+    std::fs::remove_dir_all(directory).unwrap();
 }

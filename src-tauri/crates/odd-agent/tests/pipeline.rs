@@ -88,3 +88,35 @@ fn frames_that_are_not_the_game_are_ignored() {
         assert!(decoded.payloads.is_empty() && decoded.issues.is_empty());
     }
 }
+
+#[test]
+fn recording_hands_over_every_message_seen_in_order_even_those_not_decoded() {
+    let records = records("hdv-ressource");
+    let mut pipeline = Pipeline::new(GAME_PORT);
+    pipeline.set_recording(true);
+    let mut seen = Vec::new();
+    for segment in segments(&records, 1460, 50_000) {
+        pipeline.handle_frame(&segment.frame(), NOW);
+        seen.extend(pipeline.take_observed());
+    }
+    // The session starts with the greeting messages, which are seen too.
+    let sent: Vec<(odd_decode::Direction, String)> = greeting()
+        .iter()
+        .chain(records.iter())
+        .map(|(direction, envelope)| (*direction, envelope.type_name.clone()))
+        .collect();
+    let got: Vec<(odd_decode::Direction, String)> = seen
+        .iter()
+        .map(|each| (each.direction, each.envelope.type_name.clone()))
+        .collect();
+    assert_eq!(got, sent);
+    assert!(pipeline.take_observed().is_empty(), "the messages are handed over once");
+}
+
+#[test]
+fn nothing_is_kept_when_recording_is_off() {
+    let records = records("hdv-ressource");
+    let mut pipeline = Pipeline::new(GAME_PORT);
+    run(&mut pipeline, &segments(&records, 1460, 50_000));
+    assert!(pipeline.take_observed().is_empty());
+}

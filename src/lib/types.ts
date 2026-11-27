@@ -9,6 +9,8 @@ export interface Settings {
   logsEnabled: boolean;
   /** Start with Windows. Off until the player turns it on. */
   launchAtStartup: boolean;
+  /** Dev mode: write the structure of every game message to files (numbers only, no text). Off until turned on. */
+  devCapture: boolean;
 }
 
 export type NpcapState = "ok" | "missing";

@@ -49,6 +49,7 @@ pub fn run() -> Result<(), tauri::Error> {
             commands::start_update,
             commands::purge_local_data,
             commands::save_logs,
+            commands::open_capture_folder,
         ])
         .build(tauri::generate_context!())?;
     app.run(|handle, event| {

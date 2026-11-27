@@ -1,5 +1,6 @@
 //! The agent: reads captured frames, decodes them, sends the objects, and tells the interface what happened.
 
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::{self, JoinHandle};
@@ -9,9 +10,10 @@ use odd_sync::{Sender, SenderConfig, SyncClient, SyncError, SyncSnapshot, SyncSt
 use time::OffsetDateTime;
 use tokio::runtime::Handle;
 
+use crate::discovery::{Recorded, Recorder};
 use crate::events::{EventContext, build_event};
 use crate::ids::new_event_id;
-use crate::log::{LogSink, from_notice, problem, unsent};
+use crate::log::{LogSink, from_notice, notice, problem, unsent};
 use crate::pipeline::Pipeline;
 
 /// What the agent needs from the player's settings.
@@ -25,6 +27,8 @@ pub struct AgentConfig {
     pub game_server: String,
     /// The version of this application.
     pub client_version: String,
+    /// The folder where the dev mode capture writes the structure of every game message; `None` when it is off.
+    pub capture_dir: Option<PathBuf>,
 }
 
 /// A running agent.
@@ -48,9 +52,13 @@ impl Agent {
         let sender = start_sender(&config, runtime, &status, &sink)?.map(Arc::new);
         let stop = Arc::new(AtomicBool::new(false));
         let stopper = source.stopper();
+        let recorder = start_recorder(&config, &sink);
+        let mut pipeline = Pipeline::new(GAME_PORT);
+        pipeline.set_recording(recorder.is_some());
         let reader = Reader {
             source,
-            pipeline: Pipeline::new(GAME_PORT),
+            pipeline,
+            recorder,
             sender: sender.clone(),
             sink,
             config,
@@ -84,6 +92,25 @@ impl Agent {
     }
 }
 
+/// Opens the capture file of the dev mode, and tells the player where it is. A failure turns the capture off.
+fn start_recorder(config: &AgentConfig, sink: &LogSink) -> Option<Recorder> {
+    let directory = config.capture_dir.as_ref()?;
+    match Recorder::create(directory, OffsetDateTime::now_utc()) {
+        Ok(recorder) => {
+            let note = recorder.path().display().to_string();
+            sink(notice("Capture de développement activée", &note));
+            Some(recorder)
+        }
+        Err(error) => {
+            sink(problem(
+                "La capture de développement n'a pas pu démarrer",
+                &error.to_string(),
+            ));
+            None
+        }
+    }
+}
+
 fn start_sender(
     config: &AgentConfig,
     runtime: &Handle,
@@ -108,6 +135,7 @@ fn start_sender(
 struct Reader {
     source: Box<dyn FrameSource>,
     pipeline: Pipeline,
+    recorder: Option<Recorder>,
     sender: Option<Arc<Sender>>,
     sink: LogSink,
     config: AgentConfig,
@@ -136,6 +164,7 @@ impl Reader {
     fn handle(&mut self, frame: &[u8]) {
         let now = OffsetDateTime::now_utc();
         let decoded = self.pipeline.handle_frame(frame, now);
+        self.record_seen();
         for issue in decoded.issues {
             (self.sink)(problem("Message du jeu non compris", &issue.to_string()));
         }
@@ -149,6 +178,24 @@ impl Reader {
                 Some(sender) => self.submit(sender, event),
                 None => (self.sink)(unsent(&event)),
             }
+        }
+    }
+
+    /// Writes the messages the pipeline saw into the capture file; the first failure stops the capture.
+    fn record_seen(&mut self) {
+        let seen = self.pipeline.take_observed();
+        let Some(recorder) = self.recorder.as_mut() else {
+            return;
+        };
+        let stopped = seen.iter().find_map(|each| match recorder.record(each) {
+            Ok(Recorded::Written) => None,
+            Ok(Recorded::Full) => Some("Le fichier de capture a atteint sa taille limite".to_owned()),
+            Err(error) => Some(error.to_string()),
+        });
+        if let Some(reason) = stopped {
+            (self.sink)(problem("La capture de développement s'est arrêtée", &reason));
+            self.recorder = None;
+            self.pipeline.set_recording(false);
         }
     }
 

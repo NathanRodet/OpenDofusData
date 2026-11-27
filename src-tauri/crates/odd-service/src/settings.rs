@@ -28,6 +28,8 @@ pub struct Settings {
     pub logs_enabled: bool,
     /// Whether the application starts with Windows. Off until the player turns it on.
     pub launch_at_startup: bool,
+    /// Dev mode: the structure of every game message is written to files (numbers only, no text). Off until the player turns it on.
+    pub dev_capture: bool,
 }
 
 impl Default for Settings {
@@ -38,6 +40,7 @@ impl Default for Settings {
             api_key: String::new(),
             logs_enabled: true,
             launch_at_startup: false,
+            dev_capture: false,
         }
     }
 }

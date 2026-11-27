@@ -178,6 +178,24 @@ export function SettingsPage({ saved, status, scrollRef, onSaved, onRefreshStatu
           </div>
         </Group>
 
+        <Group id="dev" title="Dev Mode - Capture" hint="Pour comprendre de nouveaux messages du jeu. Désactivé par défaut.">
+          <div className="switch">
+            <Switch checked={draft.devCapture} label="Activer la capture de développement" onChange={(devCapture) => change({ devCapture })} />
+            <div>
+              <b>{draft.devCapture ? "Capture activée" : "Capture désactivée"}</b>
+              <p className="help flush">
+                Écrit la structure de chaque message du jeu dans un fichier (numéros et nombres seulement, jamais de texte ni de chat).
+                Un nouveau fichier commence à chaque enregistrement des réglages. Rien n'est envoyé.
+              </p>
+            </div>
+          </div>
+          <div className="row">
+            <button type="button" className="btn ghost" onClick={() => void backend.openCaptureFolder().catch(() => undefined)}>
+              Ouvrir le dossier des captures
+            </button>
+          </div>
+        </Group>
+
         <Group id="maj" title="Mises à jour et données" hint="Rien n'est gardé sur ce PC sauf si tu enregistres les logs.">
           {status !== null ? (
             <UpdateBox status={status} checking={checking} onCheck={() => void check()} onStart={() => void backend.startUpdate().catch(() => undefined).then(onRefreshStatus)} />

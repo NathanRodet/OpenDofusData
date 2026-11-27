@@ -17,6 +17,8 @@ export interface Backend {
   purgeLocalData(): Promise<void>;
   /** Saves every log line since the launch to a file chosen by the player. */
   saveLogs(entries: LogEntry[]): Promise<void>;
+  /** Opens the folder where the dev mode capture writes its files. */
+  openCaptureFolder(): Promise<void>;
   /** Calls the listener for each analysed message; returns the function that stops it. */
   onLog(listener: (entry: LogEntry) => void): () => void;
 }
