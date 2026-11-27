@@ -9,10 +9,8 @@ export interface Settings {
   logsEnabled: boolean;
   /** Start with Windows. Off until the player turns it on. */
   launchAtStartup: boolean;
-  /** Dev mode: write the structure of every game message to files (numbers only, no text). Off until turned on. */
+  /** Dev mode: write every game message to files, with the bytes of its opaque fields (text included). Off until turned on. */
   devCapture: boolean;
-  /** Message types (short names, comma separated) whose opaque fields the capture also writes as bytes and numbers. */
-  devCaptureTypes: string;
 }
 
 export type NpcapState = "ok" | "missing";

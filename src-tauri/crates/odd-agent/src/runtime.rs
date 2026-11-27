@@ -29,8 +29,6 @@ pub struct AgentConfig {
     pub client_version: String,
     /// The folder where the dev mode capture writes the structure of every game message; `None` when it is off.
     pub capture_dir: Option<PathBuf>,
-    /// The message types whose opaque fields the capture also writes as bytes and numbers (may hold text, so only on request).
-    pub capture_detail: Vec<String>,
 }
 
 /// A running agent.
@@ -97,15 +95,9 @@ impl Agent {
 /// Opens the capture file of the dev mode, and tells the player where it is. A failure turns the capture off.
 fn start_recorder(config: &AgentConfig, sink: &LogSink) -> Option<Recorder> {
     let directory = config.capture_dir.as_ref()?;
-    match Recorder::create(directory, OffsetDateTime::now_utc(), &config.capture_detail) {
+    match Recorder::create(directory, OffsetDateTime::now_utc()) {
         Ok(recorder) => {
-            let mut note = recorder.path().display().to_string();
-            if !config.capture_detail.is_empty() {
-                note.push_str(&format!(
-                    " (octets et nombres détaillés pour: {})",
-                    config.capture_detail.join(", ")
-                ));
-            }
+            let note = format!("{} (tous les messages, avec leurs octets)", recorder.path().display());
             sink(notice("Capture de développement activée", &note));
             Some(recorder)
         }

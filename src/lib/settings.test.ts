@@ -29,11 +29,6 @@ describe("launch at startup", () => {
 describe("dev mode capture", () => {
   it("is off by default", () => {
     expect(DEFAULT_SETTINGS.devCapture).toBe(false);
-    expect(DEFAULT_SETTINGS.devCaptureTypes).toBe("");
-  });
-
-  it("counts the types to detail as a change", () => {
-    expect(changedCount(DEFAULT_SETTINGS, { ...DEFAULT_SETTINGS, devCaptureTypes: "jnj" })).toBe(1);
   });
 
   it("counts as a change and breaks equality", () => {

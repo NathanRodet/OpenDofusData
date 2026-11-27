@@ -93,7 +93,6 @@ fn config(url: &str, key: &str) -> AgentConfig {
         game_server: "Kourial".to_owned(),
         client_version: "2.4.0".to_owned(),
         capture_dir: None,
-        capture_detail: Vec::new(),
     }
 }
 

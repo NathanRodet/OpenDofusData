@@ -17,7 +17,6 @@ fn player() -> Settings {
         logs_enabled: false,
         launch_at_startup: true,
         dev_capture: true,
-        dev_capture_types: "jnj, kpy".to_owned(),
     }
 }
 
@@ -55,7 +54,6 @@ fn the_file_uses_the_names_of_the_interface_and_leaves_no_temporary_file() {
         "logsEnabled",
         "launchAtStartup",
         "devCapture",
-        "devCaptureTypes",
     ] {
         assert!(text.contains(name), "{name} in {text}");
     }
@@ -109,14 +107,4 @@ fn a_server_address_without_a_prefix_gets_https() {
         "https://collector.example.org/"
     );
     assert_eq!(normalize_server_url("http://127.0.0.1:8080"), "http://127.0.0.1:8080");
-}
-
-#[test]
-fn the_types_to_detail_are_a_trimmed_list_without_empty_names() {
-    let settings = Settings {
-        dev_capture_types: " jnj ,, kpy,  ".to_owned(),
-        ..Settings::default()
-    };
-    assert_eq!(settings.capture_types(), vec!["jnj".to_owned(), "kpy".to_owned()]);
-    assert!(Settings::default().capture_types().is_empty(), "none by default");
 }

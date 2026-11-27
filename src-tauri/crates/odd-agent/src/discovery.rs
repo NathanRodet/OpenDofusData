@@ -1,9 +1,9 @@
 //! Dev mode capture: the structure of every game message, written as JSON lines for a developer to study.
 //!
-//! By default only numbers are kept (field numbers, integers, lengths): no text and no raw bytes.
-//! The one exception is opt-in: for the message types the developer lists, opaque fields also give their first bytes
-//! (hex) and packed numbers. Those bytes can be text (a name, a chat line): never list a chat type, and read the file
-//! before sharing it. The files stay on the developer's PC; nothing here is sent.
+//! The recorder keeps, for every message, the field numbers, the integers and the lengths, and for opaque fields their
+//! first bytes (hex) and packed numbers. Those bytes can be text (a name, a chat line): the dev mode is for the
+//! developer, off by default, and the files stay on the developer's PC (nothing here is sent): read them before
+//! sharing one.
 
 use std::fs::{self, File};
 use std::io::{self, BufWriter, Write};
@@ -95,7 +95,7 @@ fn describe_fields(message: &Message<'_>, depth: usize, detailed: bool) -> Vec<J
 }
 
 /// The hex of the first bytes of an opaque field, and its numbers when it is exactly a list of packed varints.
-/// It can hold text: only the types the developer asked for get it.
+/// It can hold text, which is why the dev mode is opt-in.
 fn preview(bytes: &[u8], node: &mut Map<String, Json>) -> Option<Json> {
     let hex: String = bytes
         .iter()
@@ -141,15 +141,13 @@ pub enum Recorded {
 #[derive(Debug)]
 pub struct Recorder {
     file: BufWriter<File>,
-    detailed_types: Vec<String>,
     path: PathBuf,
     written: u64,
 }
 
 impl Recorder {
     /// Creates `capture-YYYY-MM-DD-HH-MM-SS.jsonl` in `directory` (made when missing).
-    /// The types in `detailed_types` get the bytes and packed numbers of their opaque fields.
-    pub fn create(directory: &Path, now: OffsetDateTime, detailed_types: &[String]) -> io::Result<Self> {
+    pub fn create(directory: &Path, now: OffsetDateTime) -> io::Result<Self> {
         fs::create_dir_all(directory)?;
         let stamp: String = now
             .format(&Rfc3339)
@@ -159,12 +157,7 @@ impl Recorder {
             .collect();
         let path = directory.join(format!("capture-{}.jsonl", stamp.replace(['T', ':'], "-")));
         let file = BufWriter::new(File::create(&path)?);
-        Ok(Self {
-            file,
-            detailed_types: detailed_types.to_vec(),
-            path,
-            written: 0,
-        })
+        Ok(Self { file, path, written: 0 })
     }
 
     /// The file being written.
@@ -177,8 +170,7 @@ impl Recorder {
         if self.written >= MAX_CAPTURE_BYTES {
             return Ok(Recorded::Full);
         }
-        let detailed = self.detailed_types.contains(&observation.envelope.type_name);
-        let line = describe_message(observation, detailed).map_err(io::Error::other)?;
+        let line = describe_message(observation, true).map_err(io::Error::other)?;
         writeln!(self.file, "{line}")?;
         self.file.flush()?;
         self.written += u64::try_from(line.len()).unwrap_or(u64::MAX).saturating_add(1);

@@ -142,7 +142,6 @@ fn player(url: &str, key: &str) -> Settings {
         logs_enabled: true,
         launch_at_startup: false,
         dev_capture: false,
-        dev_capture_types: String::new(),
     }
 }
 

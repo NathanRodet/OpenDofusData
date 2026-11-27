@@ -58,7 +58,7 @@ fn text_is_never_written_only_its_length() {
 #[test]
 fn the_recorder_writes_one_line_per_message_in_a_file_named_after_the_time() {
     let directory = std::env::temp_dir().join(format!("odd-capture-test-{}", std::process::id()));
-    let mut recorder = Recorder::create(&directory, datetime!(2026-11-27 10:15:30 UTC), &[]).unwrap();
+    let mut recorder = Recorder::create(&directory, datetime!(2026-11-27 10:15:30 UTC)).unwrap();
     assert!(recorder.path().ends_with("capture-2026-11-27-10-15-30.jsonl"));
     for number in [1, 2] {
         let outcome = recorder.record(&observation(field_varint(1, number))).unwrap();
@@ -80,16 +80,14 @@ fn a_detailed_type_also_gives_the_bytes_and_the_packed_numbers_of_opaque_fields(
 }
 
 #[test]
-fn the_recorder_details_only_the_types_it_was_given() {
+fn the_recorder_details_every_type() {
     let directory = std::env::temp_dir().join(format!("odd-capture-detail-{}", std::process::id()));
-    let mut recorder = Recorder::create(&directory, datetime!(2026-11-27 10:15:30 UTC), &["abc".to_owned()]).unwrap();
+    let mut recorder = Recorder::create(&directory, datetime!(2026-11-27 10:15:30 UTC)).unwrap();
     recorder.record(&observation(field_bytes(3, b"Meta"))).unwrap();
     let mut other = observation(field_bytes(3, b"Meta"));
     other.envelope.type_name = "zzz".to_owned();
     recorder.record(&other).unwrap();
     let text = std::fs::read_to_string(recorder.path()).unwrap();
-    let lines: Vec<&str> = text.lines().collect();
-    assert!(lines[0].contains("4d657461"), "the listed type is detailed");
-    assert!(!lines[1].contains("4d657461"), "the others never are");
+    assert!(text.lines().all(|line| line.contains("4d657461")), "{text}");
     std::fs::remove_dir_all(directory).unwrap();
 }
