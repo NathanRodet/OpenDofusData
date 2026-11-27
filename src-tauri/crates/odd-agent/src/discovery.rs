@@ -1,6 +1,9 @@
 //! Dev mode capture: the structure of every game message, written as JSON lines for a developer to study.
 //!
-//! Only numbers are kept (field numbers, integers, lengths): no text and no raw bytes, so no chat leaves the game.
+//! By default only numbers are kept (field numbers, integers, lengths): no text and no raw bytes.
+//! The one exception is opt-in: for the message types the developer lists, opaque fields also give their first bytes
+//! (hex) and packed numbers. Those bytes can be text (a name, a chat line): never list a chat type, and read the file
+//! before sharing it. The files stay on the developer's PC; nothing here is sent.
 
 use std::fs::{self, File};
 use std::io::{self, BufWriter, Write};

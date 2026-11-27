@@ -99,7 +99,13 @@ fn start_recorder(config: &AgentConfig, sink: &LogSink) -> Option<Recorder> {
     let directory = config.capture_dir.as_ref()?;
     match Recorder::create(directory, OffsetDateTime::now_utc(), &config.capture_detail) {
         Ok(recorder) => {
-            let note = recorder.path().display().to_string();
+            let mut note = recorder.path().display().to_string();
+            if !config.capture_detail.is_empty() {
+                note.push_str(&format!(
+                    " (octets et nombres détaillés pour: {})",
+                    config.capture_detail.join(", ")
+                ));
+            }
             sink(notice("Capture de développement activée", &note));
             Some(recorder)
         }
